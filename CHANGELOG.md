@@ -1,5 +1,12 @@
 # Changelog
 
+## [unreleased]
+
+### Fixes
+
+* Fixed memory leak associated with autoUpdater ([#2606](https://github.com/TryQuiet/quiet/issues/2606))
+* Fixed visual regression tests ([#2644](https://github.com/TryQuiet/quiet/issues/2645))
+
 ## [2.3.1]
 
 ### Fixes

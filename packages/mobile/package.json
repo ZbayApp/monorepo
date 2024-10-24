@@ -85,11 +85,11 @@
     "react-native-randombytes": "git+https://github.com/siepra/react-native-randombytes.git#5a6dff9e340f70cabe3e1561cc2ff19671b0af49"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.7",
-    "@babel/plugin-transform-flow-strip-types": "^7.24.7",
-    "@babel/plugin-transform-private-methods": "^7.24.7",
-    "@babel/preset-env": "^7.24.7",
-    "@babel/runtime": "^7.24.7",
+    "@babel/core": "^7.24.5",
+    "@babel/plugin-transform-flow-strip-types": "^7.24.1",
+    "@babel/plugin-transform-private-methods": "^7.24.1",
+    "@babel/preset-env": "^7.24.5",
+    "@babel/runtime": "^7.24.5",
     "@quiet/eslint-config": "^2.0.2-alpha.0",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-community/cli-platform-android": "^12.3.4",
