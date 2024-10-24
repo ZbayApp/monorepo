@@ -1,3 +1,3 @@
 import { createQuietLogger } from '@quiet/logger'
 
-export const createLogger = createQuietLogger('backend', true)
+export const createLogger = createQuietLogger('backend')

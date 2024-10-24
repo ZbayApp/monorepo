@@ -46,10 +46,11 @@ const initRnBridge = () => {
     }
 
     static parsePayload(message: string) {
+      logger.warn('rn-bridge payload', message)
       const parsed: { [key: string]: string } = {}
       const entries = message.split('|')
       if (entries.length < 1) {
-        logger.warn('Malformed or non-existen rn-bridge payload ', entries)
+        logger.warn('Malformed or non-existent rn-bridge payload ', entries)
         return parsed
       }
       entries.forEach(s => {
