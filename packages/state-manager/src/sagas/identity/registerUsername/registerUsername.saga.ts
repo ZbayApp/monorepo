@@ -32,7 +32,7 @@ export function* registerUsernameSaga(
   logger.info(`Found community ${community?.id} has CA?: ${community?.CA !== null}`)
 
   logger.info('Emitting CREATE_USER_CSR')
-  const payload: InitUserCsrPayload = { communityId: community.id, nickname: nickname }
+  const payload: InitUserCsrPayload = { communityId: community.id, nickname, isUsernameTaken }
   const identity: Identity = yield* apply(
     socket,
     socket.emitWithAck,
@@ -43,12 +43,8 @@ export function* registerUsernameSaga(
 
   if (community.CA?.rootCertString) {
     yield* put(communitiesActions.createCommunity(community.id))
-  } else {
-    if (!isUsernameTaken) {
-      logger.info('Username is not taken, launching community')
-      yield* put(communitiesActions.launchCommunity(community.id))
-    } else {
-      yield* put(identityActions.saveUserCsr())
-    }
+  } else if (!isUsernameTaken) {
+    logger.info('Username is not taken, launching community')
+    yield* put(communitiesActions.launchCommunity(community.id))
   }
 }

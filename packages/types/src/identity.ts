@@ -47,6 +47,7 @@ export interface IdentityUpdatePayload {
 export interface InitUserCsrPayload {
   communityId: string
   nickname: string
+  isUsernameTaken?: boolean
 }
 
 export interface CreateUserCsrPayload {

@@ -460,7 +460,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       userCsr = await createUserCsr(createUserCsrPayload)
     } catch (e) {
       emitError(this.serverIoProvider.io, {
-        type: SocketActionTypes.ADD_CSR,
+        type: SocketActionTypes.CREATE_USER_CSR,
         message: ErrorMessages.USER_CSR_CREATION_FAILED,
         community: communityId,
       })
@@ -470,6 +470,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     identity = { ...identity, userCsr: userCsr, nickname: nickname }
     this.logger.info('Created user CSR')
     await this.storageService.setIdentity(identity)
+    if (payload.isUsernameTaken) {
+      await this.storageService.saveCSR({ csr: userCsr.userCsr })
+    }
     return identity
   }
 
