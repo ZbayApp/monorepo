@@ -22,9 +22,9 @@
     "lib/**/*"
   ],
   "devDependencies": {
-    "@babel/core": "^7.24.7",
-    "@babel/preset-env": "^7.24.7",
-    "@babel/preset-typescript": "^7.24.7",
+    "@babel/core": "^7.22.5",
+    "@babel/preset-env": "^7.22.5",
+    "@babel/preset-typescript": "^7.22.5",
     "@quiet/eslint-config": "^2.0.2-alpha.0",
     "@types/jest": "^26.0.24",
     "@types/luxon": "^3.4.2",

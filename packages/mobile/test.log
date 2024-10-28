@@ -1,4 +1,0 @@
-
-> @quiet/mobile@2.3.0 test
-> jest --testPathIgnorePatterns="./e2e" --
-
