@@ -50,6 +50,7 @@ describe('registerUsernameSaga', () => {
     const initUserCsrPayload: InitUserCsrPayload = {
       nickname: 'nickname',
       communityId: community.id,
+      isUsernameTaken: false,
     }
 
     const reducer = combineReducers(reducers)
@@ -117,6 +118,7 @@ describe('registerUsernameSaga', () => {
     const initUserCsrPayload: InitUserCsrPayload = {
       nickname: newNickname,
       communityId: community.id,
+      isUsernameTaken: true,
     }
 
     const reducer = combineReducers(reducers)
@@ -135,7 +137,6 @@ describe('registerUsernameSaga', () => {
         ],
       ])
       .put(identityActions.updateIdentity({ ...identity, nickname: newNickname, userCsr: newUserCsr }))
-      .put(identityActions.saveUserCsr())
       .run()
   })
 })
