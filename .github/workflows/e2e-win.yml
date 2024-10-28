@@ -8,13 +8,14 @@ jobs:
     timeout-minutes: 180
 
     env:
-      ELECTRON_CUSTOM_VERSION: 23.0.0
       TEST_MODE: true
       E2E: true
       IS_CI: true
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: 'recursive'
 
       - name: "Setup environment"
         uses: ./.github/actions/setup-env
@@ -92,7 +93,7 @@ jobs:
           max_attempts: 3
           shell: bash
           command: cd packages/e2e-tests && npm run test oneClient.test.ts
-      
+
       - name: Run user profile test
         uses: nick-fields/retry@v2
         with:
@@ -100,7 +101,7 @@ jobs:
           max_attempts: 3
           shell: bash
           command: cd packages/e2e-tests && npm run test userProfile.test.ts
-        
+
       - name: Run invitation link test - Includes 2 separate application clients
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         with:
@@ -108,7 +109,7 @@ jobs:
           max_attempts: 3
           shell: bash
           command: cd packages/e2e-tests && npm run test invitationLink.test.ts
-  
+
 
       - name: Run multiple clients test
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0

@@ -13,13 +13,14 @@ jobs:
     timeout-minutes: 180
 
     env:
-      ELECTRON_CUSTOM_VERSION: 23.0.0
       DISPLAY: ":99.0"
       TEST_MODE: true
       IS_CI: true
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: 'recursive'
 
       - name: Install WM
         run: sudo apt install fluxbox

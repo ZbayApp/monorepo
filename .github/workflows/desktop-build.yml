@@ -35,6 +35,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: 'recursive'
 
       - name: Setup environment
         uses: ./.github/actions/setup-env
@@ -106,6 +108,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: 'recursive'
 
       - uses: actions-rs/components-nightly@254194ebf6ba07d2bb7cec8be76cee368d44fb90 # v1.1.1
         with:
@@ -180,6 +184,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: 'recursive'
 
       - name: "Fetch jsign"
         shell: bash

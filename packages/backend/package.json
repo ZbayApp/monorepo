@@ -93,6 +93,7 @@
     "@chainsafe/libp2p-gossipsub": "13.2.0",
     "@chainsafe/libp2p-noise": "13.0.2",
     "@chainsafe/libp2p-yamux": "6.0.2",
+    "@localfirst/auth": "file:../../3rd-party/auth/packages/auth",
     "@nestjs/common": "^10.2.10",
     "@nestjs/core": "^10.2.10",
     "@nestjs/platform-express": "^10.2.10",

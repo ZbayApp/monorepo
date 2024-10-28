@@ -2,7 +2,7 @@ name: Detox E2E Android (self-hosted)
 
 on:
   push:
-    paths: 
+    paths:
       - packages/mobile/**
       - packages/backend/**
       - packages/state-manager/**
@@ -15,6 +15,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
       - name: Install dependencies
         run: |
@@ -52,5 +54,5 @@ jobs:
           detox test starter -c android.emu.debug.ci
 
       - name: Stop metro
-        if: always() 
+        if: always()
         run: pm2 stop METRO
