@@ -37,7 +37,7 @@ jobs:
         uses: ./.github/actions/setup-env
         if: steps.filter.outputs.desktop == 'true'
         with:
-          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,backend-bundle"
+          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,backend-bundle,helia"
 
       - name: "Publish to Chromatic"
         uses: chromaui/action@355e2a05a179e9e89c2b237dcd55adbeb89e577e # v1

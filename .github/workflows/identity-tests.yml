@@ -36,7 +36,7 @@ jobs:
         uses: ./.github/actions/setup-env
         if: steps.filter.outputs.identity == 'true'
         with:
-          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/types,@quiet/identity,backend-bundle"
+          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/types,@quiet/identity,backend-bundle,helia"
 
       - name: "Unit tests"
         if: steps.filter.outputs.identity == 'true'

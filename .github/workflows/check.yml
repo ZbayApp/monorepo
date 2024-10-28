@@ -27,13 +27,13 @@ jobs:
         uses: ./.github/actions/setup-env
         if: ${{ runner.os != 'Windows' }}
         with:
-          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,@quiet/mobile,e2e-tests,backend-bundle"
+          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,@quiet/mobile,e2e-tests,backend-bundle,helia"
 
       - name: "Setup environment for Windows"
         uses: ./.github/actions/setup-env
         if: ${{ runner.os == 'Windows' }}
         with:
-          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,e2e-tests,backend-bundle"
+          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,e2e-tests,backend-bundle,helia"
 
       - name: "Lint"
         if: ${{ runner.os != 'Windows' }}

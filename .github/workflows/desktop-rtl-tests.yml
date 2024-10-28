@@ -38,7 +38,7 @@ jobs:
         if: steps.filter.outputs.validFiles == 'true'
         with:
           cachePrefix: "desktop-tests"
-          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,backend-bundle"
+          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,backend-bundle,helia"
 
       - name: "Desktop - state-manager bracket tests"
         if: steps.filter.outputs.validFiles == 'true'
