@@ -22,7 +22,7 @@ jobs:
       - name: "Skip tests"
         if: steps.filter.outputs.desktop == 'false'
         run: |
-         echo "Skipping test run" 
+         echo "Skipping test run"
          exit 0
 
       - name: "Print OS"
@@ -31,6 +31,8 @@ jobs:
 
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         if: steps.filter.outputs.desktop == 'true'
+        with:
+          submodules: 'recursive'
 
       - name: Setup environment
         uses: ./.github/actions/setup-env

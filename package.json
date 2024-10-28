@@ -11,7 +11,8 @@
     "e2e:linux:build": "lerna run --scope @quiet/backend webpack:prod && lerna run --scope @quiet/desktop distUbuntu && lerna run --scope e2e-tests linux:copy",
     "e2e:linux:run": "lerna run --scope e2e-tests test --",
     "prepare": "husky",
-    "lint-staged": "lerna run lint-staged"
+    "lint-staged": "lerna run lint-staged",
+    "build:auth": "cd ./3rd-party/auth && pnpm install && pnpm build"
   },
   "engines": {
     "node": "18.12.1",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "husky": "^9.0.11",
     "lerna": "^6.6.2",
-    "typescript": "^4.9.3"
+    "typescript": "^4.9.3",
+    "pnpm": "^9.12.1"
   }
 }

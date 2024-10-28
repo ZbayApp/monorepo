@@ -87,6 +87,7 @@
     "yargs": "^17.1.0"
   },
   "dependencies": {
+    "@localfirst/auth": "file:../../3rd-party/auth/packages/auth",
     "@chainsafe/libp2p-gossipsub": "6.1.0",
     "@chainsafe/libp2p-noise": "11.0.0",
     "@nestjs/common": "^10.2.10",

@@ -1,7 +1,7 @@
 FROM node:16@sha256:818b5adc1ee4a04e8ad5efeb70871571efe414315ad7f16844f24f9962ffdc7e
 
 ARG ELECTRON_CUSTOM_VERSION 23.0.0
-ARG ELECTRON_CHROMEDRIVER_VERSION 22.0.0
+ARG ELECTRON_CHROMEDRIVER_VERSION 23.3.13
 ENV CHROMEDRIVER_PORT 9515
 ENV CHROMEDRIVER_WHITELISTED_IPS ""
 ENV SCREEN_WIDTH 1920
@@ -23,18 +23,18 @@ RUN apt-get -qqy install \
 # Fonts
 #=======
 RUN apt-get -qqy --no-install-recommends install \
-    fonts-ipafont-gothic \
-    xfonts-100dpi \
-    xfonts-75dpi \
-    xfonts-cyrillic \
-    xfonts-scalable
+  fonts-ipafont-gothic \
+  xfonts-100dpi \
+  xfonts-75dpi \
+  xfonts-cyrillic \
+  xfonts-scalable
 
 #=========
 # fluxbox
 # A fast, lightweight and responsive window manager
 #=========
 RUN apt-get -qqy install \
-    xvfb fluxbox
+  xvfb fluxbox
 
 #=====
 # Chromedriver dependencies
@@ -44,7 +44,7 @@ RUN apt-get -qqy install \
 
 RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
-ENV ELECTRON_CUSTOM_VERSION=19.0.5
+ENV ELECTRON_CUSTOM_VERSION=$ELECTRON_CUSTOM_VERSION
 RUN npm install -g electron-chromedriver@$ELECTRON_CHROMEDRIVER_VERSION
 
 ADD entrypoint.sh /entrypoint.sh
