@@ -12,9 +12,6 @@ import { preSharedKey } from '@libp2p/pnet'
 import * as filters from '@libp2p/websockets/filters'
 import { createLibp2p } from 'libp2p'
 
-import { LevelDatastore } from 'datastore-level'
-import { DatabaseOptions, Level } from 'level'
-
 import { multiaddr } from '@multiformats/multiaddr'
 import { Inject, Injectable } from '@nestjs/common'
 
@@ -34,6 +31,7 @@ import { ServerIoProviderTypes } from '../types'
 import { webSockets } from '../websocketOverTor'
 import { Libp2pConnectedPeer, Libp2pEvents, Libp2pNodeParams, Libp2pPeerInfo } from './libp2p.types'
 import { createLogger } from '../common/logger'
+import { Libp2pDatastore } from './libp2p.datastore'
 
 const KEY_LENGTH = 32
 export const LIBP2P_PSK_METADATA = '/key/swarm/psk/1.0.0/\n/base16/\n'
@@ -44,7 +42,8 @@ export class Libp2pService extends EventEmitter {
   private dialQueue: string[]
   public connectedPeers: Map<string, Libp2pConnectedPeer>
   public dialedPeers: Set<string>
-  private datastore: LevelDatastore | null
+  private libp2pDatastore: Libp2pDatastore
+  private redialTimeout: NodeJS.Timeout
 
   private readonly logger = createLogger(Libp2pService.name)
 
@@ -99,7 +98,7 @@ export class Libp2pService extends EventEmitter {
     }
 
     // TODO: Implement exponential backoff for peers that fail to connect
-    setTimeout(this.redialPeersInBackground.bind(this), 20000)
+    this.redialTimeout = setTimeout(this.redialPeersInBackground.bind(this), 20000)
   }
 
   public dialUsers = async (users: UserData[]) => {
@@ -116,23 +115,26 @@ export class Libp2pService extends EventEmitter {
   }
 
   public pause = async (): Promise<Libp2pPeerInfo> => {
+    clearTimeout(this.redialTimeout)
     const peerInfo = this.getCurrentPeerInfo()
     await this.hangUpPeers(Array.from(this.dialedPeers))
     this.dialedPeers.clear()
     this.connectedPeers.clear()
-    await this.datastore?.close()
+    // await this.libp2pInstance?.stop()
+    await this.libp2pDatastore.deleteKeysByPrefix('peers')
     return peerInfo
   }
 
   public resume = async (peersToDial: string[]): Promise<void> => {
-    await this.datastore?.open()
-    if (peersToDial.length === 0) {
-      this.logger.warn('No peers to redial!')
-      return
+    // await this.libp2pInstance?.start()
+    if (peersToDial.length > 0) {
+      this.logger.info(`Redialing ${peersToDial.length} peers`)
+      await this.redialPeers(peersToDial)
+    } else {
+      this.logger.info(`No peers to redial!`)
     }
 
-    this.logger.info(`Redialing ${peersToDial.length} peers`)
-    await this.redialPeers(peersToDial)
+    this.redialPeersInBackground()
   }
 
   public readonly createLibp2pAddress = (address: string, peerId: string): string => {
@@ -213,7 +215,7 @@ export class Libp2pService extends EventEmitter {
     await this.hangUpPeers(dialed)
 
     for (const addr of toDial) {
-      this.dialPeer(addr)
+      await this.dialPeer(addr)
     }
   }
 
@@ -226,8 +228,10 @@ export class Libp2pService extends EventEmitter {
     }
 
     this.logger.info(`Creating or opening existing level datastore for libp2p`)
-    this.datastore = this.createDatastore()
-    await this.datastore.open()
+    this.libp2pDatastore = new Libp2pDatastore({
+      inMemory: false,
+      datastorePath: this.datastorePath,
+    })
 
     let libp2p: Libp2p
 
@@ -235,7 +239,7 @@ export class Libp2pService extends EventEmitter {
     try {
       libp2p = await createLibp2p({
         start: false,
-        datastore: this.datastore,
+        datastore: this.libp2pDatastore.init(),
         connectionManager: {
           minConnections: 3, // TODO: increase?
           maxConnections: 20, // TODO: increase?
@@ -373,23 +377,9 @@ export class Libp2pService extends EventEmitter {
     this.logger.info(`Initialized libp2p for peer ${peerId.toString()}`)
   }
 
-  private createDatastore(): LevelDatastore {
-    const datastoreInit: DatabaseOptions<string, Uint8Array> = {
-      keyEncoding: 'utf8',
-      valueEncoding: 'buffer',
-      createIfMissing: true,
-      errorIfExists: false,
-      version: 1,
-    }
-
-    const datastoreLevelDb = new Level<string, Uint8Array>(this.datastorePath, datastoreInit)
-    return new LevelDatastore(datastoreLevelDb, datastoreInit)
-  }
-
   public async close(): Promise<void> {
     this.logger.info('Closing libp2p service')
     await this.libp2pInstance?.stop()
-    await this.datastore?.close()
     this.libp2pInstance = null
     this.connectedPeers = new Map()
     this.dialedPeers = new Set()

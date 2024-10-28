@@ -72,5 +72,8 @@
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": "npm run lint:no-fix"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

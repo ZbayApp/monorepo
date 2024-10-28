@@ -12,8 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "webpack": "webpack --env mode=development && cp ./lib/bundle.cjs ../backend-bundle/bundle.cjs",
     "webpack:prod": "webpack --env mode=production && cp ./lib/bundle.cjs ../backend-bundle/bundle.cjs",
-    "postinstall": "npm run copyNodeDatachannelBinary && npm run applyPatches",
-    "copyNodeDatachannelBinary": "cp node_modules/node-datachannel/build/Release/node_datachannel.node ../backend-bundle/deps/node_datachannel.node",
+    "postinstall": "npm run applyPatches",
     "applyPatches": "patch -f -p0 < ./patch/electron-fetch.patch || true && patch -f -p0 --forward --binary < ./patch/parse-duration.patch || true && patch -f -p0 --forward --binary < ./patch/parse-duration-esm.patch || true && patch -f -p0 < ./patch/ipfs-pubsub-peer-monitor.patch || true && patch --forward -p0 node_modules/@orbitdb/core/src/oplog/log.js < ./patch/orbitdb-oplog.patch || true && patch --forward -p0 node_modules/@libp2p/kad-dht/dist/src/providers.js < ./patch/libp2p-kaddht-providers.patch || true && patch --forward -p0 node_modules/@helia/block-brokers/node_modules/ipfs-bitswap/dist/src/bitswap.js < ./patch/bitswap.patch || true && patch --forward -p0 node_modules/libp2p/dist/src/connection-monitor.js < ./patch/libp2p-connection-monitor.patch || true",
     "prepare": "npm run webpack",
     "version": "git add -A src",
@@ -111,6 +110,7 @@
     "commander": "^7.2.0",
     "cors": "^2.8.5",
     "crypto-js": "^4.1.1",
+    "datastore-core": "9.2.9",
     "datastore-level": "10.1.7",
     "debug": "^4.3.1",
     "dotenv": "8.2.0",
@@ -125,6 +125,7 @@
     "http-server": "^0.12.3",
     "https-proxy-agent": "^7.0.5",
     "image-size": "^1.0.1",
+    "interface-datastore": "8.3.1",
     "@ipld/dag-cbor": "^9.2.1",
     "@ipld/dag-pb": "^4.1.2",
     "it-drain": "^3.0.7",
@@ -178,5 +179,8 @@
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": "npm run lint:no-fix"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

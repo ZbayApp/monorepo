@@ -234,6 +234,7 @@ export class SocketService extends EventEmitter implements OnModuleInit {
     this.logger.info('Disconnecting sockets')
     this.serverIoProvider.io.disconnectSockets(true)
     this.sockets.forEach(s => s.destroy())
+    this.serverIoProvider.io.close()
   }
 
   public listen = async (): Promise<void> => {

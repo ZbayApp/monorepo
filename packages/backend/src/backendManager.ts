@@ -12,6 +12,7 @@ import { INestApplicationContext } from '@nestjs/common'
 import { OpenServices, validateOptions } from './options'
 import { SOCKS_PROXY_AGENT } from './nest/const'
 import { createLogger } from './nest/common/logger'
+import { HttpsProxyAgent } from 'https-proxy-agent'
 
 const logger = createLogger('backendManager')
 
@@ -119,6 +120,8 @@ export const runBackendMobile = async () => {
     { logger: ['warn', 'error', 'log', 'debug', 'verbose'] }
   )
 
+  let proxyAgent: HttpsProxyAgent<string> | undefined
+
   rn_bridge.channel.on('close', () => {
     const connectionsManager = app.get<ConnectionsManagerService>(ConnectionsManagerService)
     connectionsManager.pause()
@@ -127,10 +130,11 @@ export const runBackendMobile = async () => {
   rn_bridge.channel.on('open', (msg: OpenServices) => {
     const connectionsManager = app.get<ConnectionsManagerService>(ConnectionsManagerService)
     const torControl = app.get<TorControl>(TorControl)
-    const proxyAgent = app.get<{ proxy: { port: string } }>(SOCKS_PROXY_AGENT)
+    proxyAgent = app.get<HttpsProxyAgent<string>>(SOCKS_PROXY_AGENT)
 
     torControl.torControlParams.port = msg.torControlPort
     torControl.torControlParams.auth.value = msg.authCookie
+    proxyAgent.connectOpts.port = msg.httpTunnelPort
     proxyAgent.proxy.port = msg.httpTunnelPort
 
     connectionsManager.resume()

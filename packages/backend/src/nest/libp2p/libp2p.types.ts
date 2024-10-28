@@ -25,3 +25,8 @@ export type Libp2pConnectedPeer = {
   address: string
   connectedAtSeconds: number
 }
+
+export type Libp2pDatastoreOptions = {
+  inMemory: boolean
+  datastorePath?: string
+}

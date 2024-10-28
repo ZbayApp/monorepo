@@ -140,7 +140,7 @@ export class AppModule {
         },
         {
           provide: SOCKS_PROXY_AGENT,
-          useFactory: async (configOptions: ConfigOptions) => {
+          useFactory: async (configOptions: ConfigOptions): Promise<HttpsProxyAgent<string>> => {
             if (!configOptions.httpTunnelPort) {
               configOptions.httpTunnelPort = await getPort()
             }
