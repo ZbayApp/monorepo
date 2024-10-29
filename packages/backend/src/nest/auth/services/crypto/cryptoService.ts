@@ -2,12 +2,12 @@
  * Handles invite-related chain operations
  */
 
-import { EncryptedAndSignedPayload, EncryptedPayload, EncryptionScope, EncryptionScopeType } from './types.js'
-import { BaseChainService } from '../baseService.js'
-import { SigChain } from '../../chain.js'
+import { EncryptedAndSignedPayload, EncryptedPayload, EncryptionScope, EncryptionScopeType } from './types'
+import { BaseChainService } from '../baseService'
+import { SigChain } from '../../chain'
 import { Base58, Keyset, KeysetWithSecrets, LocalUserContext, Member, SignedEnvelope } from '@localfirst/auth'
-import { DEFAULT_SEARCH_OPTIONS, MemberSearchOptions } from '../members/types.js'
-import { ChannelService } from '../roles/channelService.js'
+import { DEFAULT_SEARCH_OPTIONS, MemberSearchOptions } from '../members/types'
+import { ChannelService } from '../roles/channelService'
 
 class CryptoService extends BaseChainService {
   public static init(sigChain: SigChain): CryptoService {

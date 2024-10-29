@@ -3,9 +3,9 @@
  */
 
 import { createHash } from 'crypto'
-import { BaseChainService } from '../baseService.js'
+import { BaseChainService } from '../baseService'
 import { Keyset } from '@localfirst/auth'
-import { SigChain } from '../../chain.js'
+import { SigChain } from '../../chain'
 
 class DMService extends BaseChainService {
   private dmMap: Map<string, string[]> = new Map()

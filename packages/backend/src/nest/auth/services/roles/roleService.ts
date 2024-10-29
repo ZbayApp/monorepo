@@ -2,10 +2,10 @@
  * Handles role-related chain operations
  */
 
-import { SigChain } from '../../chain.js'
-import { BaseChainService } from '../baseService.js'
-import { Permissions } from './permissions.js'
-import { QuietRole, RoleName } from './roles.js'
+import { SigChain } from '../../chain'
+import { BaseChainService } from '../baseService'
+import { Permissions } from './permissions'
+import { QuietRole, RoleName } from './roles'
 import { LocalUserContext, Member, PermissionsMap, Role } from '@localfirst/auth'
 
 class RoleService extends BaseChainService {

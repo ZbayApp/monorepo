@@ -2,7 +2,7 @@
  * Handles invite-related chain operations
  */
 
-import { BaseChainService } from '../baseService.js'
+import { BaseChainService } from '../baseService'
 import { ValidationResult } from '@localfirst/crdx'
 import {
   Base58,
@@ -13,8 +13,8 @@ import {
   ProofOfInvitation,
   UnixTimestamp,
 } from '@localfirst/auth'
-import { SigChain } from '../../chain.js'
-import { RoleName } from '../roles/roles.js'
+import { SigChain } from '../../chain'
+import { RoleName } from '../roles/roles'
 
 export const DEFAULT_MAX_USES = 1
 export const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week

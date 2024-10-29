@@ -1,4 +1,4 @@
-import { SigChain } from '../chain.js'
+import { SigChain } from '../chain'
 
 class BaseChainService {
   protected constructor(protected sigChain: SigChain) {}

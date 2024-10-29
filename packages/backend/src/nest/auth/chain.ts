@@ -3,15 +3,15 @@
  */
 
 import * as auth from '@localfirst/auth'
-import { LoadedSigChain } from './types.js'
-import { UserService } from './services/members/userService.js'
-import { RoleService } from './services/roles/roleService.js'
-import { ChannelService } from './services/roles/channelService.js'
-import { DeviceService } from './services/members/deviceService.js'
-import { InviteService } from './services/invites/inviteService.js'
-import { DMService } from './services/dm/dmService.js'
-import { CryptoService } from './services/crypto/cryptoService.js'
-import { RoleName } from './services/roles/roles.js'
+import { LoadedSigChain } from './types'
+import { UserService } from './services/members/userService'
+import { RoleService } from './services/roles/roleService'
+import { ChannelService } from './services/roles/channelService'
+import { DeviceService } from './services/members/deviceService'
+import { InviteService } from './services/invites/inviteService'
+import { DMService } from './services/dm/dmService'
+import { CryptoService } from './services/crypto/cryptoService'
+import { RoleName } from './services/roles/roles'
 
 class SigChain {
   private _team: auth.Team

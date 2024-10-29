@@ -2,14 +2,14 @@
  * Handles user-related chain operations
  */
 
-//import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap.js'
-import { BaseChainService } from '../baseService.js'
-import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types.js'
+//import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap'
+import { BaseChainService } from '../baseService'
+import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types'
 import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } from '@localfirst/auth'
-import { SigChain } from '../../chain.js'
-import { DeviceService } from './deviceService.js'
-import { InviteService } from '../invites/inviteService.js'
-import { KeyMap } from '@localfirst/auth/team/selectors/keyMap.js'
+import { SigChain } from '../../chain'
+import { DeviceService } from './deviceService'
+import { InviteService } from '../invites/inviteService'
+import { KeyMap } from '@localfirst/auth/team/selectors/keyMap'
 
 class UserService extends BaseChainService {
   public static init(sigChain: SigChain): UserService {

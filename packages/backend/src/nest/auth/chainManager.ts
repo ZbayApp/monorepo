@@ -2,7 +2,7 @@
  * Manages the chain(s) and makes them accesible across the application
  */
 
-import { SigChain } from './chain.js'
+import { SigChain } from './chain'
 
 class SigChainManager {
   private chains: Map<string, SigChain> = new Map()

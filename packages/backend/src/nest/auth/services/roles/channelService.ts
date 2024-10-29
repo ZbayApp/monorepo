@@ -3,9 +3,9 @@
  */
 
 import { LocalUserContext, Role } from '@localfirst/auth'
-import { SigChain } from '../../chain.js'
-import { BaseChainService } from '../baseService.js'
-import { Channel, QuietRole } from './roles.js'
+import { SigChain } from '../../chain'
+import { BaseChainService } from '../baseService'
+import { Channel, QuietRole } from './roles'
 
 const CHANNEL_ROLE_KEY_PREFIX = 'priv_chan_'
 
