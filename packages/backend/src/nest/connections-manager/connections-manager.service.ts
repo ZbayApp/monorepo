@@ -221,7 +221,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     const identity = await this.storageService.getIdentity(community.id)
     if (!identity) {
-      this.logger.info('No identity found in storage')
+      this.logger.warn('No identity found in storage')
       return
     }
 
