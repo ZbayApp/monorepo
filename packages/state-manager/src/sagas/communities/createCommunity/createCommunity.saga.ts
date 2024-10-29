@@ -29,7 +29,7 @@ export function* createCommunitySaga(
   const identity = yield* select(identitySelectors.selectById(communityId))
 
   if (!identity) {
-    logger.error('Could not create community, identity')
+    logger.error('Could not create community - identity missing')
     return
   }
 
