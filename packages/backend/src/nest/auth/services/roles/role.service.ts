@@ -3,7 +3,7 @@
  */
 
 import { SigChain } from '../../sigchain'
-import { BaseChainService } from '../baseChainService'
+import { ChainServiceBase } from '../chainServiceBase'
 import { Permissions } from './permissions'
 import { QuietRole, RoleName } from './roles'
 import { LocalUserContext, Member, PermissionsMap, Role } from '@localfirst/auth'
@@ -11,7 +11,7 @@ import { createLogger } from '../../../common/logger'
 
 const logger = createLogger('auth:roleService')
 
-class RoleService extends BaseChainService {
+class RoleService extends ChainServiceBase {
   public static init(sigChain: SigChain): RoleService {
     return new RoleService(sigChain)
   }

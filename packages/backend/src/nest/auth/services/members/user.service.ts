@@ -3,18 +3,18 @@
  */
 
 //import { KeyMap } from '../../../../../../packages/auth/dist/team/selectors/keyMap'
-import { BaseChainService } from '../baseChainService'
+import { ChainServiceBase } from '../chainServiceBase'
 import { ProspectiveUser, MemberSearchOptions, DEFAULT_SEARCH_OPTIONS } from './types'
 import { DeviceWithSecrets, LocalUserContext, Member, User, UserWithSecrets } from '@localfirst/auth'
 import { SigChain } from '../../sigchain'
-import { DeviceService } from './deviceService'
-import { InviteService } from '../invites/inviteService'
+import { DeviceService } from './device.service'
+import { InviteService } from '../invites/invite.service'
 import { KeyMap } from '@localfirst/auth/team/selectors/keyMap'
 import { createLogger } from '../../../common/logger'
 
 const logger = createLogger('auth:userService')
 
-class UserService extends BaseChainService {
+class UserService extends ChainServiceBase {
   public static init(sigChain: SigChain): UserService {
     return new UserService(sigChain)
   }

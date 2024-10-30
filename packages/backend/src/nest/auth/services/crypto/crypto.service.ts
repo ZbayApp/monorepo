@@ -3,16 +3,16 @@
  */
 
 import { EncryptedAndSignedPayload, EncryptedPayload, EncryptionScope, EncryptionScopeType } from './types'
-import { BaseChainService } from '../baseChainService'
+import { ChainServiceBase } from '../chainServiceBase'
 import { SigChain } from '../../sigchain'
 import { Base58, Keyset, KeysetWithSecrets, LocalUserContext, Member, SignedEnvelope } from '@localfirst/auth'
 import { DEFAULT_SEARCH_OPTIONS, MemberSearchOptions } from '../members/types'
-import { ChannelService } from '../roles/channelService'
+import { ChannelService } from '../roles/channel.service'
 import { createLogger } from '../../../common/logger'
 
 const logger = createLogger('auth:cryptoService')
 
-class CryptoService extends BaseChainService {
+class CryptoService extends ChainServiceBase {
   public static init(sigChain: SigChain): CryptoService {
     return new CryptoService(sigChain)
   }

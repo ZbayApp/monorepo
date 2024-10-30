@@ -4,7 +4,7 @@
 
 import { LocalUserContext, Role } from '@localfirst/auth'
 import { SigChain } from '../../sigchain'
-import { BaseChainService } from '../baseChainService'
+import { ChainServiceBase } from '../chainServiceBase'
 import { Channel, QuietRole } from './roles'
 import { createLogger } from '../../../common/logger'
 
@@ -12,7 +12,7 @@ const logger = createLogger('auth:channelService')
 
 const CHANNEL_ROLE_KEY_PREFIX = 'priv_chan_'
 
-class ChannelService extends BaseChainService {
+class ChannelService extends ChainServiceBase {
   public static init(sigChain: SigChain): ChannelService {
     return new ChannelService(sigChain)
   }

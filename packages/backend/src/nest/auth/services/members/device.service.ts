@@ -3,13 +3,13 @@
  */
 
 import getMAC from 'getmac'
-import { BaseChainService } from '../baseChainService'
+import { ChainServiceBase } from '../chainServiceBase'
 import { Device, DeviceWithSecrets } from '@localfirst/auth'
 import { SigChain } from '../../sigchain'
 import { createLogger } from '../../../common/logger'
 
 const logger = createLogger('auth:deviceService')
-class DeviceService extends BaseChainService {
+class DeviceService extends ChainServiceBase {
   public static init(sigChain: SigChain): DeviceService {
     return new DeviceService(sigChain)
   }

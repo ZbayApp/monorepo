@@ -3,12 +3,12 @@ import { createLogger } from '../../common/logger'
 
 const logger = createLogger('auth:baseChainService')
 
-class BaseChainService {
+class ChainServiceBase {
   protected constructor(protected sigChain: SigChain) {}
 
-  public static init(sigChain: SigChain, ...params: any[]): BaseChainService {
+  public static init(sigChain: SigChain, ...params: any[]): ChainServiceBase {
     throw new Error('init not implemented')
   }
 }
 
-export { BaseChainService }
+export { ChainServiceBase }

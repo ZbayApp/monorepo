@@ -2,7 +2,7 @@
  * Handles invite-related chain operations
  */
 
-import { BaseChainService } from '../baseChainService'
+import { ChainServiceBase } from '../chainServiceBase'
 import { ValidationResult } from '@localfirst/crdx'
 import {
   Base58,
@@ -22,7 +22,7 @@ const logger = createLogger('auth:inviteService')
 export const DEFAULT_MAX_USES = 1
 export const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week
 
-class InviteService extends BaseChainService {
+class InviteService extends ChainServiceBase {
   public static init(sigChain: SigChain): InviteService {
     return new InviteService(sigChain)
   }

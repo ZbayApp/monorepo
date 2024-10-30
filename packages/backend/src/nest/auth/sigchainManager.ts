@@ -5,7 +5,7 @@
 import { SigChain } from './sigchain'
 import { createLogger } from '../common/logger'
 
-const logger = createLogger('auth:chainManager')
+const logger = createLogger('auth:sigchainManager')
 
 class SigChainManager {
   private chains: Map<string, SigChain> = new Map()
