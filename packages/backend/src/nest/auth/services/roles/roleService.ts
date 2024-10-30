@@ -2,11 +2,14 @@
  * Handles role-related chain operations
  */
 
-import { SigChain } from '../../chain'
-import { BaseChainService } from '../baseService'
+import { SigChain } from '../../sigchain'
+import { BaseChainService } from '../baseChainService'
 import { Permissions } from './permissions'
 import { QuietRole, RoleName } from './roles'
 import { LocalUserContext, Member, PermissionsMap, Role } from '@localfirst/auth'
+import { createLogger } from '../../../common/logger'
+
+const logger = createLogger('auth:roleService')
 
 class RoleService extends BaseChainService {
   public static init(sigChain: SigChain): RoleService {
@@ -15,7 +18,7 @@ class RoleService extends BaseChainService {
 
   // TODO: figure out permissions
   public create(roleName: RoleName | string, permissions: PermissionsMap = {}, staticMembership: boolean = false) {
-    console.log(`Adding new role with name ${roleName}`)
+    logger.info(`Adding new role with name ${roleName}`)
     if (!staticMembership) {
       permissions[Permissions.MODIFIABLE_MEMBERSHIP] = true
     }
@@ -26,7 +29,6 @@ class RoleService extends BaseChainService {
     }
 
     this.sigChain.team.addRole(role)
-    // this.activeSigChain.persist()
   }
 
   // TODO: figure out permissions
@@ -40,25 +42,21 @@ class RoleService extends BaseChainService {
     for (const memberId of memberIdsForRole) {
       this.addMember(memberId, roleName)
     }
-    // this.activeSigChain.persist()
   }
 
   public addMember(memberId: string, roleName: string) {
-    console.log(`Adding member with ID ${memberId} to role ${roleName}`)
+    logger.info(`Adding member with ID ${memberId} to role ${roleName}`)
     this.sigChain.team.addMemberRole(memberId, roleName)
-    // this.activeSigChain.persist()
   }
 
   public revokeMembership(memberId: string, roleName: string) {
-    console.log(`Revoking role ${roleName} for member with ID ${memberId}`)
+    logger.info(`Revoking role ${roleName} for member with ID ${memberId}`)
     this.sigChain.team.removeMemberRole(memberId, roleName)
-    // this.activeSigChain.persist()
   }
 
   public delete(roleName: string) {
-    console.log(`Removing role with name ${roleName}`)
+    logger.info(`Removing role with name ${roleName}`)
     this.sigChain.team.removeRole(roleName)
-    // this.activeSigChain.persist()
   }
 
   public getRole(roleName: string, context: LocalUserContext): QuietRole {

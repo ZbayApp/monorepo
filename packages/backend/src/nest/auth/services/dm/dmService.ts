@@ -3,10 +3,12 @@
  */
 
 import { createHash } from 'crypto'
-import { BaseChainService } from '../baseService'
+import { BaseChainService } from '../baseChainService'
 import { Keyset } from '@localfirst/auth'
-import { SigChain } from '../../chain'
+import { SigChain } from '../../sigchain'
+import { createLogger } from '../../../common/logger'
 
+const logger = createLogger('auth:dmService')
 class DMService extends BaseChainService {
   private dmMap: Map<string, string[]> = new Map()
 

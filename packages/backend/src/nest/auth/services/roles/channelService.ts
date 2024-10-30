@@ -3,9 +3,12 @@
  */
 
 import { LocalUserContext, Role } from '@localfirst/auth'
-import { SigChain } from '../../chain'
-import { BaseChainService } from '../baseService'
+import { SigChain } from '../../sigchain'
+import { BaseChainService } from '../baseChainService'
 import { Channel, QuietRole } from './roles'
+import { createLogger } from '../../../common/logger'
+
+const logger = createLogger('auth:channelService')
 
 const CHANNEL_ROLE_KEY_PREFIX = 'priv_chan_'
 
@@ -16,34 +19,30 @@ class ChannelService extends BaseChainService {
 
   // TODO: figure out permissions
   public createPrivateChannel(channelName: string, context: LocalUserContext): Channel {
-    console.log(`Creating private channel role with name ${channelName}`)
+    logger.info(`Creating private channel role with name ${channelName}`)
     this.sigChain.roles.create(ChannelService.getPrivateChannelRoleName(channelName))
     this.addMemberToPrivateChannel(context.user.userId, channelName)
-    // this.activeSigChain.persist()
 
     return this.getChannel(channelName, context)
   }
 
   public addMemberToPrivateChannel(memberId: string, channelName: string) {
-    console.log(`Adding member with ID ${memberId} to private channel role with name ${channelName}`)
+    logger.info(`Adding member with ID ${memberId} to private channel role with name ${channelName}`)
     this.sigChain.roles.addMember(memberId, ChannelService.getPrivateChannelRoleName(channelName))
-    // this.activeSigChain.persist()
   }
 
   public revokePrivateChannelMembership(memberId: string, channelName: string) {
-    console.log(`Removing member with ID ${memberId} from private channel with name ${channelName}`)
+    logger.info(`Removing member with ID ${memberId} from private channel with name ${channelName}`)
     this.sigChain.roles.revokeMembership(memberId, ChannelService.getPrivateChannelRoleName(channelName))
-    // this.activeSigChain.persist()
   }
 
   public deletePrivateChannel(channelName: string) {
-    console.log(`Deleting private channel with name ${channelName}`)
+    logger.info(`Deleting private channel with name ${channelName}`)
     this.sigChain.roles.delete(ChannelService.getPrivateChannelRoleName(channelName))
-    // this.activeSigChain.persist()
   }
 
   public leaveChannel(channelName: string, context: LocalUserContext) {
-    console.log(`Leaving private channel with name ${channelName}`)
+    logger.info(`Leaving private channel with name ${channelName}`)
     this.revokePrivateChannelMembership(context.user.userId, channelName)
   }
 

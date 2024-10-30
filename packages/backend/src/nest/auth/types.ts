@@ -1,5 +1,5 @@
 import { LocalUserContext } from '@localfirst/auth'
-import { SigChain } from './chain'
+import { SigChain } from './sigchain'
 
 export type LoadedSigChain = {
   sigChain: SigChain

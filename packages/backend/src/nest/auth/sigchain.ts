@@ -12,6 +12,9 @@ import { InviteService } from './services/invites/inviteService'
 import { DMService } from './services/dm/dmService'
 import { CryptoService } from './services/crypto/cryptoService'
 import { RoleName } from './services/roles/roles'
+import { createLogger } from '../common/logger'
+
+const logger = createLogger('auth:sigchain')
 
 class SigChain {
   private _team: auth.Team

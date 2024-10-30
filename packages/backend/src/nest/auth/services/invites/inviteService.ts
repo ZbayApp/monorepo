@@ -2,7 +2,7 @@
  * Handles invite-related chain operations
  */
 
-import { BaseChainService } from '../baseService'
+import { BaseChainService } from '../baseChainService'
 import { ValidationResult } from '@localfirst/crdx'
 import {
   Base58,
@@ -13,8 +13,11 @@ import {
   ProofOfInvitation,
   UnixTimestamp,
 } from '@localfirst/auth'
-import { SigChain } from '../../chain'
+import { SigChain } from '../../sigchain'
 import { RoleName } from '../roles/roles'
+import { createLogger } from '../../../common/logger'
+
+const logger = createLogger('auth:inviteService')
 
 export const DEFAULT_MAX_USES = 1
 export const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week
@@ -30,13 +33,11 @@ class InviteService extends BaseChainService {
       expiration,
       maxUses,
     })
-    // this.activeSigChain.persist()
     return invitation
   }
 
   public revoke(id: string) {
     this.sigChain.team.revokeInvitation(id)
-    // this.activeSigChain.persist()
   }
 
   public getById(id: Base58): InvitationState {
@@ -50,7 +51,7 @@ class InviteService extends BaseChainService {
   public validateProof(proof: ProofOfInvitation): boolean {
     const validationResult = this.sigChain.team.validateInvitation(proof) as ValidationResult
     if (!validationResult.isValid) {
-      console.error(`Proof was invalid or was on an invalid invitation`, validationResult.error)
+      logger.error(`Proof was invalid or was on an invalid invitation`, validationResult.error)
       return true
     }
 
@@ -59,13 +60,11 @@ class InviteService extends BaseChainService {
 
   public acceptProof(proof: ProofOfInvitation, username: string, publicKeys: Keyset) {
     this.sigChain.team.admitMember(proof, publicKeys, username)
-    // this.activeSigChain.persist()
   }
 
   public admitMemberFromInvite(proof: ProofOfInvitation, username: string, userId: string, publicKeys: Keyset): string {
     this.sigChain.team.admitMember(proof, publicKeys, username)
     this.sigChain.roles.addMember(userId, RoleName.MEMBER)
-    // this.activeSigChain.persist()
     return username
   }
 

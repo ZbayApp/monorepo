@@ -2,7 +2,10 @@
  * Manages the chain(s) and makes them accesible across the application
  */
 
-import { SigChain } from './chain'
+import { SigChain } from './sigchain'
+import { createLogger } from '../common/logger'
+
+const logger = createLogger('auth:chainManager')
 
 class SigChainManager {
   private chains: Map<string, SigChain> = new Map()

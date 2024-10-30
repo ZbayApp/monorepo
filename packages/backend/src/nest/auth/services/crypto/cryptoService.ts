@@ -3,11 +3,14 @@
  */
 
 import { EncryptedAndSignedPayload, EncryptedPayload, EncryptionScope, EncryptionScopeType } from './types'
-import { BaseChainService } from '../baseService'
-import { SigChain } from '../../chain'
+import { BaseChainService } from '../baseChainService'
+import { SigChain } from '../../sigchain'
 import { Base58, Keyset, KeysetWithSecrets, LocalUserContext, Member, SignedEnvelope } from '@localfirst/auth'
 import { DEFAULT_SEARCH_OPTIONS, MemberSearchOptions } from '../members/types'
 import { ChannelService } from '../roles/channelService'
+import { createLogger } from '../../../common/logger'
+
+const logger = createLogger('auth:cryptoService')
 
 class CryptoService extends BaseChainService {
   public static init(sigChain: SigChain): CryptoService {

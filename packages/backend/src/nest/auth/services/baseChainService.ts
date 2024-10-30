@@ -1,4 +1,7 @@
-import { SigChain } from '../chain'
+import { SigChain } from '../sigchain'
+import { createLogger } from '../../common/logger'
+
+const logger = createLogger('auth:baseChainService')
 
 class BaseChainService {
   protected constructor(protected sigChain: SigChain) {}
