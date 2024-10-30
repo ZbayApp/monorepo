@@ -74,6 +74,19 @@ describe('IpfsFileManagerService', () => {
     sleep(1000)
   })
 
+  afterAll(async () => {
+    tmpDir.removeCallback()
+    if (fs.existsSync(filePath)) {
+      fs.rmSync(filePath)
+    }
+    await libp2pService.close()
+    await ipfsService.stop()
+    await ipfsFileManagerService.stop()
+    await localDbService.close()
+    await module.close()
+    sleep(10000)
+  })
+
   it('uploads image', async () => {
     // Uploading
     const eventSpy = jest.spyOn(ipfsFileManagerService, 'emit')

@@ -7,8 +7,6 @@ import { LevelDatastore } from 'datastore-level'
 import { LevelBlockstore, LevelBlockstoreInit } from 'blockstore-level'
 import { Libp2pService } from '../libp2p/libp2p.service'
 import { DatabaseOptions, Level } from 'level'
-import { base16upper } from 'multiformats/bases/base16'
-import * as raw from 'multiformats/codecs/raw'
 
 type StoreInit = {
   blockstore?: Omit<LevelBlockstoreInit, 'valueEncoding' | 'keyEncoding'>
@@ -149,9 +147,11 @@ export class IpfsService {
     if (!this.ipfsInstance) {
       throw new Error('IPFS instance does not exist')
     }
-    await this.ipfsInstance.stop()
+
+    await this.blockstore?.db.close()
     await this.blockstore?.close()
     await this.datastore?.close()
+    await this.ipfsInstance.stop()
     this.started = false
   }
 

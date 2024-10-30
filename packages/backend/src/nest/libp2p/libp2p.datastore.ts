@@ -48,6 +48,10 @@ export class Libp2pDatastore {
     return this.datastore
   }
 
+  public getDatastoreInstance(): LevelDatastore | MemoryDatastore | undefined {
+    return this.datastore
+  }
+
   public async deleteKeysByPrefix(prefix: string): Promise<string[]> {
     this.logger.info(`Deleting keys from libp2p datastore with prefix ${prefix}`)
     if (this.datastore == null) {

@@ -54,12 +54,16 @@ describe('IpfsFileManagerService', () => {
     await ipfsFileManagerService.init()
   })
 
-  afterEach(async () => {
+  afterAll(async () => {
     tmpDir.removeCallback()
     if (fs.existsSync(filePath)) {
       fs.rmSync(filePath)
     }
+    await libp2pService.close()
+    await ipfsService.stop()
+    await ipfsFileManagerService.stop()
     await module.close()
+    sleep(1000)
   })
 
   it('uploads large files', async () => {

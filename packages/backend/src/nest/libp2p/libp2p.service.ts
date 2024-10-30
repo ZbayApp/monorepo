@@ -380,6 +380,8 @@ export class Libp2pService extends EventEmitter {
   public async close(): Promise<void> {
     this.logger.info('Closing libp2p service')
     await this.libp2pInstance?.stop()
+    clearTimeout(this.redialTimeout)
+
     this.libp2pInstance = null
     this.connectedPeers = new Map()
     this.dialedPeers = new Set()
