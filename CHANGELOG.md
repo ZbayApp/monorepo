@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+### New features
+
+* Adds basic sigchain functions ([#2649](https://github.com/TryQuiet/quiet/pull/2649))
+
 ### Fixes
 
 * Fixed memory leak associated with autoUpdater ([#2606](https://github.com/TryQuiet/quiet/issues/2606))
