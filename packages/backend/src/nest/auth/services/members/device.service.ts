@@ -4,7 +4,7 @@
 
 import getMAC from 'getmac'
 import { ChainServiceBase } from '../chainServiceBase'
-import { Device, DeviceWithSecrets } from '@localfirst/auth'
+import { Device, DeviceWithSecrets, redactDevice } from '@localfirst/auth'
 import { SigChain } from '../../sigchain'
 import { createLogger } from '../../../common/logger'
 
@@ -40,7 +40,7 @@ class DeviceService extends ChainServiceBase {
   }
 
   public static redactDevice(device: DeviceWithSecrets): Device {
-    return SigChain.lfa.redactDevice(device)
+    return redactDevice(device)
   }
 }
 

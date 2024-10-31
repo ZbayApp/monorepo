@@ -22,7 +22,7 @@ class CryptoService extends ChainServiceBase {
     memberIds: string[],
     searchOptions: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS
   ): Keyset[] {
-    const members = this.sigChain.users.getMembersById(memberIds, searchOptions)
+    const members = this.sigChain.users.getUsersById(memberIds, searchOptions)
     return members.map((member: Member) => {
       return member.keys
     })

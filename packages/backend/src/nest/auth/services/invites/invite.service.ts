@@ -6,7 +6,7 @@ import { ChainServiceBase } from '../chainServiceBase'
 import { ValidationResult } from '@localfirst/crdx'
 import {
   Base58,
-  InvitationMap,
+  FirstUseDevice,
   InvitationState,
   InviteResult,
   Keyset,
@@ -27,11 +27,25 @@ class InviteService extends ChainServiceBase {
     return new InviteService(sigChain)
   }
 
-  public create(validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS, maxUses: number = DEFAULT_MAX_USES) {
+  public createUserInvite(
+    validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS,
+    maxUses: number = DEFAULT_MAX_USES,
+    seed?: string
+  ): InviteResult {
     const expiration = (Date.now() + validForMs) as UnixTimestamp
     const invitation: InviteResult = this.sigChain.team.inviteMember({
+      seed,
       expiration,
       maxUses,
+    })
+    return invitation
+  }
+
+  public createDeviceInvite(validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS, seed?: string): InviteResult {
+    const expiration = (Date.now() + validForMs) as UnixTimestamp
+    const invitation: InviteResult = this.sigChain.team.inviteDevice({
+      expiration,
+      seed,
     })
     return invitation
   }
@@ -51,14 +65,13 @@ class InviteService extends ChainServiceBase {
   public validateProof(proof: ProofOfInvitation): boolean {
     const validationResult = this.sigChain.team.validateInvitation(proof) as ValidationResult
     if (!validationResult.isValid) {
-      logger.error(`Proof was invalid or was on an invalid invitation`, validationResult.error)
-      return true
+      logger.warn(`Proof was invalid or was on an invalid invitation`, validationResult.error)
+      return false
     }
-
     return true
   }
 
-  public acceptProof(proof: ProofOfInvitation, username: string, publicKeys: Keyset) {
+  public admitUser(proof: ProofOfInvitation, username: string, publicKeys: Keyset) {
     this.sigChain.team.admitMember(proof, publicKeys, username)
   }
 
@@ -66,6 +79,10 @@ class InviteService extends ChainServiceBase {
     this.sigChain.team.admitMember(proof, publicKeys, username)
     this.sigChain.roles.addMember(userId, RoleName.MEMBER)
     return username
+  }
+
+  public admitDeviceFromInvite(proof: ProofOfInvitation, firstUseDevice: FirstUseDevice): void {
+    this.sigChain.team.admitDevice(proof, firstUseDevice)
   }
 
   public getAllInvites(): InvitationState[] {

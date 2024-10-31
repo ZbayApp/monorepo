@@ -8,17 +8,23 @@ import { Permissions } from './permissions'
 import { QuietRole, RoleName } from './roles'
 import { LocalUserContext, Member, PermissionsMap, Role } from '@localfirst/auth'
 import { createLogger } from '../../../common/logger'
-
-const logger = createLogger('auth:roleService')
+import { QuietLogger } from '@quiet/logger'
 
 class RoleService extends ChainServiceBase {
+  private readonly logger: QuietLogger
+
+  constructor(sigChain: SigChain) {
+    super(sigChain)
+    this.logger = createLogger(`auth:roleService(${sigChain.team.teamName})`)
+  }
+
   public static init(sigChain: SigChain): RoleService {
     return new RoleService(sigChain)
   }
 
   // TODO: figure out permissions
   public create(roleName: RoleName | string, permissions: PermissionsMap = {}, staticMembership: boolean = false) {
-    logger.info(`Adding new role with name ${roleName}`)
+    this.logger.info(`Adding new role with name ${roleName}`)
     if (!staticMembership) {
       permissions[Permissions.MODIFIABLE_MEMBERSHIP] = true
     }
@@ -45,17 +51,17 @@ class RoleService extends ChainServiceBase {
   }
 
   public addMember(memberId: string, roleName: string) {
-    logger.info(`Adding member with ID ${memberId} to role ${roleName}`)
+    this.logger.info(`Adding member with ID ${memberId} to role ${roleName}`)
     this.sigChain.team.addMemberRole(memberId, roleName)
   }
 
   public revokeMembership(memberId: string, roleName: string) {
-    logger.info(`Revoking role ${roleName} for member with ID ${memberId}`)
+    this.logger.info(`Revoking role ${roleName} for member with ID ${memberId}`)
     this.sigChain.team.removeMemberRole(memberId, roleName)
   }
 
   public delete(roleName: string) {
-    logger.info(`Removing role with name ${roleName}`)
+    this.logger.info(`Removing role with name ${roleName}`)
     this.sigChain.team.removeRole(roleName)
   }
 

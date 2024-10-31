@@ -35,14 +35,15 @@ class SigChain {
    *
    * @param teamName Name of the team we are creating
    * @param username Username of the initial user we are generating
+   * @returns LoadedSigChain instance with the new SigChain and user context
    */
   public static create(teamName: string, username: string): LoadedSigChain {
     const context = UserService.create(username)
     const team: auth.Team = this.lfa.createTeam(teamName, context)
     const sigChain = this.init(team)
 
+    // sigChain.roles.createWithMembers(RoleName.ADMIN, [context.user.userId])
     sigChain.roles.createWithMembers(RoleName.MEMBER, [context.user.userId])
-    // sigChain.persist()
 
     return {
       sigChain,
@@ -68,7 +69,6 @@ class SigChain {
     team.join(teamKeyRing)
 
     const sigChain = this.init(team)
-    // sigChain.persist()
 
     return {
       sigChain,

@@ -36,6 +36,13 @@ class UserService extends ChainServiceBase {
     }
   }
 
+  /**
+   * Generates a new prospective user from an invite seed
+   *
+   * @param name The username
+   * @param seed The invite seed
+   * @returns ProspectiveUser instance
+   */
   public static createFromInviteSeed(name: string, seed: string): ProspectiveUser {
     const context = this.create(name)
     const inviteProof = InviteService.generateProof(seed)
@@ -48,15 +55,18 @@ class UserService extends ChainServiceBase {
     }
   }
 
+  /**
+   * Get
+   */
   public getKeys(): KeyMap {
     return this.sigChain.team.allKeys()
   }
 
-  public getAllMembers(): Member[] {
+  public getAllUsers(): Member[] {
     return this.sigChain.team.members()
   }
 
-  public getMembersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Member[] {
+  public getUsersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Member[] {
     if (memberIds.length === 0) {
       return []
     }
@@ -64,8 +74,8 @@ class UserService extends ChainServiceBase {
     return this.sigChain.team.members(memberIds, options)
   }
 
-  public getMemberByName(memberName: string): Member | undefined {
-    return this.getAllMembers().find(member => member.userName === memberName)
+  public getUserByName(memberName: string): Member | undefined {
+    return this.getAllUsers().find(member => member.userName === memberName)
   }
 
   public static redactUser(user: UserWithSecrets): User {

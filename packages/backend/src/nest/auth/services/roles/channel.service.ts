@@ -26,14 +26,14 @@ class ChannelService extends ChainServiceBase {
     return this.getChannel(channelName, context)
   }
 
-  public addMemberToPrivateChannel(memberId: string, channelName: string) {
-    logger.info(`Adding member with ID ${memberId} to private channel role with name ${channelName}`)
-    this.sigChain.roles.addMember(memberId, ChannelService.getPrivateChannelRoleName(channelName))
+  public addMemberToPrivateChannel(userId: string, channelName: string) {
+    logger.info(`Adding member with ID ${userId} to private channel role with name ${channelName}`)
+    this.sigChain.roles.addMember(userId, ChannelService.getPrivateChannelRoleName(channelName))
   }
 
-  public revokePrivateChannelMembership(memberId: string, channelName: string) {
-    logger.info(`Removing member with ID ${memberId} from private channel with name ${channelName}`)
-    this.sigChain.roles.revokeMembership(memberId, ChannelService.getPrivateChannelRoleName(channelName))
+  public revokePrivateChannelMembership(userId: string, channelName: string) {
+    logger.info(`Removing member with ID ${userId} from private channel with name ${channelName}`)
+    this.sigChain.roles.revokeMembership(userId, ChannelService.getPrivateChannelRoleName(channelName))
   }
 
   public deletePrivateChannel(channelName: string) {
@@ -62,9 +62,9 @@ class ChannelService extends ChainServiceBase {
     return allChannels
   }
 
-  public memberInChannel(memberId: string, channelName: string): boolean {
+  public memberInChannel(userId: string, channelName: string): boolean {
     const roleName = ChannelService.getPrivateChannelRoleName(channelName)
-    return this.sigChain.roles.memberHasRole(memberId, roleName)
+    return this.sigChain.roles.memberHasRole(userId, roleName)
   }
 
   public amIInChannel(context: LocalUserContext, channelName: string): boolean {
