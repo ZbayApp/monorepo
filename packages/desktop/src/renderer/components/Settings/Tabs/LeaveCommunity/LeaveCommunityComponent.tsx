@@ -6,8 +6,6 @@ import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 
-import Modal from '../../../ui/Modal/Modal'
-
 const PREFIX = 'LeaveCommunity'
 
 const classes = {
@@ -22,8 +20,6 @@ const classes = {
 }
 
 const StyledGrid = styled(Grid)(({ theme }) => ({
-  padding: '0px 32px',
-
   [`& .${classes.root}`]: {},
 
   [`& .${classes.titleContainer}`]: {
@@ -31,10 +27,9 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
   },
 
   [`& .${classes.descContainer}`]: {
-    marginTop: 8,
-    marginLeft: 32,
-    marginRight: 32,
-    width: 100,
+    marginTop: 16,
+    width: '100%',
+    maxWidth: 600,
   },
 
   [`& .${classes.iconContainer}`]: {
@@ -42,7 +37,7 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
   },
 
   [`& .${classes.buttonContainer}`]: {
-    marginTop: 25,
+    marginTop: 8,
   },
 
   [`& .${classes.button}`]: {
@@ -61,7 +56,7 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
 
   [`& .${classes.secondaryButtonContainer}`]: {
     marginTop: 16,
-    marginBottom: 32,
+    marginBottom: 1,
   },
 
   [`& .${classes.secondaryButton}`]: {
@@ -85,50 +80,35 @@ export interface LeaveCommunityProps {
   handleClose: () => void
 }
 
-export const LeaveCommunityComponent: FC<LeaveCommunityProps> = ({
-  communityName,
-  leaveCommunity,
-  open,
-  handleClose,
-}) => {
+export const LeaveCommunityComponent: FC<LeaveCommunityProps> = ({ leaveCommunity, handleClose }) => {
   return (
-    <Modal open={open} handleClose={handleClose} fullPage={false}>
-      <StyledGrid container justifyContent='center'>
-        <Grid container item className={classes.titleContainer} xs={12} direction='row' justifyContent='center'>
-          <Typography variant={'h4'}>Are you sure you want to leave?</Typography>
-        </Grid>
-        <Grid container item className={classes.descContainer} xs={12} direction='row' justifyContent='center'>
-          <Typography align={'center'}>
-            Your account, messages, and all data for <span style={{ fontWeight: 500 }}>{communityName}</span> will be
-            deleted from this device. This cannot be undone.
-          </Typography>
-        </Grid>
-        <Grid item xs={'auto'} className={classes.buttonContainer}>
-          <Button
-            variant='contained'
-            onClick={leaveCommunity}
-            size='small'
-            fullWidth
-            className={classes.button}
-            data-testid={'leave-community-button'}
-          >
-            Leave community
-          </Button>
-        </Grid>
-        <Grid
-          container
-          item
-          className={classes.secondaryButtonContainer}
-          xs={12}
-          direction='row'
-          justifyContent='center'
+    <StyledGrid container justifyContent='center'>
+      <Grid container item className={classes.titleContainer} xs={12} direction='row' justifyContent='center'>
+        <Typography variant={'h3'}>Leave community?</Typography>
+      </Grid>
+      <Grid container item className={classes.descContainer} xs={12} direction='row' justifyContent='center'>
+        <Typography align={'center'} variant='body2'>
+          You will no longer have access to this community. This can't be undone.
+        </Typography>
+      </Grid>
+      <Grid container item className={classes.secondaryButtonContainer} xs={12} direction='row' justifyContent='center'>
+        <Button variant='contained' onClick={handleClose} size='small' className={classes.button}>
+          Go back
+        </Button>
+      </Grid>
+      <Grid item xs={'auto'} className={classes.buttonContainer}>
+        <Button
+          variant='contained'
+          onClick={leaveCommunity}
+          size='small'
+          fullWidth
+          className={classes.secondaryButton}
+          data-testid={'leave-community-button'}
         >
-          <Button variant='contained' onClick={handleClose} size='small' fullWidth className={classes.secondaryButton}>
-            Never mind, I'll stay
-          </Button>
-        </Grid>
-      </StyledGrid>
-    </Modal>
+          Leave community
+        </Button>
+      </Grid>
+    </StyledGrid>
   )
 }
 
