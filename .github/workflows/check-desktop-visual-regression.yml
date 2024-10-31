@@ -21,7 +21,7 @@ jobs:
       - name: "Skip tests"
         if: steps.filter.outputs.desktop == 'false'
         run: |
-         echo "Skipping test run" 
+         echo "Skipping test run"
          exit 0
 
       - name: "Print OS"
@@ -32,6 +32,7 @@ jobs:
         if: steps.filter.outputs.desktop == 'true'
         with:
           fetch-depth: 0 # Required to retrieve git history
+          submodules: 'recursive'
 
       - name: Setup environment
         uses: ./.github/actions/setup-env
