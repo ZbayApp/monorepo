@@ -1,19 +1,3 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-## [2.3.2-alpha.0](https://github.com/TryQuiet/quiet/compare/@quiet/desktop@2.2.1-alpha.1...@quiet/desktop@2.3.2-alpha.0) (2024-11-01)
-
-
-### Bug Fixes
-
-* user profile area should be clickable [#2566](https://github.com/TryQuiet/quiet/issues/2566) ([#2595](https://github.com/TryQuiet/quiet/issues/2595)) ([9dfd6da](https://github.com/TryQuiet/quiet/commit/9dfd6da55a744546afd185c17bc8e6bbe29ec3ad))
-
-
-
-
-
 # Changelog
 
 ## [2.3.2]
