@@ -34,6 +34,22 @@ export interface Identity {
   introMessageSent?: boolean
 }
 
+export interface IdentityUpdatePayload {
+  id: string
+  nickname?: string
+  hiddenService?: HiddenService
+  userCsr?: UserCsr | null
+  userCertificate?: string | null
+  joinTimestamp?: number | null
+  introMessageSent?: boolean
+}
+
+export interface InitUserCsrPayload {
+  communityId: string
+  nickname: string
+  isUsernameTaken?: boolean
+}
+
 export interface CreateUserCsrPayload {
   nickname: string
   commonName: string

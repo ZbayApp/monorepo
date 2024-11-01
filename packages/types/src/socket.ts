@@ -22,6 +22,11 @@ export enum SocketActionTypes {
   LAUNCH_COMMUNITY = 'launchCommunity',
   LEAVE_COMMUNITY = 'leaveCommunity',
 
+  // ====== Identity ======
+  CREATE_IDENTITY = 'createIdentity',
+  IDENTITY_STORED = 'identityStored',
+  CREATE_USER_CSR = 'storeUserCertificate',
+
   // ====== Channels ======
 
   CHANNEL_SUBSCRIBED = 'channelSubscribed',

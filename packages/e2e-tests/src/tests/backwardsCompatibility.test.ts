@@ -13,6 +13,9 @@ import { createLogger } from '../logger'
 
 const logger = createLogger('backwardsCompatibility')
 
+// this test is only for linux so we need to skip it for other platforms
+const itif = (condition: boolean) => (condition ? it : it.skip)
+
 jest.setTimeout(1200000)
 describe('Backwards Compatibility', () => {
   let ownerAppOldVersion: App
@@ -50,11 +53,11 @@ describe('Backwards Compatibility', () => {
     await ownerAppOldVersion?.cleanup()
   })
   describe('User opens app for the first time', () => {
-    it('Owner opens the app', async () => {
+    itif(process.platform == 'linux')('Owner opens the app', async () => {
       await ownerAppOldVersion.open()
     })
 
-    it('Owner closes "update available" modal if present', async () => {
+    itif(process.platform == 'linux')('Owner closes "update available" modal if present', async () => {
       ownerAppOldVersion
         .closeUpdateModalIfPresent()
         .then(async () => {
@@ -65,20 +68,23 @@ describe('Backwards Compatibility', () => {
         })
     })
 
-    it('Owner sees "join community" modal and switches to "create community" modal', async () => {
-      const joinModal = new JoinCommunityModal(ownerAppOldVersion.driver)
-      const isJoinModal = await joinModal.element.isDisplayed()
-      expect(isJoinModal).toBeTruthy()
-      await joinModal.switchToCreateCommunity()
-    })
-    it('Owner submits valid community name', async () => {
+    itif(process.platform == 'linux')(
+      'Owner sees "join community" modal and switches to "create community" modal',
+      async () => {
+        const joinModal = new JoinCommunityModal(ownerAppOldVersion.driver)
+        const isJoinModal = await joinModal.element.isDisplayed()
+        expect(isJoinModal).toBeTruthy()
+        await joinModal.switchToCreateCommunity()
+      }
+    )
+    itif(process.platform == 'linux')('Owner submits valid community name', async () => {
       const createModal = new CreateCommunityModal(ownerAppOldVersion.driver)
       const isCreateModal = await createModal.element.isDisplayed()
       expect(isCreateModal).toBeTruthy()
       await createModal.typeCommunityName(communityName)
       await createModal.submit()
     })
-    it('Owner sees "register username" modal and submits valid username', async () => {
+    itif(process.platform == 'linux')('Owner sees "register username" modal and submits valid username', async () => {
       const registerModal = new RegisterUsernameModal(ownerAppOldVersion.driver)
       const isRegisterModal = await registerModal.element.isDisplayed()
       expect(isRegisterModal).toBeTruthy()
@@ -86,14 +92,14 @@ describe('Backwards Compatibility', () => {
       await registerModal.submit()
     })
 
-    it('Owner registers successfully and sees general channel', async () => {
+    itif(process.platform == 'linux')('Owner registers successfully and sees general channel', async () => {
       generalChannel = new Channel(ownerAppOldVersion.driver, 'general')
       const isGeneralChannel = await generalChannel.element.isDisplayed()
       const generalChannelText = await generalChannel.element.getText()
       expect(isGeneralChannel).toBeTruthy()
       expect(generalChannelText).toEqual('# general')
     })
-    it(`Verify version - ${BACKWARD_COMPATIBILITY_BASE_VERSION}`, async () => {
+    itif(process.platform == 'linux')(`Verify version - ${BACKWARD_COMPATIBILITY_BASE_VERSION}`, async () => {
       const settingsModal = await new Sidebar(ownerAppOldVersion.driver).openSettings()
       const isSettingsModal = await settingsModal.element.isDisplayed()
       await sleep(2000)
@@ -102,64 +108,67 @@ describe('Backwards Compatibility', () => {
       expect(settingVersion).toEqual(BACKWARD_COMPATIBILITY_BASE_VERSION)
       await settingsModal.closeTabThenModal()
     })
-    it('Sends a message', async () => {
+    itif(process.platform == 'linux')('Sends a message', async () => {
       const isMessageInput = await generalChannel.messageInput.isDisplayed()
       expect(isMessageInput).toBeTruthy()
       await generalChannel.sendMessage(ownerMessages[0])
     })
-    it('Sent message is visible on general channel', async () => {
+    itif(process.platform == 'linux')('Sent message is visible on general channel', async () => {
       const messages = await generalChannel.getUserMessages(ownerUsername)
       const text = await messages[1].getText()
       expect(text).toEqual(ownerMessages[0])
     })
-    it('Owner creates second channel', async () => {
+    itif(process.platform == 'linux')('Owner creates second channel', async () => {
       sidebar = new Sidebar(ownerAppOldVersion.driver)
       await sidebar.addNewChannel(newChannelName)
       await sidebar.switchChannel(newChannelName)
       const channels = await sidebar.getChannelList()
       expect(channels.length).toEqual(2)
     })
-    it('Owner sends a message in second channel', async () => {
+    itif(process.platform == 'linux')('Owner sends a message in second channel', async () => {
       secondChannel = new Channel(ownerAppOldVersion.driver, newChannelName)
       const isMessageInput = await secondChannel.messageInput.isDisplayed()
       expect(isMessageInput).toBeTruthy()
       await secondChannel.sendMessage(ownerMessages[1])
     })
-    it('Message is visible in second channel', async () => {
+    itif(process.platform == 'linux')('Message is visible in second channel', async () => {
       const messages = await secondChannel.getUserMessages(ownerUsername)
       const text = await messages[1].getText()
       expect(text).toEqual(ownerMessages[1])
     })
 
-    it(`User sends another ${loopMessages.length} messages to second channel`, async () => {
-      for (const message of loopMessages) {
-        await secondChannel.sendMessage(message)
-      }
+    itif(process.platform == 'linux')(
+      `User sends another ${loopMessages.length} messages to second channel`,
+      async () => {
+        for (const message of loopMessages) {
+          await secondChannel.sendMessage(message)
+        }
 
-      messagesToCompare = await secondChannel.getUserMessages(ownerUsername)
-    })
-    it('User closes the old app', async () => {
+        messagesToCompare = await secondChannel.getUserMessages(ownerUsername)
+      }
+    )
+    itif(process.platform == 'linux')('User closes the old app', async () => {
       await ownerAppOldVersion.close()
       await new Promise<void>(resolve => setTimeout(() => resolve(), 5000))
     })
 
     // ________________________________
 
-    it('Owner opens the app in new version', async () => {
+    itif(process.platform == 'linux')('Owner opens the app in new version', async () => {
       logger.info('New version', 1)
       ownerAppNewVersion = new App({ dataDir })
       await ownerAppNewVersion.open()
     })
 
     if (isAlpha) {
-      it('Owner closes debug modal if opened', async () => {
+      itif(process.platform == 'linux')('Owner closes debug modal if opened', async () => {
         logger.info('New version', 2)
         const debugModal = new DebugModeModal(ownerAppNewVersion.driver)
         await debugModal.close()
       })
     }
 
-    it('Owener sees general channel', async () => {
+    itif(process.platform == 'linux')('Owener sees general channel', async () => {
       logger.info('New version', 3)
       generalChannel = new Channel(ownerAppNewVersion.driver, 'general')
       const isGeneralChannel = await generalChannel.element.isDisplayed()
@@ -168,7 +177,7 @@ describe('Backwards Compatibility', () => {
       expect(generalChannelText).toEqual('# general')
     })
 
-    it('Confirm that the opened app is the latest version', async () => {
+    itif(process.platform == 'linux')('Confirm that the opened app is the latest version', async () => {
       logger.info('New version', 4)
       await new Promise<void>(resolve => setTimeout(() => resolve(), 10000))
       const settingsModal = await new Sidebar(ownerAppNewVersion.driver).openSettings()
@@ -181,7 +190,7 @@ describe('Backwards Compatibility', () => {
       await settingsModal.closeTabThenModal()
     })
 
-    it('Check number of messages on second channel', async () => {
+    itif(process.platform == 'linux')('Check number of messages on second channel', async () => {
       logger.info('New version', 5)
       await new Promise<void>(resolve => setTimeout(() => resolve(), 2000))
       sidebar = new Sidebar(ownerAppNewVersion.driver)

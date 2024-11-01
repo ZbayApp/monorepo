@@ -1,6 +1,6 @@
 import { eventChannel } from 'redux-saga'
 import { type Socket } from '../../../types'
-import { all, call, fork, put, takeEvery, cancelled } from 'typed-redux-saga'
+import { all, call, fork, put, takeEvery, cancelled, select } from 'typed-redux-saga'
 import { appActions } from '../../app/app.slice'
 import { appMasterSaga } from '../../app/app.master.saga'
 import { connectionActions } from '../../appConnection/connection.slice'
@@ -10,7 +10,7 @@ import { communitiesActions } from '../../communities/communities.slice'
 import { errorsMasterSaga } from '../../errors/errors.master.saga'
 import { errorsActions } from '../../errors/errors.slice'
 import { identityMasterSaga } from '../../identity/identity.master.saga'
-import { identityActions } from '../../identity/identity.slice'
+import { identityActions, identitySlice } from '../../identity/identity.slice'
 import { messagesMasterSaga } from '../../messages/messages.master.saga'
 import { filesMasterSaga } from '../../files/files.master.saga'
 import { messagesActions } from '../../messages/messages.slice'
@@ -41,10 +41,12 @@ import {
   type SendCsrsResponse,
   type CommunityMetadata,
   type UserProfilesStoredEvent,
+  type Identity,
   SocketActionTypes,
 } from '@quiet/types'
 
 import { createLogger } from '../../../utils/logger'
+import { identitySelectors } from '../../identity/identity.selectors'
 
 const logger = createLogger('startConnectionSaga')
 
@@ -65,6 +67,8 @@ export function subscribe(socket: Socket) {
     | ReturnType<typeof errorsActions.addError>
     | ReturnType<typeof errorsActions.handleError>
     | ReturnType<typeof identityActions.storeUserCertificate>
+    | ReturnType<typeof identityActions.updateIdentity>
+    | ReturnType<typeof identityActions.addNewIdentity>
     | ReturnType<typeof communitiesActions.createCommunity>
     | ReturnType<typeof communitiesActions.launchCommunity>
     | ReturnType<typeof communitiesActions.updateCommunityData>
@@ -163,6 +167,12 @@ export function subscribe(socket: Socket) {
     socket.on(SocketActionTypes.CERTIFICATES_STORED, (payload: SendCertificatesResponse) => {
       logger.info(`${SocketActionTypes.CERTIFICATES_STORED}`)
       emit(usersActions.responseSendCertificates(payload))
+    })
+
+    // Identity
+    socket.on(SocketActionTypes.IDENTITY_STORED, (payload: Identity) => {
+      logger.info(`${SocketActionTypes.IDENTITY_STORED}`)
+      emit(identityActions.updateIdentity(payload))
     })
 
     // User Profile

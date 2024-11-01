@@ -1,6 +1,6 @@
 import { combineReducers } from '@reduxjs/toolkit'
 import { expectSaga } from 'redux-saga-test-plan'
-import { call } from 'redux-saga-test-plan/matchers'
+import * as matchers from 'redux-saga-test-plan/matchers'
 import { setupCrypto, createUserCsr, type UserCsr, getPubKey, loadPrivateKey, pubKeyFromCsr } from '@quiet/identity'
 import { prepareStore } from '../../../utils/tests/prepareStore'
 import { getFactory } from '../../../utils/tests/factories'
@@ -9,27 +9,30 @@ import { identityActions } from '../identity.slice'
 import { registerUsernameSaga } from './registerUsername.saga'
 import { communitiesActions } from '../../communities/communities.slice'
 import { config } from '../../users/const/certFieldTypes'
-import { CertData, CreateUserCsrPayload, SocketActionTypes } from '@quiet/types'
+import { CertData, CreateUserCsrPayload, InitUserCsrPayload, SocketActionTypes } from '@quiet/types'
 import { Socket } from '../../../types'
+import { communitiesSelectors } from '../../communities/communities.selectors'
 
 describe('registerUsernameSaga', () => {
   it('create user csr', async () => {
     setupCrypto()
 
-    const socket = { emit: jest.fn(), on: jest.fn() } as unknown as Socket
+    const socket = {
+      emit: jest.fn(),
+      emitWithAck: jest.fn(() => {
+        return {}
+      }),
+      on: jest.fn(),
+    } as unknown as Socket
 
     const store = prepareStore().store
 
     const factory = await getFactory(store)
 
-    const community = await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>(
-      'Community',
-      {
-        CA: null,
-        rootCa: 'rootCertString',
-        ownerOrbitDbIdentity: 'ownerOrbitDbId',
-      }
-    )
+    const community =
+      await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community')
+
+    expect(community.CA).not.toBeNull()
 
     // Identity won't have userCsr as long as its corresponding community has no CA (factory specific logic)
     const identity = await factory.create<ReturnType<typeof identityActions.addNewIdentity>['payload']>('Identity', {
@@ -44,41 +47,50 @@ describe('registerUsernameSaga', () => {
       pkcs10: jest.fn() as unknown as CertData,
     }
 
-    const createUserCsrPayload: CreateUserCsrPayload = {
+    const initUserCsrPayload: InitUserCsrPayload = {
       nickname: 'nickname',
-      commonName: identity.hiddenService.onionAddress,
-      peerId: identity.peerId.id,
-      signAlg: config.signAlg,
-      hashAlg: config.hashAlg,
+      communityId: community.id,
+      isUsernameTaken: false,
     }
 
     const reducer = combineReducers(reducers)
     await expectSaga(registerUsernameSaga, socket, identityActions.registerUsername({ nickname: 'nickname' }))
       .withReducer(reducer)
       .withState(store.getState())
-      .provide([[call.fn(createUserCsr), userCsr]])
-      .call(createUserCsr, createUserCsrPayload)
-      .put(
-        identityActions.addCsr({
-          communityId: community.id,
-          nickname: 'nickname',
-          userCsr,
-          isUsernameTaken: false,
-        })
-      )
+      .provide([
+        [matchers.select(communitiesSelectors.currentCommunity), community],
+        [
+          matchers.apply(socket, socket.emitWithAck, [SocketActionTypes.CREATE_USER_CSR, initUserCsrPayload]),
+          { ...identity, userCsr },
+        ],
+      ])
+      .put(identityActions.updateIdentity({ ...identity, userCsr }))
+      .put(communitiesActions.createCommunity(community.id))
       .run()
   })
 
   it('username taken - use current CSR and new nickname', async () => {
     setupCrypto()
-    const socket = { emit: jest.fn(), on: jest.fn() } as unknown as Socket
+    const socket = {
+      emit: jest.fn(),
+      emitWithAck: jest.fn(() => {
+        return {}
+      }),
+      on: jest.fn(),
+    } as unknown as Socket
 
     const store = prepareStore().store
 
     const factory = await getFactory(store)
 
-    const community =
-      await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community')
+    const community = await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>(
+      'Community',
+      {
+        CA: null,
+      }
+    )
+
+    expect(community.CA).toBeNull()
 
     const oldNickname = 'john'
     const newNickname = 'paul'
@@ -95,21 +107,18 @@ describe('registerUsernameSaga', () => {
       userCsr: userCsr,
     })
 
-    if (!identity.userCsr?.userCsr) return
-    const pubKey = 'pubKey'
-    const privateKey = 'privateKey'
-    const publicKey = 'publicKey'
+    const newUserCsr: UserCsr = {
+      userCsr: 'newUserCsr',
+      userKey: 'newUserKey',
+      pkcs10: jest.fn() as unknown as CertData,
+    }
 
-    const createUserCsrPayload: CreateUserCsrPayload = {
+    expect(identity.nickname).toBe(oldNickname)
+
+    const initUserCsrPayload: InitUserCsrPayload = {
       nickname: newNickname,
-      commonName: identity.hiddenService.onionAddress,
-      peerId: identity.peerId.id,
-      signAlg: config.signAlg,
-      hashAlg: config.hashAlg,
-      existingKeyPair: {
-        privateKey: privateKey as unknown as CryptoKey,
-        publicKey: publicKey as unknown as CryptoKey,
-      },
+      communityId: community.id,
+      isUsernameTaken: true,
     }
 
     const reducer = combineReducers(reducers)
@@ -121,163 +130,13 @@ describe('registerUsernameSaga', () => {
       .withReducer(reducer)
       .withState(store.getState())
       .provide([
-        [call.fn(pubKeyFromCsr), pubKey],
-        [call.fn(loadPrivateKey), privateKey],
-        [call.fn(getPubKey), publicKey],
-        [call.fn(createUserCsr), userCsr],
+        [matchers.select(communitiesSelectors.currentCommunity), community],
+        [
+          matchers.apply(socket, socket.emitWithAck, [SocketActionTypes.CREATE_USER_CSR, initUserCsrPayload]),
+          { ...identity, nickname: newNickname, userCsr: newUserCsr },
+        ],
       ])
-      .call(pubKeyFromCsr, identity.userCsr.userCsr)
-      .call(loadPrivateKey, identity.userCsr.userKey, config.signAlg)
-      .call(getPubKey, pubKey)
-      .call(createUserCsr, createUserCsrPayload)
-      .put(
-        identityActions.addCsr({
-          communityId: community.id,
-          nickname: newNickname,
-          userCsr,
-          isUsernameTaken: true,
-        })
-      )
-      .run()
-  })
-
-  // Outdated
-  it.skip("reuse existing csr if provided username hasn't changed", async () => {
-    setupCrypto()
-
-    const socket = { emit: jest.fn(), on: jest.fn() } as unknown as Socket
-
-    const store = prepareStore().store
-
-    const factory = await getFactory(store)
-
-    const community =
-      await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community')
-
-    const userCsr: UserCsr = {
-      userCsr: 'userCsr',
-      userKey: 'userKey',
-      pkcs10: jest.fn() as unknown as CertData,
-    }
-
-    const identity = (
-      await factory.build<typeof identityActions.addNewIdentity>('Identity', {
-        nickname: undefined,
-        id: community.id,
-      })
-    ).payload
-
-    identity.userCsr = userCsr
-
-    store.dispatch(identityActions.addNewIdentity(identity))
-
-    const reducer = combineReducers(reducers)
-    await expectSaga(registerUsernameSaga, socket, identityActions.registerUsername({ nickname: identity.nickname }))
-      .withReducer(reducer)
-      .withState(store.getState())
-      .not.call(createUserCsr)
-      .apply(socket, socket.emit, [
-        SocketActionTypes.CREATE_NETWORK,
-        {
-          id: community.id,
-          name: community.name,
-          CA: community.CA,
-          rootCa: undefined,
-        },
-      ])
-      .dispatch(identityActions.addNewIdentity(identity))
-      .put(
-        identityActions.addCsr({
-          communityId: community.id,
-          nickname: identity.nickname,
-          userCsr,
-        })
-      )
-      .run()
-  })
-
-  // Outdated
-  it.skip("don't reuse existing csr if provided username has changed", async () => {
-    setupCrypto()
-
-    const socket = { emit: jest.fn(), on: jest.fn() } as unknown as Socket
-
-    const store = prepareStore().store
-
-    const factory = await getFactory(store)
-
-    const community = await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>(
-      'Community',
-      {
-        id: '1',
-        name: 'rockets',
-        CA: null,
-        rootCa: 'rootCa',
-        peerList: [],
-        onionAddress: '',
-      }
-    )
-
-    const oldUserCsr: UserCsr = {
-      userCsr: 'userCsr',
-      userKey: 'userKey',
-      pkcs10: jest.fn() as unknown as CertData,
-    }
-
-    const identity = (
-      await factory.build<typeof identityActions.addNewIdentity>('Identity', {
-        nickname: undefined,
-        id: community.id,
-      })
-    ).payload
-
-    identity.userCsr = oldUserCsr
-
-    store.dispatch(identityActions.addNewIdentity(identity))
-
-    const userCsr: UserCsr = {
-      userCsr: 'userCsr',
-      userKey: 'userKey',
-      pkcs10: jest.fn() as unknown as CertData,
-    }
-
-    const createUserCsrPayload: CreateUserCsrPayload = {
-      nickname: 'nickname',
-      commonName: identity.hiddenService.onionAddress,
-      peerId: identity.peerId.id,
-      signAlg: config.signAlg,
-      hashAlg: config.hashAlg,
-    }
-
-    const reducer = combineReducers(reducers)
-    await expectSaga(
-      registerUsernameSaga,
-      socket,
-      identityActions.registerUsername({
-        nickname: 'nickname',
-      })
-    )
-      .withReducer(reducer)
-      .withState(store.getState())
-      .provide([[call.fn(createUserCsr), userCsr]])
-      .apply(socket, socket.emit, [
-        SocketActionTypes.CREATE_NETWORK,
-        {
-          id: community.id,
-          name: community.name,
-          CA: community.CA,
-          rootCa: undefined,
-        },
-      ])
-      .dispatch(identityActions.addNewIdentity(identity))
-      .call(createUserCsr, createUserCsrPayload)
-      .put(
-        identityActions.addCsr({
-          communityId: community.id,
-          nickname: 'nickname',
-          userCsr,
-        })
-      )
+      .put(identityActions.updateIdentity({ ...identity, nickname: newNickname, userCsr: newUserCsr }))
       .run()
   })
 })

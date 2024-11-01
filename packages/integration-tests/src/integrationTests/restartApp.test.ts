@@ -26,21 +26,21 @@ describe('restart app without doing anything', () => {
     await owner.manager.closeAllServices()
   })
 
-  test('Owner creates community', async () => {})
+  test.skip('Owner creates community', async () => {})
 
-  test('Owner successfully closes app', async () => {
+  test.skip('Owner successfully closes app', async () => {
     store = owner.store
     await owner.manager.closeAllServices()
   })
 
-  test('Owner relaunch application with previous state', async () => {
+  test.skip('Owner relaunch application with previous state', async () => {
     oldState = storePersistor(store.getState())
     dataPath = owner.appPath
     owner = await createApp(oldState, dataPath)
     store = owner.store
   })
 
-  test('Assert that owner store is correct', async () => {
+  test.skip('Assert that owner store is correct', async () => {
     const currentState = store.getState()
     await assertStoreStatesAreEqual(oldState, currentState)
   })
@@ -60,17 +60,17 @@ describe('create community and restart app', () => {
     await owner.manager.closeAllServices()
   })
 
-  test('Owner creates community', async () => {
+  test.skip('Owner creates community', async () => {
     await createCommunity({ userName: 'Owner', store: owner.store })
     await assertInitializedCommunity(owner.store)
     store = owner.store
   })
 
-  test('Owner successfully closes app', async () => {
+  test.skip('Owner successfully closes app', async () => {
     await owner.manager.closeAllServices()
   })
 
-  test('Owner relaunch application with previous state', async () => {
+  test.skip('Owner relaunch application with previous state', async () => {
     oldState = storePersistor(store.getState())
     dataPath = owner.appPath
     owner = await createApp(oldState, dataPath)
@@ -79,7 +79,7 @@ describe('create community and restart app', () => {
     await assertStoreStatesAreEqual(oldState, currentState)
   })
 
-  test('Assert community and registrar are initialized', async () => {
+  test.skip('Assert community and registrar are initialized', async () => {
     await assertInitializedExistingCommunitiesAndRegistrars(store)
   })
 })

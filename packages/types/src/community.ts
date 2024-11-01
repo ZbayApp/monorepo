@@ -44,8 +44,6 @@ export interface InitCommunityPayload {
   // Remove redundancy and pass data in inviteData?
   id: string
   name?: string
-  peerId: PeerId
-  hiddenService: HiddenService
   CA?: null | {
     rootCertString: string
     rootKeyString: string
@@ -54,7 +52,6 @@ export interface InitCommunityPayload {
   peers?: string[]
   psk?: string
   ownerOrbitDbIdentity?: string
-  ownerCsr?: UserCsr
   inviteData?: InvitationData | null
 }
 

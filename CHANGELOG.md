@@ -6,6 +6,10 @@
 
 * Adds basic sigchain functions ([#2649](https://github.com/TryQuiet/quiet/pull/2649))
 
+ ### Chores
+
+* Moved some responsibilities of identity management to the backend ([#2617](https://github.com/TryQuiet/quiet/pull/2617))
+
 ### Fixes
 
 * Fixed memory leak associated with autoUpdater ([#2606](https://github.com/TryQuiet/quiet/issues/2606))

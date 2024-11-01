@@ -89,6 +89,8 @@ export * from './sagas/communities/communities.types'
 
 export * from './sagas/users/users.types'
 
+export * from './sagas/users/const/certFieldTypes'
+
 export * from './sagas/publicChannels/publicChannels.types'
 
 export * from './sagas/messages/messages.types'

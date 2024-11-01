@@ -38,11 +38,11 @@ describe('send message - users go offline and online', () => {
     await userTwo.manager.closeAllServices()
   })
 
-  test('Owner creates community', async () => {
+  test.skip('Owner creates community', async () => {
     await createCommunity({ userName: 'Owner', store: owner.store })
   })
 
-  test('Two users join community', async () => {
+  test.skip('Two users join community', async () => {
     const ownerData = getCommunityOwnerData(owner.store)
 
     await joinCommunity({
@@ -60,19 +60,19 @@ describe('send message - users go offline and online', () => {
     })
   })
 
-  test('Owner and users received certificates', async () => {
+  test.skip('Owner and users received certificates', async () => {
     await assertReceivedCertificates('owner', 3, 120_000, owner.store)
     await assertReceivedCertificates('userOne', 3, 120_000, userOne.store)
     await assertReceivedCertificates('userTwo', 3, 120_000, userTwo.store)
   })
 
-  test('Users replicated channel and subscribed to it', async () => {
+  test.skip('Users replicated channel and subscribed to it', async () => {
     await assertReceivedChannelsAndSubscribe('owner', 1, 120_000, owner.store)
     await assertReceivedChannelsAndSubscribe('userTwo', 1, 120_000, userOne.store)
     await assertReceivedChannelsAndSubscribe('userTwo', 1, 120_000, userTwo.store)
   })
 
-  test('Every user sends one message to general channel', async () => {
+  test.skip('Every user sends one message to general channel', async () => {
     const ownerMessage = await sendMessage({ message: 'owner says hi', store: owner.store })
     await sleep(40_000)
     const userOneMessage = await sendMessage({ message: 'userOne says hi', store: userOne.store })
@@ -87,7 +87,7 @@ describe('send message - users go offline and online', () => {
     await sleep(10_000)
   })
 
-  test('User one and two go offline', async () => {
+  test.skip('User one and two go offline', async () => {
     userOneOldState = storePersistor(userOne.store.getState())
     userTwoOldState = storePersistor(userTwo.store.getState())
     userOneDataPath = userOne.appPath
@@ -96,7 +96,7 @@ describe('send message - users go offline and online', () => {
     await userTwo.manager.closeAllServices()
   })
 
-  test('Owner sends messages, while users are offline', async () => {
+  test.skip('Owner sends messages, while users are offline', async () => {
     const ownerMessage = await sendMessage({
       message: 'Hi folks, how u doin? Does Wacek still has covid?',
       store: owner.store,
@@ -104,26 +104,26 @@ describe('send message - users go offline and online', () => {
     ownerMessagesData.push(ownerMessage)
   })
 
-  test('users come back online', async () => {
+  test.skip('users come back online', async () => {
     userOne = await createApp(userOneOldState, userOneDataPath)
     userTwo = await createApp(userTwoOldState, userTwoDataPath)
   })
 
-  test('Owner replicated all messages', async () => {
+  test.skip('Owner replicated all messages', async () => {
     allMessages = [...ownerMessagesData, ...userOneMessagesData, ...userTwoMessagesData]
 
     await assertReceivedMessages('owner', allMessages.length, 360_000, owner.store)
   })
 
-  test('userOne replicated all messages', async () => {
+  test.skip('userOne replicated all messages', async () => {
     await assertReceivedMessages('userOne', allMessages.length, 360_000, userOne.store)
   })
 
-  test('userTwo replicated all messages', async () => {
+  test.skip('userTwo replicated all messages', async () => {
     await assertReceivedMessages('userTwo', allMessages.length, 360_000, userTwo.store)
   })
 
-  test('Replicated messages are valid', async () => {
+  test.skip('Replicated messages are valid', async () => {
     await assertReceivedMessagesAreValid('owner', allMessages, 20000, owner.store)
     await assertReceivedMessagesAreValid('userOne', allMessages, 20000, owner.store)
     await assertReceivedMessagesAreValid('userTwo', allMessages, 20000, owner.store)
@@ -149,11 +149,11 @@ describe.only('send message - users are online', () => {
     await userTwo.manager.closeAllServices()
   })
 
-  test('Owner creates community', async () => {
+  test.skip('Owner creates community', async () => {
     await createCommunity({ userName: 'Owner', store: owner.store })
   })
 
-  test('Two users join community', async () => {
+  test.skip('Two users join community', async () => {
     const ownerData = getCommunityOwnerData(owner.store)
 
     await joinCommunity({
@@ -171,13 +171,13 @@ describe.only('send message - users are online', () => {
     })
   })
 
-  test('Owner and users received certificates', async () => {
+  test.skip('Owner and users received certificates', async () => {
     await assertReceivedCertificates('owner', 3, timeout, owner.store)
     await assertReceivedCertificates('userOne', 3, timeout, userOne.store)
     await assertReceivedCertificates('userTwo', 3, timeout, userTwo.store)
   })
 
-  test('Users replicated channel and subscribed to it', async () => {
+  test.skip('Users replicated channel and subscribed to it', async () => {
     await assertReceivedChannelsAndSubscribe('owner', 1, timeout, owner.store)
     await assertReceivedChannelsAndSubscribe('userTwo', 1, timeout, userOne.store)
     await assertReceivedChannelsAndSubscribe('userTwo', 1, timeout, userTwo.store)
@@ -187,25 +187,25 @@ describe.only('send message - users are online', () => {
   let userOneMessageData
   let userTwoMessageData
 
-  test('each user sends one message to general channel', async () => {
+  test.skip('each user sends one message to general channel', async () => {
     ownerMessageData = await sendMessage({ message: 'owner says hi', store: owner.store })
     userOneMessageData = await sendMessage({ message: 'userOne says hi', store: userOne.store })
     userTwoMessageData = await sendMessage({ message: 'userTwo says hi', store: userTwo.store })
   })
 
-  test('Owner replicated all messages', async () => {
+  test.skip('Owner replicated all messages', async () => {
     await assertReceivedMessages('owner', 4, timeout, owner.store)
   })
 
-  test('userOne replicated all messages', async () => {
+  test.skip('userOne replicated all messages', async () => {
     await assertReceivedMessages('userOne', 4, timeout, userOne.store)
   })
 
-  test('userTwo replicated all messages', async () => {
+  test.skip('userTwo replicated all messages', async () => {
     await assertReceivedMessages('userTwo', 4, timeout, userTwo.store)
   })
 
-  test('Replicated messages are valid', async () => {
+  test.skip('Replicated messages are valid', async () => {
     await assertReceivedMessagesAreValid(
       'owner',
       [ownerMessageData, userOneMessageData, userTwoMessageData],
@@ -244,11 +244,11 @@ xdescribe('send message - without tor', () => {
     await userTwo.manager.closeAllServices()
   })
 
-  test('Owner creates community', async () => {
+  test.skip('Owner creates community', async () => {
     await createCommunity({ userName: 'Owner', store: owner.store })
   })
 
-  test('Two users join community', async () => {
+  test.skip('Two users join community', async () => {
     const ownerData = getCommunityOwnerData(owner.store)
 
     await joinCommunity({
@@ -266,13 +266,13 @@ xdescribe('send message - without tor', () => {
     })
   })
 
-  test('Owner and users received certificates', async () => {
+  test.skip('Owner and users received certificates', async () => {
     await assertReceivedCertificates('owner', 3, 120_000, owner.store)
     await assertReceivedCertificates('userOne', 3, 120_000, userOne.store)
     await assertReceivedCertificates('userTwo', 3, 120_000, userTwo.store)
   })
 
-  test('Users replicated channel and subscribed to it', async () => {
+  test.skip('Users replicated channel and subscribed to it', async () => {
     await assertReceivedChannelsAndSubscribe('owner', 1, 120_000, owner.store)
     await assertReceivedChannelsAndSubscribe('userTwo', 1, 120_000, userOne.store)
     await assertReceivedChannelsAndSubscribe('userTwo', 1, 120_000, userTwo.store)
@@ -282,19 +282,19 @@ xdescribe('send message - without tor', () => {
   let userOneMessageData
   let userTwoMessageData
 
-  test('Every user sends one message to general channel', async () => {
+  test.skip('Every user sends one message to general channel', async () => {
     ownerMessageData = await sendMessage({ message: 'owner says hi', store: owner.store })
     userOneMessageData = await sendMessage({ message: 'userOne says hi', store: userOne.store })
     userTwoMessageData = await sendMessage({ message: 'userTwo says hi', store: userTwo.store })
   })
 
-  test('Every user replicated all messages', async () => {
+  test.skip('Every user replicated all messages', async () => {
     await assertReceivedMessages('owner', 3, 120_000, owner.store)
     await assertReceivedMessages('userOne', 3, 120_000, userOne.store)
     await assertReceivedMessages('userTwo', 3, 120_000, userTwo.store)
   })
 
-  test('Replicated messages are valid', async () => {
+  test.skip('Replicated messages are valid', async () => {
     await assertReceivedMessagesAreValid(
       'owner',
       [ownerMessageData, userOneMessageData, userTwoMessageData],

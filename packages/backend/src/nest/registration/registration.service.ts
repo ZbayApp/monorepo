@@ -13,6 +13,10 @@ import { RegistrationEvents } from './registration.types'
 import { createLogger } from '../common/logger'
 import { StorageService } from '../storage/storage.service'
 
+/*
+Manages the registration of certificates for users and the owner of a
+community
+*/
 @Injectable()
 export class RegistrationService extends EventEmitter implements OnModuleInit {
   private readonly logger = createLogger(RegistrationService.name)

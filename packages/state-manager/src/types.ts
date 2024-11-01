@@ -23,6 +23,7 @@ import {
   type PermsData,
   type UserProfile,
   type DeleteChannelResponse,
+  type Identity,
 } from '@quiet/types'
 
 interface EventsMap {
@@ -32,13 +33,18 @@ interface EventsMap {
 type EmitEvent<Payload, Callback = (response: any) => void> = (payload: Payload, callback?: Callback) => void
 
 export interface EmitEvents {
+  // ====== Application ======
+  [SocketActionTypes.START]: () => void
+  [SocketActionTypes.CLOSE]: () => void
+  // ====== Communities ======
   [SocketActionTypes.LAUNCH_COMMUNITY]: EmitEvent<InitCommunityPayload, (response: Community | undefined) => void>
+  [SocketActionTypes.CREATE_COMMUNITY]: EmitEvent<InitCommunityPayload, (response: Community | undefined) => void>
+  [SocketActionTypes.LEAVE_COMMUNITY]: () => void
+  // ====== Messages ======
   [SocketActionTypes.DOWNLOAD_FILE]: EmitEvent<DownloadFilePayload>
   [SocketActionTypes.SEND_MESSAGE]: EmitEvent<SendMessagePayload>
   [SocketActionTypes.CANCEL_DOWNLOAD]: EmitEvent<CancelDownloadPayload>
   [SocketActionTypes.UPLOAD_FILE]: EmitEvent<UploadFilePayload>
-  [SocketActionTypes.REGISTER_USER_CERTIFICATE]: EmitEvent<RegisterUserCertificatePayload>
-  [SocketActionTypes.CREATE_COMMUNITY]: EmitEvent<InitCommunityPayload, (response: Community | undefined) => void>
   [SocketActionTypes.GET_MESSAGES]: EmitEvent<GetMessagesPayload, (response?: MessagesLoadedPayload) => void>
   [SocketActionTypes.CREATE_CHANNEL]: EmitEvent<CreateChannelPayload, (response?: CreateChannelResponse) => void>
   [SocketActionTypes.DELETE_CHANNEL]: EmitEvent<
@@ -46,13 +52,15 @@ export interface EmitEvents {
     (response: DeleteChannelResponse) => void
   >
   [SocketActionTypes.DELETE_FILES_FROM_CHANNEL]: EmitEvent<DeleteFilesFromChannelSocketPayload>
-  [SocketActionTypes.CLOSE]: () => void
-  [SocketActionTypes.LEAVE_COMMUNITY]: () => void
+  // ====== Identity ======
+  [SocketActionTypes.REGISTER_USER_CERTIFICATE]: EmitEvent<RegisterUserCertificatePayload>
   [SocketActionTypes.CREATE_NETWORK]: EmitEvent<string, (response: NetworkInfo | undefined) => void>
+  [SocketActionTypes.CREATE_IDENTITY]: EmitEvent<string, (response: Identity | undefined) => void>
+  [SocketActionTypes.CREATE_USER_CSR]: EmitEvent<string, (response: Identity | undefined) => void>
+  // ====== User Profiles ======
   [SocketActionTypes.ADD_CSR]: EmitEvent<SaveCSRPayload>
   [SocketActionTypes.SET_USER_PROFILE]: EmitEvent<UserProfile>
   [SocketActionTypes.LOAD_MIGRATION_DATA]: EmitEvent<Record<string, any>>
-  [SocketActionTypes.START]: () => void
 }
 
 export type Socket = IOSocket<EventsMap, EmitEvents>
