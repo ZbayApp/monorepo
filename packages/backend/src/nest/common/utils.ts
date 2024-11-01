@@ -123,7 +123,7 @@ export function generateRandomOnionAddress(length: number = 56): string {
   let randomString = ''
 
   const randomValues = new Uint32Array(length)
-  crypto.getRandomValues(randomValues)
+  crypto.webcrypto.getRandomValues(randomValues)
 
   for (let i = 0; i < length; i++) {
     randomString += charset[randomValues[i] % charsetLength]
