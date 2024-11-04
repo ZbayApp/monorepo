@@ -122,7 +122,6 @@ describe('ConnectionsManagerService', () => {
   it('Bug reproduction - Error on startup - Error: TOR: Connection already established - Trigger launchCommunity from backend and state manager', async () => {
     await localDbService.setCommunity(community)
     await localDbService.setCurrentCommunityId(community.id)
-
     await localDbService.setIdentity(userIdentity)
 
     const peerid = '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx'

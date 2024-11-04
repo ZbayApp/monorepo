@@ -151,7 +151,7 @@ describe('Backwards Compatibility', () => {
       `User sends another ${loopMessages.length} messages to second channel`,
       async () => {
         for (const message of loopMessages) {
-          await secondChannel.sendMessage(message)
+          await secondChannel.sendMessage(message, ownerUsername)
         }
 
         messagesToCompare = await secondChannel.getUserMessages(ownerUsername)

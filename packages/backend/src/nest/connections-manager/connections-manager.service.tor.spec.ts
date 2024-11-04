@@ -178,12 +178,8 @@ describe('Connections manager', () => {
 
     let peerAddress: string
     const peerList: string[] = []
-    const peersCount = 7
-    for (let pCount = 0; pCount < peersCount; pCount++) {
-      logger.info('pushing peer ', pCount)
-      const peerId = await createPeerId()
-      peerList.push(createLibp2pAddress(`${Math.random().toString(36).substring(2, 13)}.onion`, peerId.toString()))
-    }
+    // add local peer to the list
+    peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id))
 
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
