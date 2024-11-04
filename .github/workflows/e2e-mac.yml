@@ -51,7 +51,7 @@ jobs:
         run: hdiutil mount $FILE_NAME
 
       - name: Add App file to applications
-        run: cd ~ && cp -R "/Volumes/Quiet $VERSION/Quiet.app" /Applications
+        run: cd ~ && cp -R "/Volumes/Quiet $VERSION-arm64/Quiet.app" /Applications
 
       - name: Run invitation link test - Includes 2 separate application clients
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
