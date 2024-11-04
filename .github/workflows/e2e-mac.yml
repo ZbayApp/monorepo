@@ -36,7 +36,7 @@ jobs:
 
       - name: FILE_NAME env
         working-directory: ./packages/desktop/dist
-        run: echo "FILE_NAME="Quiet-$VERSION.dmg"" >> $GITHUB_ENV
+        run: echo "FILE_NAME="Quiet-$VERSION-arm64.dmg"" >> $GITHUB_ENV
 
       - name: List dist dir content
         working-directory: ./packages/desktop/dist
