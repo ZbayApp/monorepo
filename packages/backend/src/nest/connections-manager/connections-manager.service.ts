@@ -451,7 +451,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       const existingKeyPair: CryptoKeyPair = { privateKey, publicKey }
 
       createUserCsrPayload = {
-        nickname: nickname,
+        nickname,
         commonName: identity.hiddenService.onionAddress,
         peerId: identity.peerId.id,
         signAlg: config.signAlg,
@@ -461,7 +461,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     } else {
       this.logger.info('Creating new user CSR')
       createUserCsrPayload = {
-        nickname: nickname,
+        nickname,
         commonName: identity.hiddenService.onionAddress,
         peerId: identity.peerId.id,
         signAlg: config.signAlg,
@@ -471,6 +471,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     let userCsr: UserCsr
     try {
+      this.logger.info(`Creating user csr for username ${createUserCsrPayload.nickname}`)
       userCsr = await createUserCsr(createUserCsrPayload)
     } catch (e) {
       emitError(this.serverIoProvider.io, {
@@ -481,9 +482,10 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    identity = { ...identity, userCsr: userCsr, nickname: nickname }
+    identity = { ...identity, userCsr, nickname }
     this.logger.info('Created user CSR')
     await this.storageService.setIdentity(identity)
+    this.logger.info(`Current identity in storage: ${await this.storageService.getIdentity(identity.id)}`)
     if (payload.isUsernameTaken) {
       await this.storageService.saveCSR({ csr: userCsr.userCsr })
     }
@@ -1003,8 +1005,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       this.logger.info(`Storage - ${StorageEvents.CSRS_STORED}`)
       const users = await getUsersFromCsrs(payload.csrs)
       this.logger.info(`CSRS => Users`, payload.csrs, users)
-      this.libp2pService.dialUsers(users)
       this.serverIoProvider.io.emit(SocketActionTypes.CSRS_STORED, payload)
+      this.libp2pService.dialUsers(users)
       this.registrationService.emit(RegistrationEvents.REGISTER_USER_CERTIFICATE, payload)
     })
     this.storageService.on(StorageEvents.COMMUNITY_METADATA_STORED, async (meta: CommunityMetadata) => {

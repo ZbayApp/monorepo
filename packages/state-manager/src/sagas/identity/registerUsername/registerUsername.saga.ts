@@ -13,7 +13,7 @@ export function* registerUsernameSaga(
   socket: Socket,
   action: PayloadAction<ReturnType<typeof identityActions.registerUsername>['payload']>
 ): Generator {
-  logger.info('Registering username')
+  logger.info('Registering username', action.payload.nickname)
 
   // Nickname can differ between saga calls
 

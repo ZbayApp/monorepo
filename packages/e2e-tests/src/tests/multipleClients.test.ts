@@ -97,6 +97,7 @@ describe('Multiple Clients', () => {
         expect(isJoinModal).toBeTruthy()
         await joinModal.switchToCreateCommunity()
       })
+
       it('Owner submits valid community name', async () => {
         const createModal = new CreateCommunityModal(users.owner.app.driver)
         const isCreateModal = await createModal.element.isDisplayed()
@@ -303,19 +304,17 @@ describe('Multiple Clients', () => {
         await promiseWithRetries(loadNewUser(), failureReason, retryConfig, onTimeout)
       })
 
-      // TODO: figure out why the message is still showing `Duplicate` and why the username is still the old duplicated username on the message
       it('Second user can send a message, they see their message tagged as "unregistered"', async () => {
         logger.info('Second guest FETCHING CHANNEL MESSAGES!')
         await sleep(15000)
-        await generalChannelUser3.sendMessage(users.user3.messages[0], users.user1.username)
+        await generalChannelUser3.sendMessage(users.user3.messages[0], users.user3.username)
         generalChannelUser3 = new Channel(users.user3.app.driver, generalChannelName)
-        // await generalChannelUser3.waitForLabel(users.user3.username, 'Unregistered')
+        await generalChannelUser3.waitForLabel(users.user3.username, 'Unregistered')
       })
 
-      // TODO: figure out why the message is still showing `Duplicate` and why the username is still the old duplicated username on the message
       it('First user sees that unregistered user\'s messages are marked as "unregistered"', async () => {
-        await generalChannelUser1.getMessageIdsByText(users.user3.messages[0], users.user1.username)
-        // await generalChannelUser1.waitForLabel(users.user3.username, 'Unregistered')
+        await generalChannelUser1.getMessageIdsByText(users.user3.messages[0], users.user3.username)
+        await generalChannelUser1.waitForLabel(users.user3.username, 'Unregistered')
       })
     })
 
@@ -403,7 +402,8 @@ describe('Multiple Clients', () => {
           const settingsModal = await new Sidebar(users.user1.app.driver).openSettings()
           const isSettingsModal = await settingsModal.element.isDisplayed()
           expect(isSettingsModal).toBeTruthy()
-          await settingsModal.openLeaveCommunityModal()
+          await settingsModal.switchTab('leave-community')
+          await sleep(2000)
           await settingsModal.leaveCommunityButton()
         })
 

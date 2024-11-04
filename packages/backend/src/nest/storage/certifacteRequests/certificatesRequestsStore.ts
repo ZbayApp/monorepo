@@ -1,7 +1,7 @@
 import { getCrypto } from 'pkijs'
 import { type LogEntry, type EventsType, IPFSAccessController } from '@orbitdb/core'
 import { NoCryptoEngineError } from '@quiet/types'
-import { loadCSR, keyFromCertificate } from '@quiet/identity'
+import { loadCSR, keyFromCertificate, CertFieldsTypes, getReqFieldValue } from '@quiet/identity'
 import { StorageEvents } from '../storage.types'
 import { validate } from 'class-validator'
 import { UserCsrData } from '../../registration/registration.functions'
@@ -42,8 +42,9 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
   }
 
   public async loadedCertificateRequests() {
+    const csrs = await this.getEntries()
     this.emit(StorageEvents.CSRS_STORED, {
-      csrs: await this.getEntries(),
+      csrs,
     })
   }
 
@@ -52,8 +53,7 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
       throw new Error('Store is not initialized')
     }
     this.logger.info('Adding CSR to database')
-    await this.getStore().add(csr)
-    this.loadedCertificateRequests()
+    await this.store.add(csr)
     return csr
   }
 
@@ -90,9 +90,8 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
 
     this.logger.info('Total CSRs:', allEntries.length)
 
-    const allCsrsUnique = [...new Set(allEntries)]
     await Promise.all(
-      allCsrsUnique
+      allEntries
         .filter(async csr => {
           const validation = await this.validateUserCsr(csr)
           if (validation) return true
@@ -103,7 +102,8 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
           const pubKey = keyFromCertificate(parsedCsr)
 
           if (filteredCsrsMap.has(pubKey)) {
-            filteredCsrsMap.delete(pubKey)
+            this.logger.warn(`Skipping csr due to existing pubkey`, pubKey)
+            return
           }
           filteredCsrsMap.set(pubKey, csr)
         })

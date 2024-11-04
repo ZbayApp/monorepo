@@ -144,7 +144,7 @@ export class LocalDbService {
 
   // temporarily shoving identity creation here
   public async setIdentity(identity: Identity) {
-    await this.put(LocalDBKeys.IDENTITIES, identity)
+    this.logger.info(`Setting identity`, JSON.stringify({ ...identity, userCsr: identity.userCsr?.userCsr }, null, 2))
     let identities = await this.get(LocalDBKeys.IDENTITIES)
     if (!identities) {
       identities = {}
