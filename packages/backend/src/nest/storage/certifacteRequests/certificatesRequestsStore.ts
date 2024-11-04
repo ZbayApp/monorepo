@@ -48,8 +48,11 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
   }
 
   public async addEntry(csr: string): Promise<string> {
-    await this.getStore().add(csr)
+    if (!this.store) {
+      throw new Error('Store is not initialized')
+    }
     this.logger.info('Adding CSR to database')
+    await this.getStore().add(csr)
     this.loadedCertificateRequests()
     return csr
   }

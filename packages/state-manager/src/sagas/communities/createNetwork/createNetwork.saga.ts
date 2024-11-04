@@ -30,13 +30,6 @@ export function* createNetworkSaga(
   logger.info('Generating community ID')
   const id = yield* call(generateId)
 
-  logger.info('Emitting CREATE_NETWORK')
-  const network: NetworkInfo = yield* apply(
-    socket,
-    socket.emitWithAck,
-    applyEmitParams(SocketActionTypes.CREATE_NETWORK, id)
-  )
-
   // TODO: Move CA generation to backend when creating Community
   let CA: null | {
     rootCertString: string
@@ -71,6 +64,7 @@ export function* createNetworkSaga(
         community.ownerOrbitDbIdentity = payload.inviteData.ownerOrbitDbIdentity
         const invitationPeers = payload.inviteData.pairs
         if (invitationPeers) {
+          logger.info('Setting invitation codes')
           yield* put(communitiesActions.setInvitationCodes(invitationPeers))
         }
         break
@@ -81,18 +75,13 @@ export function* createNetworkSaga(
   yield* put(communitiesActions.addNewCommunity(community))
   yield* put(communitiesActions.setCurrentCommunity(id))
 
-  // Identities are tied to communities for now
-  const identity: Identity = {
-    id: community.id,
-    nickname: '',
-    hiddenService: network.hiddenService,
-    peerId: network.peerId,
-    userCsr: null,
-    userCertificate: null,
-    joinTimestamp: null,
-  }
+  logger.info('Emitting CREATE_IDENTITY')
+  const identity = yield* apply(socket, socket.emitWithAck, applyEmitParams(SocketActionTypes.CREATE_IDENTITY, id))
 
-  logger.info('Adding new identity', identity.id)
+  if (!identity) {
+    logger.error('Failed to create identity')
+    return
+  }
   yield* put(identityActions.addNewIdentity(identity))
 
   logger.info('Network created')

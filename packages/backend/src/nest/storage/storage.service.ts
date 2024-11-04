@@ -32,6 +32,7 @@ import {
   UserData,
   type UserProfile,
   type UserProfilesStoredEvent,
+  type Identity,
 } from '@quiet/types'
 import { createLibp2pAddress } from '@quiet/common'
 import fs from 'fs'
@@ -627,6 +628,7 @@ export class StorageService extends EventEmitter {
   }
 
   public async saveCSR(payload: SaveCSRPayload): Promise<void> {
+    this.logger.info('About to save CSR...', payload.csr)
     await this.certificatesRequestsStore.addEntry(payload.csr)
   }
 
@@ -717,8 +719,23 @@ export class StorageService extends EventEmitter {
     })
   }
 
+  public async setIdentity(identity: Identity) {
+    await this.localDbService.setIdentity(identity)
+    this.emit(SocketActionTypes.IDENTITY_STORED, identity)
+  }
+
+  public async getIdentity(id: string): Promise<Identity | undefined> {
+    return await this.localDbService.getIdentity(id)
+  }
+
   public async clean() {
     this.peerId = null
+
+    // @ts-ignore
+    this.channels = undefined
+    // @ts-ignore
+    this.messageThreads = undefined
+    // @ts-ignore
     this.publicChannelsRepos = new Map()
     this.publicKeysMap = new Map()
 

@@ -108,7 +108,7 @@ const parseDeepUrl = ({ url, expectedProtocol = `${DEEP_URL_SCHEME}:` }: ParseDe
 
   if (!data) throw new Error(`Could not parse invitation code from deep url '${url}'`)
 
-  logger.info(`Invitation data '${data}' parsed`)
+  logger.info(`Invitation data '${JSON.stringify(data)}' parsed`)
   return data
 }
 

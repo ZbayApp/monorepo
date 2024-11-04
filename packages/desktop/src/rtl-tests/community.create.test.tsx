@@ -6,6 +6,11 @@ import {
   ChannelsReplicatedPayload,
   InitCommunityPayload,
   ResponseLaunchCommunityPayload,
+  Identity,
+  CreateNetworkPayload,
+  PeerId,
+  UserCsr,
+  InitUserCsrPayload,
 } from '@quiet/types'
 import { screen } from '@testing-library/dom'
 import '@testing-library/jest-dom/extend-expect'
@@ -68,8 +73,12 @@ describe('User', () => {
 
     const mockEmitImpl = (...input: [SocketActionTypes, ...socketEventData<[any]>]) => {
       const action = input[0]
-      if (action === SocketActionTypes.CREATE_NETWORK) {
+      if (action === SocketActionTypes.CREATE_IDENTITY) {
+        const payload: string = input[1]
+        console.info('CREATE_IDENTITY', payload)
         return {
+          id: payload,
+          nickname: 'alice',
           hiddenService: {
             onionAddress: 'onionAddress',
             privateKey: 'privKey',
@@ -77,7 +86,30 @@ describe('User', () => {
           peerId: {
             id: 'peerId',
           },
-        }
+        } as Identity
+      }
+      if (action === SocketActionTypes.CREATE_USER_CSR) {
+        const payload = input[1] as InitUserCsrPayload
+        return {
+          id: payload.communityId,
+          nickname: payload.nickname,
+          hiddenService: {
+            onionAddress: 'onionAddress',
+            privateKey: 'privKey',
+          },
+          peerId: {
+            id: 'peerId',
+          } as PeerId,
+          userCsr: {
+            userCsr: 'mock',
+            userKey: 'mock',
+            pkcs10: {
+              publicKey: 'mock',
+              privateKey: 'mock',
+              pkcs10: 'mock',
+            },
+          } as UserCsr,
+        } as Identity
       }
       if (action === SocketActionTypes.CREATE_COMMUNITY) {
         const payload = input[1] as InitCommunityPayload
@@ -157,9 +189,7 @@ describe('User', () => {
         "Modals/closeModal",
         "Modals/openModal",
         "Identity/registerUsername",
-        "Network/setLoadingPanelType",
-        "Modals/openModal",
-        "Identity/addCsr",
+        "Identity/updateIdentity",
         "Communities/createCommunity",
         "Files/checkForMissingFiles",
         "Network/addInitializedCommunity",
@@ -171,9 +201,10 @@ describe('User', () => {
         "Messages/addPublicChannelsMessagesBase",
         "PublicChannels/createGeneralChannel",
         "PublicChannels/createChannel",
-        "Identity/saveUserCsr",
         "PublicChannels/setCurrentChannel",
         "PublicChannels/clearUnreadChannel",
+        "Network/setLoadingPanelType",
+        "Modals/openModal",
         "Modals/closeModal",
         "Messages/lazyLoading",
         "Messages/resetCurrentPublicChannelCache",

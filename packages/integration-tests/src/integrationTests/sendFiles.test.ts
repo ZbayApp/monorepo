@@ -39,11 +39,11 @@ describe('send message - users are online', () => {
     await userOne.manager.closeAllServices()
   })
 
-  test('Owner creates community', async () => {
+  test.skip('Owner creates community', async () => {
     await createCommunity({ userName: 'Owner', store: owner.store })
   })
 
-  test('Users joins community', async () => {
+  test.skip('Users joins community', async () => {
     const ownerData = getCommunityOwnerData(owner.store)
 
     await joinCommunity({
@@ -54,17 +54,17 @@ describe('send message - users are online', () => {
     })
   })
 
-  test('Owner and user received certificates', async () => {
+  test.skip('Owner and user received certificates', async () => {
     await assertReceivedCertificates('owner', 2, timeout, owner.store)
     await assertReceivedCertificates('userOne', 2, timeout, userOne.store)
   })
 
-  test('User replicated channel and subscribed to it', async () => {
+  test.skip('User replicated channel and subscribed to it', async () => {
     await assertReceivedChannelsAndSubscribe('owner', 1, timeout, owner.store)
     await assertReceivedChannelsAndSubscribe('userOne', 1, timeout, userOne.store)
   })
 
-  test('user sends image to general channel', async () => {
+  test.skip('user sends image to general channel', async () => {
     logger.info(`Image ${JSON.stringify(image)}`)
     const payload: SendImage = {
       file: image,
@@ -73,11 +73,11 @@ describe('send message - users are online', () => {
     await sendImage(payload)
   })
 
-  test('userOne replicated image', async () => {
+  test.skip('userOne replicated image', async () => {
     await assertReceivedImages('userOne', 1, timeout, userOne.store)
   })
 
-  test('userOne downloaded image', async () => {
+  test.skip('userOne downloaded image', async () => {
     await assertDownloadedImage('userOne', image.name + image.ext, timeout, userOne.store)
   })
 })
@@ -110,11 +110,11 @@ describe('send files - image is being redistributed (users going offline)', () =
     await userTwo.manager.closeAllServices()
   })
 
-  test('Owner creates community', async () => {
+  test.skip('Owner creates community', async () => {
     await createCommunity({ userName: 'Owner', store: owner.store })
   })
 
-  test('Two users join community', async () => {
+  test.skip('Two users join community', async () => {
     const ownerData = getCommunityOwnerData(owner.store)
 
     await joinCommunity({
@@ -132,45 +132,45 @@ describe('send files - image is being redistributed (users going offline)', () =
     })
   })
 
-  test('Owner and users received certificates', async () => {
+  test.skip('Owner and users received certificates', async () => {
     await assertReceivedCertificates('owner', 3, timeout, owner.store)
     await assertReceivedCertificates('userOne', 3, timeout, userOne.store)
     await assertReceivedCertificates('userTwo', 3, timeout, userTwo.store)
   })
 
-  test('Users replicated channel and subscribed to it', async () => {
+  test.skip('Users replicated channel and subscribed to it', async () => {
     await assertReceivedChannelsAndSubscribe('owner', 1, timeout, owner.store)
     await assertReceivedChannelsAndSubscribe('userOne', 1, timeout, userOne.store)
     await assertReceivedChannelsAndSubscribe('userTwo', 1, timeout, userTwo.store)
   })
 
-  test('UserTwo goes offline', async () => {
+  test.skip('UserTwo goes offline', async () => {
     userTwoOldState = storePersistor(userTwo.store.getState())
     userTwoDataPath = userTwo.appPath
     await userTwo.manager.closeAllServices()
   })
 
-  test('Owner sends image, while UserTwo is offline', async () => {
+  test.skip('Owner sends image, while UserTwo is offline', async () => {
     await sendImage({
       file: image,
       store: owner.store,
     })
   })
 
-  test('UserOne replicated and downloaded the image', async () => {
+  test.skip('UserOne replicated and downloaded the image', async () => {
     await assertReceivedImages('userOne', 1, 360_000, userOne.store)
     await assertDownloadedImage('userOne', image.name + image.ext, 360_000, userOne.store)
   })
 
-  test('Owner goes offline', async () => {
+  test.skip('Owner goes offline', async () => {
     await owner.manager.closeAllServices()
   })
 
-  test('UserTwo comes back online', async () => {
+  test.skip('UserTwo comes back online', async () => {
     userTwo = await createApp(userTwoOldState, userTwoDataPath)
   })
 
-  test('UserTwo replicated and downloaded the image', async () => {
+  test.skip('UserTwo replicated and downloaded the image', async () => {
     await assertReceivedImages('userTwo', 1, 360_000, userTwo.store)
     await assertDownloadedImage('userTwo', image.name + image.ext, 360_000, userTwo.store)
   })

@@ -82,13 +82,8 @@ describe('ConnectionsManagerService', () => {
     }
     await localDbService.setCommunity(actualCommunity)
     await localDbService.setCurrentCommunityId(community.id)
-    // TODO: Revisit this when we move the Identity model to the backend, since
-    // this network data lives in that model.
-    const network = {
-      peerId: userIdentity.peerId,
-      hiddenService: userIdentity.hiddenService,
-    }
-    await localDbService.setNetworkInfo(network)
+
+    await localDbService.setIdentity(userIdentity)
 
     await connectionsManagerService.closeAllServices()
 
@@ -97,10 +92,7 @@ describe('ConnectionsManagerService', () => {
     await connectionsManagerService.init()
 
     const localPeerAddress = createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id)
-    const updatedLaunchCommunityPayload = {
-      community: { ...actualCommunity, peerList: [localPeerAddress, remotePeer] },
-      network,
-    }
+    const updatedLaunchCommunityPayload = { ...actualCommunity, peerList: [localPeerAddress, remotePeer] }
 
     expect(launchCommunitySpy).toHaveBeenCalledWith(updatedLaunchCommunityPayload)
   })
@@ -115,20 +107,13 @@ describe('ConnectionsManagerService', () => {
   it('community is only launched once', async () => {
     await localDbService.setCommunity(community)
     await localDbService.setCurrentCommunityId(community.id)
-    const launchCommunityPayload = {
-      community: community,
-      network: {
-        peerId: userIdentity.peerId,
-        hiddenService: userIdentity.hiddenService,
-      },
-    }
 
     //@ts-ignore
     const launchSpy = jest.spyOn(connectionsManagerService, 'launch').mockResolvedValue('address')
 
     await Promise.all([
-      connectionsManagerService.launchCommunity(launchCommunityPayload),
-      connectionsManagerService.launchCommunity(launchCommunityPayload),
+      connectionsManagerService.launchCommunity(community),
+      connectionsManagerService.launchCommunity(community),
     ])
 
     expect(launchSpy).toBeCalledTimes(1)
@@ -137,13 +122,8 @@ describe('ConnectionsManagerService', () => {
   it('Bug reproduction - Error on startup - Error: TOR: Connection already established - Trigger launchCommunity from backend and state manager', async () => {
     await localDbService.setCommunity(community)
     await localDbService.setCurrentCommunityId(community.id)
-    // TODO: Revisit this when we move the Identity model to the backend, since
-    // this network data lives in that model.
-    const network = {
-      peerId: userIdentity.peerId,
-      hiddenService: userIdentity.hiddenService,
-    }
-    await localDbService.setNetworkInfo(network)
+
+    await localDbService.setIdentity(userIdentity)
 
     const peerid = '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx'
     await localDbService.put(LocalDBKeys.PEERS, {

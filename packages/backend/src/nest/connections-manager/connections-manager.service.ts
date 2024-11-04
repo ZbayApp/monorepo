@@ -9,8 +9,17 @@ import path from 'path'
 import { CryptoEngine, setEngine } from 'pkijs'
 import { createPeerId, getUsersFromCsrs, removeFilesFromDir } from '../common/utils'
 
-import { createLibp2pAddress, isPSKcodeValid } from '@quiet/common'
-import { CertFieldsTypes, createRootCA, getCertFieldValue, loadCertificate } from '@quiet/identity'
+import { createLibp2pAddress, filterValidAddresses, isPSKcodeValid } from '@quiet/common'
+import {
+  CertFieldsTypes,
+  createRootCA,
+  createUserCsr,
+  getCertFieldValue,
+  getPubKey,
+  loadCertificate,
+  loadPrivateKey,
+  pubKeyFromCsr,
+} from '@quiet/identity'
 import {
   ChannelMessageIdsResponse,
   ChannelSubscribedPayload,
@@ -43,6 +52,10 @@ import {
   type SavedOwnerCertificatePayload,
   type UserProfile,
   type UserProfilesStoredEvent,
+  Identity,
+  CreateUserCsrPayload,
+  InitUserCsrPayload,
+  UserCsr,
 } from '@quiet/types'
 import { CONFIG_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { Libp2pService } from '../libp2p/libp2p.service'
@@ -64,6 +77,7 @@ import { DateTime } from 'luxon'
 import { createLogger } from '../common/logger'
 import { createFromJSON } from '@libp2p/peer-id-factory'
 import { PeerId } from '@libp2p/interface'
+import { config } from '@quiet/state-manager'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -106,6 +120,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     setEngine(
       'newEngine',
+      // @ts-ignore
       new CryptoEngine({
         name: 'newEngine',
         // @ts-ignore
@@ -170,9 +185,11 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     const dataReceivedPromise = new Promise<void>((resolve: () => void) => {
       onDataReceived = resolve
     })
+
+    // TODO: add migration of network info in COMMUNITY to IDENTITY
     // This is related to a specific migration, perhaps there is a way to
     // encapsulate this in LocalDbService.
-    const keys = [LocalDBKeys.CURRENT_COMMUNITY_ID, LocalDBKeys.COMMUNITIES]
+    const keys = [LocalDBKeys.CURRENT_COMMUNITY_ID, LocalDBKeys.COMMUNITIES, LocalDBKeys.IDENTITIES]
     const keysRequired: string[] = []
 
     for (const key of keys) {
@@ -203,22 +220,26 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
   public async launchCommunityFromStorage() {
     this.logger.info('Launching community from storage')
-
     const community = await this.localDbService.getCurrentCommunity()
-    // TODO: Revisit this when we move the Identity model to the backend, since
-    // this network data lives in that model.
-    const network = await this.localDbService.getNetworkInfo()
-
-    if (community && network) {
-      const sortedPeers = await this.localDbService.getSortedPeers(community.peerList ?? [])
-      this.logger.info('launchCommunityFromStorage - sorted peers', sortedPeers)
-      if (sortedPeers.length > 0) {
-        community.peerList = sortedPeers
-      }
-      await this.localDbService.setCommunity(community)
-
-      await this.launchCommunity({ community, network })
+    if (!community) {
+      this.logger.info('No community found in storage')
+      return
     }
+
+    const identity = await this.storageService.getIdentity(community.id)
+    if (!identity) {
+      this.logger.warn('No identity found in storage')
+      return
+    }
+
+    const sortedPeers = await this.localDbService.getSortedPeers(community.peerList ?? [])
+    this.logger.info('launchCommunityFromStorage - sorted peers', sortedPeers)
+    if (sortedPeers.length > 0) {
+      community.peerList = sortedPeers
+    }
+    await this.localDbService.setCommunity(community)
+
+    await this.launchCommunity(community)
   }
 
   public async closeSocket() {
@@ -378,6 +399,97 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     return network
   }
 
+  public async createIdentity(id: string): Promise<Identity | undefined> {
+    let identity: Identity | undefined = await this.storageService.getIdentity(id)
+    if (!identity) {
+      this.logger.info('Creating identity')
+      const network: NetworkInfo = await this.getNetwork()
+      identity = {
+        id: id,
+        nickname: '',
+        hiddenService: network.hiddenService,
+        peerId: network.peerId,
+        userCsr: null,
+        userCertificate: null,
+        joinTimestamp: null,
+      }
+      this.logger.info('Created identity', identity)
+    } else {
+      this.logger.info('Retrieved identity from localDbService', identity)
+    }
+    await this.storageService.setIdentity(identity)
+    return identity
+  }
+
+  public async addUserCsr(payload: InitUserCsrPayload): Promise<Identity | undefined> {
+    const { communityId, nickname } = payload
+    this.logger.info('Creating user CSR for community', communityId)
+
+    let identity: Identity | undefined = await this.storageService.getIdentity(communityId)
+    if (!identity) {
+      emitError(this.serverIoProvider.io, {
+        type: SocketActionTypes.CREATE_USER_CSR,
+        message: ErrorMessages.USER_CSR_CREATION_FAILED,
+        community: communityId,
+      })
+      this.logger.error('Identity not found')
+      return
+    }
+
+    let createUserCsrPayload: CreateUserCsrPayload
+
+    if (identity?.userCsr) {
+      this.logger.info('Recreating user CSR')
+      if (identity.userCsr?.userCsr == null || identity.userCsr.userKey == null) {
+        this.logger.error('identity.userCsr?.userCsr == null || identity.userCsr.userKey == null')
+        return
+      }
+      const _pubKey = await pubKeyFromCsr(identity.userCsr.userCsr)
+      const publicKey = await getPubKey(_pubKey)
+      const privateKey = await loadPrivateKey(identity.userCsr.userKey, config.signAlg)
+
+      const existingKeyPair: CryptoKeyPair = { privateKey, publicKey }
+
+      createUserCsrPayload = {
+        nickname: nickname,
+        commonName: identity.hiddenService.onionAddress,
+        peerId: identity.peerId.id,
+        signAlg: config.signAlg,
+        hashAlg: config.hashAlg,
+        existingKeyPair,
+      }
+    } else {
+      this.logger.info('Creating new user CSR')
+      createUserCsrPayload = {
+        nickname: nickname,
+        commonName: identity.hiddenService.onionAddress,
+        peerId: identity.peerId.id,
+        signAlg: config.signAlg,
+        hashAlg: config.hashAlg,
+      }
+    }
+
+    let userCsr: UserCsr
+    try {
+      userCsr = await createUserCsr(createUserCsrPayload)
+    } catch (e) {
+      emitError(this.serverIoProvider.io, {
+        type: SocketActionTypes.CREATE_USER_CSR,
+        message: ErrorMessages.USER_CSR_CREATION_FAILED,
+        community: communityId,
+      })
+      return
+    }
+
+    identity = { ...identity, userCsr: userCsr, nickname: nickname }
+    this.logger.info('Created user CSR')
+    await this.storageService.setIdentity(identity)
+    if (payload.isUsernameTaken) {
+      await this.storageService.saveCSR({ csr: userCsr.userCsr })
+    }
+    return identity
+  }
+
   public async createCommunity(payload: InitCommunityPayload): Promise<Community | undefined> {
     this.logger.info('Creating community', payload.id)
 
@@ -386,8 +498,20 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    if (!payload.ownerCsr) {
-      this.logger.error('ownerCsr is required to create community')
+    let identity = await this.storageService.getIdentity(payload.id)
+    if (!identity) {
+      emitError(this.serverIoProvider.io, {
+        type: SocketActionTypes.CREATE_COMMUNITY,
+        message: ErrorMessages.IDENTITY_NOT_FOUND,
+        community: payload.id,
+      })
+      return
+    } else if (!identity.userCsr) {
+      emitError(this.serverIoProvider.io, {
+        type: SocketActionTypes.CREATE_COMMUNITY,
+        message: ErrorMessages.USER_CSR_NOT_FOUND,
+        community: payload.id,
+      })
       return
     }
 
@@ -397,7 +521,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     try {
       ownerCertResult = await this.registrationService.registerOwnerCertificate({
         communityId: payload.id,
-        userCsr: payload.ownerCsr,
+        userCsr: identity.userCsr,
         permsData: {
           certificate: payload.CA.rootCertString,
           privKey: payload.CA.rootKeyString,
@@ -408,7 +532,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    const localAddress = createLibp2pAddress(payload.hiddenService.onionAddress, payload.peerId.id)
+    const localAddress = createLibp2pAddress(identity.hiddenService.onionAddress, identity.peerId.id)
 
     let community: Community = {
       id: payload.id,
@@ -420,18 +544,16 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       psk: psk,
     }
 
-    const network = {
-      hiddenService: payload.hiddenService,
-      peerId: payload.peerId,
-    }
-
     await this.localDbService.setCommunity(community)
     await this.localDbService.setCurrentCommunityId(community.id)
-    // TODO: Revisit this when we move the Identity model to the backend, since
-    // this network data lives in that model.
-    await this.localDbService.setNetworkInfo(network)
 
-    await this.launchCommunity({ community, network })
+    identity = {
+      ...identity,
+      userCertificate: ownerCertResult.network.certificate,
+      id: payload.id,
+    }
+    await this.storageService.setIdentity(identity)
+    await this.launchCommunity(community)
 
     const meta = await this.storageService.updateCommunityMetadata({
       id: community.id,
@@ -449,7 +571,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     }
 
     this.logger.info(`Created and launched community ${community.id}`)
-
+    if (identity.userCsr?.userCsr) {
+      await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
+    }
     return community
   }
 
@@ -472,6 +596,17 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
   public async joinCommunity(payload: InitCommunityPayload): Promise<Community | undefined> {
     this.logger.info('Joining community: peers:', payload.peers)
+    const identity = await this.storageService.getIdentity(payload.id)
+
+    if (!identity) {
+      emitError(this.serverIoProvider.io, {
+        type: SocketActionTypes.LAUNCH_COMMUNITY,
+        message: ErrorMessages.IDENTITY_NOT_FOUND,
+        community: payload.id,
+      })
+      return
+    }
+
     let metadata = {
       psk: payload.psk,
       peers: payload.peers,
@@ -521,7 +656,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    const localAddress = createLibp2pAddress(payload.hiddenService.onionAddress, payload.peerId.id)
+    const localAddress = createLibp2pAddress(identity.hiddenService.onionAddress, identity.peerId.id)
 
     const community = {
       id: payload.id,
@@ -531,24 +666,18 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       inviteData,
     }
 
-    const network = {
-      hiddenService: payload.hiddenService,
-      peerId: payload.peerId,
-    }
-
     await this.localDbService.setCommunity(community)
     await this.localDbService.setCurrentCommunityId(community.id)
-    // TODO: Revisit this when we move the Identity model to the backend, since
-    // this network data lives in that model.
-    await this.localDbService.setNetworkInfo(network)
 
-    await this.launchCommunity({ community, network })
+    await this.launchCommunity(community)
     this.logger.info(`Joined and launched community ${community.id}`)
-
+    if (identity.userCsr?.userCsr) {
+      await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
+    }
     return community
   }
 
-  public async launchCommunity({ community, network }: { community: Community; network: NetworkInfo }) {
+  public async launchCommunity(community: Community) {
     if ([ServiceState.LAUNCHING, ServiceState.LAUNCHED].includes(this.communityState)) {
       this.logger.error(
         'Cannot launch community more than once.' +
@@ -557,11 +686,12 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
     this.communityState = ServiceState.LAUNCHING
+    this.logger.info(`Community state is now ${this.communityState}`)
 
     try {
-      await this.launch({ community, network })
+      await this.launch(community)
     } catch (e) {
-      this.logger.error(`Couldn't launch community for peer ${network.peerId.id}.`, e)
+      this.logger.error(`Failed to launch community ${community.id}`, e)
       emitError(this.serverIoProvider.io, {
         type: SocketActionTypes.LAUNCH_COMMUNITY,
         message: ErrorMessages.COMMUNITY_LAUNCH_FAILED,
@@ -584,34 +714,39 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     this.serverIoProvider.io.emit(SocketActionTypes.COMMUNITY_LAUNCHED, { id: community.id })
   }
 
-  public async spawnTorHiddenService(communityId: string, network: NetworkInfo): Promise<string> {
-    this.logger.info(`Spawning hidden service for community ${communityId}, peer: ${network.peerId.id}`)
+  public async spawnTorHiddenService(communityId: string, identity: Identity): Promise<string> {
+    this.logger.info(`Spawning hidden service for community ${communityId}, peer: ${identity.peerId.id}`)
     this.serverIoProvider.io.emit(
       SocketActionTypes.CONNECTION_PROCESS_INFO,
       ConnectionProcessInfo.SPAWNING_HIDDEN_SERVICE
     )
     return await this.tor.spawnHiddenService({
       targetPort: this.ports.libp2pHiddenService,
-      privKey: network.hiddenService.privateKey,
+      privKey: identity.hiddenService.privateKey,
     })
   }
 
-  public async launch({ community, network }: { community: Community; network: NetworkInfo }) {
-    this.logger.info(`Launching community ${community.id}: peer: ${network.peerId.id}`)
+  public async launch(community: Community) {
+    this.logger.info(`Launching community ${community.id}`)
 
-    const onionAddress = await this.spawnTorHiddenService(community.id, network)
+    const identity = await this.storageService.getIdentity(community.id)
+    if (!identity) {
+      throw new Error(ErrorMessages.IDENTITY_NOT_FOUND)
+    }
 
-    const peerId: PeerId = await createFromJSON(network.peerId)
+    const onionAddress = await this.spawnTorHiddenService(community.id, identity)
 
-    const peers = community.peerList
-    this.logger.info(`Launching community ${community.id}: payload peers: ${peers}`)
+    const peerId: PeerId = await createFromJSON(identity.peerId)
+    const peers = filterValidAddresses(community.peerList ? community.peerList : [])
+    const localAddress = createLibp2pAddress(onionAddress, peerId.toString())
 
     const params: Libp2pNodeParams = {
       peerId,
       listenAddresses: [this.libp2pService.createLibp2pListenAddress(onionAddress)],
       agent: this.socksProxyAgent,
-      localAddress: this.libp2pService.createLibp2pAddress(onionAddress, peerId.toString()),
+      localAddress: localAddress,
       targetPort: this.ports.libp2pHiddenService,
+      peers: peers.filter(p => p !== localAddress),
       psk: Libp2pService.generateLibp2pPSK(community.psk).fullKey,
     }
     await this.libp2pService.createInstance(params)
@@ -676,7 +811,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     this.libp2pService.dialPeers(peers ?? [])
 
     this.logger.info('Storage initialized')
-
     this.serverIoProvider.io.emit(
       SocketActionTypes.CONNECTION_PROCESS_INFO,
       ConnectionProcessInfo.CONNECTING_TO_COMMUNITY
@@ -721,6 +855,20 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       async (communityId: string, callback: (response: NetworkInfo | undefined) => void) => {
         this.logger.info(`socketService - ${SocketActionTypes.CREATE_NETWORK}`)
         callback(await this.createNetwork(communityId))
+      }
+    )
+    this.socketService.on(
+      SocketActionTypes.CREATE_IDENTITY,
+      async (id: string, callback: (response: Identity | undefined) => void) => {
+        this.logger.info(`socketService - ${SocketActionTypes.CREATE_IDENTITY}`)
+        callback(await this.createIdentity(id))
+      }
+    )
+    this.socketService.on(
+      SocketActionTypes.CREATE_USER_CSR,
+      async (payload: InitUserCsrPayload, callback: (response: Identity | undefined) => void) => {
+        this.logger.info(`socketService - ${SocketActionTypes.CREATE_USER_CSR}`)
+        callback(await this.addUserCsr(payload))
       }
     )
     this.socketService.on(
@@ -885,6 +1033,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     })
     this.storageService.on(StorageEvents.USER_PROFILES_STORED, (payload: UserProfilesStoredEvent) => {
       this.serverIoProvider.io.emit(SocketActionTypes.USER_PROFILES_STORED, payload)
+    })
+    this.storageService.on(StorageEvents.IDENTITY_STORED, (payload: Identity) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.IDENTITY_STORED, payload)
     })
   }
 }

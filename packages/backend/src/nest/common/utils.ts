@@ -113,6 +113,26 @@ export const getPorts = async (): Promise<Ports> => {
   }
 }
 
+/**
+ * Generate a random onion address
+ * @param length Length of the onion address, provided for testing invalid lengths (default: 56)
+ * @returns Random onion address
+ **/
+export function generateRandomOnionAddress(length: number = 56): string {
+  const charset = 'abcdefghijklmnopqrstuvwxyz' // Lowercase letters only
+  const charsetLength = charset.length
+  let randomString = ''
+
+  const randomValues = new Uint32Array(length)
+  crypto.getRandomValues(randomValues)
+
+  for (let i = 0; i < length; i++) {
+    randomString += charset[randomValues[i] % charsetLength]
+  }
+
+  return randomString + '.onion'
+}
+
 export class DummyIOServer extends Server {
   emit(event: string, ...args: any[]): boolean {
     logger.info(`Emitting ${event} with args:`, args)
@@ -210,13 +230,15 @@ export const rootPermsData: PermsData = {
 tmp.setGracefulCleanup()
 
 export const testBootstrapMultiaddrs = [
-  createLibp2pAddress('abcd.onion', '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx'),
+  createLibp2pAddress(generateRandomOnionAddress(56), '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx'),
 ]
 
 export const libp2pInstanceParams = async (): Promise<Libp2pNodeParams> => {
   const port = await getPort()
   const peerId = await createPeerId()
   const libp2pKey = Libp2pService.generateLibp2pPSK().fullKey
+  const address = '0.0.0.0'
+  const remoteAddress = createLibp2pAddress(address, peerId.toString())
   return {
     peerId,
     listenAddresses: [createLibp2pListenAddress('localhost')],
@@ -224,6 +246,7 @@ export const libp2pInstanceParams = async (): Promise<Libp2pNodeParams> => {
     localAddress: createLibp2pAddress('localhost', peerId.toString()),
     targetPort: port,
     psk: libp2pKey,
+    peers: [remoteAddress],
   }
 }
 

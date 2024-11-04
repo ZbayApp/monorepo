@@ -9,20 +9,15 @@ import {
   CancelDownloadPayload,
   GetMessagesPayload,
   ConnectionProcessInfo,
-  RegisterOwnerCertificatePayload,
-  SaveOwnerCertificatePayload,
   InitCommunityPayload,
   Community,
   DeleteFilesFromChannelSocketPayload,
   SaveCSRPayload,
-  CommunityMetadata,
-  type PermsData,
   type UserProfile,
   type DeleteChannelResponse,
   type MessagesLoadedPayload,
   type NetworkInfo,
-  CreateNetworkPayload,
-  CommunityOwnership,
+  Identity,
 } from '@quiet/types'
 import EventEmitter from 'events'
 import { CONFIG_OPTIONS, SERVER_IO_PROVIDER } from '../const'
@@ -166,7 +161,7 @@ export class SocketService extends EventEmitter implements OnModuleInit {
       socket.on(
         SocketActionTypes.LAUNCH_COMMUNITY,
         async (payload: InitCommunityPayload, callback: (response: Community | undefined) => void) => {
-          this.logger.info(`Launching community ${payload.id} for ${payload.peerId.id}`)
+          this.logger.info(`Launching community ${payload.id}`)
           this.emit(SocketActionTypes.LAUNCH_COMMUNITY, payload, callback)
           this.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, ConnectionProcessInfo.LAUNCHING_COMMUNITY)
         }
@@ -177,6 +172,20 @@ export class SocketService extends EventEmitter implements OnModuleInit {
         async (communityId: string, callback: (response: NetworkInfo | undefined) => void) => {
           this.logger.info(`Creating network for community ${communityId}`)
           this.emit(SocketActionTypes.CREATE_NETWORK, communityId, callback)
+        }
+      )
+      socket.on(
+        SocketActionTypes.CREATE_IDENTITY,
+        async (communityId: string, callback: (response: Identity | undefined) => void) => {
+          this.logger.info(`Creating identity for community ${communityId}`)
+          this.emit(SocketActionTypes.CREATE_IDENTITY, communityId, callback)
+        }
+      )
+      socket.on(
+        SocketActionTypes.CREATE_USER_CSR,
+        async (payload: { id: string; nickname: string }, callback: (response: Identity | undefined) => void) => {
+          this.logger.info(`Creating user CSR for community ${payload}`)
+          this.emit(SocketActionTypes.CREATE_USER_CSR, payload, callback)
         }
       )
 

@@ -74,8 +74,6 @@ describe('launchCommunity', () => {
     }
     const launchCommunityPayload: InitCommunityPayload = {
       id: community.id,
-      peerId: identity.peerId,
-      hiddenService: identity.hiddenService,
       peers: community.peerList,
       psk: undefined,
       ownerOrbitDbIdentity: undefined,
@@ -124,8 +122,6 @@ describe('launchCommunity', () => {
 
     const launchCommunityPayload: InitCommunityPayload = {
       id: community.id,
-      peerId: identity.peerId,
-      hiddenService: identity.hiddenService,
       peers: community.peerList,
       psk: undefined,
       ownerOrbitDbIdentity: undefined,
@@ -171,8 +167,6 @@ describe('launchCommunity', () => {
 
     const launchCommunityPayload: InitCommunityPayload = {
       id: community.id,
-      peerId: identity.peerId,
-      hiddenService: identity.hiddenService,
       peers: community.peerList,
     }
 
