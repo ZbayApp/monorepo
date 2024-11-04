@@ -1,5 +1,11 @@
 # Changelog
 
+## [unreleased]
+
+### New features
+
+* Adds basic sigchain functions ([#2649](https://github.com/TryQuiet/quiet/pull/2649))
+
 ## [2.3.2]
 
 ### Chores
