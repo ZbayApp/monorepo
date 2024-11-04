@@ -3,7 +3,7 @@ import {
   argvInvitationCode,
   composeInvitationDeepUrl,
   composeInvitationShareUrl,
-  parseInvitationCodeDeepUrl,
+  parseInvitationLinkDeepUrl,
   PSK_PARAM_KEY,
   OWNER_ORBIT_DB_IDENTITY_PARAM_KEY,
   p2pAddressesToPairs,
@@ -76,7 +76,7 @@ describe(`Invitation code helper ${InvitationDataVersion.v1}`, () => {
     const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
     urlParams.forEach(([key, value]) => url.searchParams.append(key, value))
 
-    const codes = parseInvitationCodeDeepUrl(url.href)
+    const codes = parseInvitationLinkDeepUrl(url.href)
     expect(codes).toEqual({
       version: InvitationDataVersion.v1,
       ...data,
@@ -95,7 +95,7 @@ describe(`Invitation code helper ${InvitationDataVersion.v1}`, () => {
     url.searchParams.set(paramKey, paramValue)
 
     expect(() => {
-      parseInvitationCodeDeepUrl(url.href)
+      parseInvitationLinkDeepUrl(url.href)
     }).toThrow()
   })
 
@@ -111,7 +111,7 @@ describe(`Invitation code helper ${InvitationDataVersion.v1}`, () => {
     const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
     urlParamsWithInvalidAddress.forEach(([key, value]) => url.searchParams.append(key, value))
 
-    const parsed = parseInvitationCodeDeepUrl(url.href)
+    const parsed = parseInvitationLinkDeepUrl(url.href)
     expect(parsed).toEqual({
       version: InvitationDataVersion.v1,
       ...data,
@@ -143,7 +143,7 @@ describe(`Invitation code helper ${InvitationDataVersion.v2}`, () => {
   it('retrieves invitation codes from deep url v2', () => {
     const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
     urlParams.forEach(([key, value]) => url.searchParams.append(key, value))
-    const codes = parseInvitationCodeDeepUrl(url.href)
+    const codes = parseInvitationLinkDeepUrl(url.href)
     expect(codes).toEqual({
       version: InvitationDataVersion.v2,
       cid: data.cid,
@@ -166,7 +166,7 @@ describe(`Invitation code helper ${InvitationDataVersion.v2}`, () => {
     url.searchParams.set(paramKey, paramValue)
 
     expect(() => {
-      parseInvitationCodeDeepUrl(url.href)
+      parseInvitationLinkDeepUrl(url.href)
     }).toThrow()
   })
 })

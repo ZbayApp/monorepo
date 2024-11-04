@@ -22,7 +22,7 @@ jest.setTimeout(900000)
 describe('User Profile Feature', () => {
   let generalChannelOwner: Channel
   let generalChannelUser1: Channel
-  let invitationCode: string
+  let invitationLink: string
 
   let users: Record<string, UserTestData>
   const communityName = 'testcommunity'
@@ -91,7 +91,7 @@ describe('User Profile Feature', () => {
   it('Owner sends a message', async () => {
     const isMessageInput = await generalChannelOwner.messageInput.isDisplayed()
     expect(isMessageInput).toBeTruthy()
-    await generalChannelOwner.sendMessage(users.owner.messages[0])
+    await generalChannelOwner.sendMessage(users.owner.messages[0], users.owner.username)
   })
 
   it('Owner updates their profile photo with JPEG', async () => {
@@ -151,17 +151,18 @@ describe('User Profile Feature', () => {
     }
   })
 
-  it('Owner opens the settings tab and gets an invitation code', async () => {
+  it('Owner opens the settings tab and gets an invitation link', async () => {
     const settingsModal = await new Sidebar(users.owner.app.driver).openSettings()
     const isSettingsModal = await settingsModal.element.isDisplayed()
     expect(isSettingsModal).toBeTruthy()
     await sleep(2000)
-    const invitationCodeElement = await settingsModal.invitationCode()
+    await settingsModal.switchTab('invite')
     await sleep(2000)
-    invitationCode = await invitationCodeElement.getText()
+    const invitationLinkElement = await settingsModal.invitationLink()
+    invitationLink = await invitationLinkElement.getText()
     await sleep(2000)
-    expect(invitationCode).not.toBeUndefined()
-    logger.info('Received invitation code:', invitationCode)
+    expect(invitationLink).not.toBeUndefined()
+    logger.info('Received invitation link:', invitationLink)
     await settingsModal.closeTabThenModal()
   })
 
@@ -169,11 +170,11 @@ describe('User Profile Feature', () => {
     await users.user1.app.open()
   })
 
-  it('First user submits invitation code received from owner', async () => {
+  it('First user submits invitation link received from owner', async () => {
     const joinCommunityModal = new JoinCommunityModal(users.user1.app.driver)
     const isJoinCommunityModal = await joinCommunityModal.element.isDisplayed()
     expect(isJoinCommunityModal).toBeTruthy()
-    await joinCommunityModal.typeCommunityInviteLink(invitationCode)
+    await joinCommunityModal.typeCommunityInviteLink(invitationLink)
     await joinCommunityModal.submit()
   })
 

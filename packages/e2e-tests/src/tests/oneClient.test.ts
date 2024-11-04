@@ -18,6 +18,10 @@ describe('One Client', () => {
   let app: App
   let dataDirPath: string
   let resourcesPath: string
+  let generalChannel: Channel
+
+  const generalChannelName = 'general'
+  const ownerUserName = 'testuser'
 
   beforeAll(async () => {
     app = new App()
@@ -41,7 +45,7 @@ describe('One Client', () => {
       expect(isJoinModal).toBeTruthy()
 
       if (!isJoinModal) {
-        const generalChannel = new Channel(app.driver, 'general')
+        const generalChannel = new Channel(app.driver, generalChannelName)
         const isGeneralChannel = await generalChannel.element.isDisplayed()
 
         expect(isGeneralChannel).toBeTruthy()
@@ -64,7 +68,7 @@ describe('One Client', () => {
 
       expect(isRegisterModal).toBeTruthy()
       logger.info('Registration - vefore typeUsername')
-      await registerModal.typeUsername('testuser')
+      await registerModal.typeUsername(ownerUserName)
       logger.info('Registration - before submit')
       await registerModal.submit()
       logger.info('Registration - after submit')
@@ -77,11 +81,17 @@ describe('One Client', () => {
     })
 
     it('User sees general channel', async () => {
-      const generalChannel = new Channel(app.driver, 'general')
+      generalChannel = new Channel(app.driver, generalChannelName)
       const isGeneralChannel = await generalChannel.element.isDisplayed()
       const generalChannelText = await generalChannel.element.getText()
       expect(isGeneralChannel).toBeTruthy()
-      expect(generalChannelText).toEqual('# general')
+      expect(generalChannelText).toEqual(`# ${generalChannelName}`)
+    })
+
+    it('User sends a message', async () => {
+      const isMessageInput = await generalChannel.messageInput.isDisplayed()
+      expect(isMessageInput).toBeTruthy()
+      await generalChannel.sendMessage('this shows up as sent', ownerUserName)
     })
   })
 

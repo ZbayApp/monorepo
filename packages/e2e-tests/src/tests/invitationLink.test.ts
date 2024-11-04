@@ -8,7 +8,7 @@ import {
   Sidebar,
   WarningModal,
 } from '../selectors'
-import { composeInvitationDeepUrl, parseInvitationCode, userJoinedMessage } from '@quiet/common'
+import { composeInvitationDeepUrl, parseInvitationLink } from '@quiet/common'
 import { execSync } from 'child_process'
 import { type SupportedPlatformDesktop } from '@quiet/types'
 import { createLogger } from '../logger'
@@ -23,7 +23,7 @@ describe('New user joins using invitation link while having app opened', () => {
   const communityName = 'testcommunity'
   const ownerUsername = 'bob'
   const joiningUserUsername = 'alice-joining'
-  let invitationCode: string
+  let invitationLink: string
   let ownerApp: App
   let guestApp: App
 
@@ -36,7 +36,7 @@ describe('New user joins using invitation link while having app opened', () => {
   })
 
   beforeEach(async () => {
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 1000))
+    await sleep(1000)
   })
 
   afterAll(async () => {
@@ -92,14 +92,11 @@ describe('New user joins using invitation link while having app opened', () => {
       const settingsModal = await new Sidebar(ownerApp.driver).openSettings()
       const isSettingsModal = await settingsModal.element.isDisplayed()
       expect(isSettingsModal).toBeTruthy()
-      await sleep(2000)
-      const invitationCodeElement = await settingsModal.invitationCode()
-      await sleep(2000)
-      invitationCode = await invitationCodeElement.getText()
-      await sleep(2000)
-      logger.info({ invitationCode })
-      expect(invitationCode).not.toBeUndefined()
-      logger.info('Received invitation code:', invitationCode)
+      await settingsModal.switchTab('invite')
+      await sleep(1000)
+      const invitationLinkElement = await settingsModal.invitationLink()
+      invitationLink = await invitationLinkElement.getText()
+      logger.info('Received invitation link:', invitationLink)
       await settingsModal.closeTabThenModal()
     })
 
@@ -143,7 +140,7 @@ describe('New user joins using invitation link while having app opened', () => {
       logger.info('Invitation Link', 14)
       // Extract code from copied invitation url
 
-      const url = new URL(invitationCode)
+      const url = new URL(invitationLink)
       const command = {
         linux: 'xdg-open',
         darwin: 'open',
@@ -151,8 +148,8 @@ describe('New user joins using invitation link while having app opened', () => {
       }
 
       const copiedCode = url.hash.substring(1)
-      expect(() => parseInvitationCode(copiedCode)).not.toThrow()
-      const data = parseInvitationCode(copiedCode)
+      expect(() => parseInvitationLink(copiedCode)).not.toThrow()
+      const data = parseInvitationLink(copiedCode)
       const commandFull = `${command[process.platform as SupportedPlatformDesktop]} ${process.platform === 'win32' ? '""' : ''} "${composeInvitationDeepUrl(data)}"`
       logger.info(`Calling ${commandFull}`)
       execSync(commandFull)
@@ -199,12 +196,10 @@ describe('New user joins using invitation link while having app opened', () => {
       const generalChannel = new Channel(ownerApp.driver, 'general')
       await generalChannel.element.isDisplayed()
 
-      const hasMessage = await generalChannel.waitForUserMessage(
-        joiningUserUsername,
-        userJoinedMessage(joiningUserUsername)
+      const messageIds = await generalChannel.getMessageIdsByText(
+        `@${joiningUserUsername} has joined and will be registered soon. 🎉 Learn more`,
+        joiningUserUsername
       )
-      const isMessageDisplayed = await hasMessage?.isDisplayed()
-      expect(isMessageDisplayed).toBeTruthy()
     })
   })
 })

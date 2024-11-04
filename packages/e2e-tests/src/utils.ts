@@ -5,7 +5,9 @@ import getPort from 'get-port'
 import path from 'path'
 import fs from 'fs'
 import { DESKTOP_DATA_DIR, getAppDataPath } from '@quiet/common'
+import { RetryConfig, TimeoutMetadata } from './types'
 import { config } from 'dotenv'
+
 import { createLogger } from './logger'
 
 const logger = createLogger('utils')
@@ -112,7 +114,8 @@ export class BuildSetup {
   public async createChromeDriver() {
     await this.initPorts()
     const env = {
-      DEBUG: 'backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,libp2p:connection-manager:auto-dial',
+      DEBUG:
+        'backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,main,libp2p:connection-manager:auto-dial',
       DATA_DIR: this.dataDir,
     }
     if (process.platform === 'win32') {
@@ -207,7 +210,7 @@ export class BuildSetup {
           .forBrowser(Browser.CHROME)
           .build()
       } catch (e) {
-        logger.info(e)
+        logger.error(`Error while getting chrome driver`, e)
       }
     }
 
@@ -246,7 +249,7 @@ export class BuildSetup {
     try {
       fs.rmdirSync(this.dataDirPath, { recursive: true })
     } catch (e) {
-      logger.error(`Could not delete ${this.dataDirPath}. Reason: ${e.message}`)
+      logger.error(`Could not delete ${this.dataDirPath}`, e)
     }
   }
 
@@ -334,10 +337,97 @@ export const copyInstallerFile = (file: string) => {
   return copiedFileName
 }
 
-export const sleep = async (time = 1000) => {
+export const sleep = async (timeMs = 1000) => {
   await new Promise<void>(resolve =>
     setTimeout(() => {
       resolve()
-    }, time)
+    }, timeMs)
   )
+}
+
+export class Timeout {
+  private id: NodeJS.Timeout | number | undefined = undefined
+
+  public set(timeoutMs: number, reason: string): Promise<unknown> {
+    if (this.id != null) {
+      throw new Error('Timeout already set')
+    }
+
+    return new Promise((resolve, reject) => {
+      this.id = setTimeout(() => {
+        reject(reason)
+        this.clear()
+      }, timeoutMs)
+    })
+  }
+
+  public async wrap<T>(promise: Promise<T>, timeoutMs: number, reason: string): Promise<T> {
+    return (Promise.race([promise, this.set(timeoutMs, reason)]) as Promise<T>)
+      .catch(reason => {
+        throw new Error(reason)
+      })
+      .finally(() => this.clear())
+  }
+
+  public clear(): void {
+    clearTimeout(this.id as NodeJS.Timeout)
+    this.id = undefined
+  }
+}
+
+export const promiseWithTimeout = async <T>(
+  promise: Promise<T>,
+  reason: string,
+  timeoutMs: number,
+  onTimeout?: () => Promise<void>
+): Promise<T> => {
+  const timeout = new Timeout()
+  try {
+    const result: T = await timeout.wrap(promise, timeoutMs, reason)
+    return result
+  } catch (e) {
+    if (e.message === reason) {
+      if (onTimeout != null) await onTimeout()
+      throw logAndReturnError(e)
+    }
+    throw e
+  }
+}
+
+export const promiseWithRetries = async <T>(
+  promise: Promise<T>,
+  reason: string,
+  retryConfig: RetryConfig,
+  onTimeout?: () => Promise<void>
+): Promise<T> => {
+  const attempts = 0
+  while (attempts < retryConfig.attempts) {
+    try {
+      const result: T = await promiseWithTimeout(promise, reason, retryConfig.timeoutMs, onTimeout)
+      return result
+    } catch (e) {
+      logger.error(e.message)
+      if (e.message === reason) {
+        logger.warn(`Timeout exceeded on promise with reason: ${reason}`)
+        continue
+      }
+      throw e
+    }
+  }
+
+  throw logAndReturnError(`Exceeded ${retryConfig.attempts} retry attempts`)
+}
+
+export const logAndReturnError = (error: string | Error): Error => {
+  let errorText: string
+  let err: Error
+  if (error instanceof Error) {
+    errorText = error.message
+    err = error
+  } else {
+    errorText = error
+    err = new Error(errorText)
+  }
+  logger.error(errorText)
+  return err
 }

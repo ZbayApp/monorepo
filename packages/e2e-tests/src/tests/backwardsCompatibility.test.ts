@@ -8,10 +8,8 @@ import {
   RegisterUsernameModal,
   Sidebar,
 } from '../selectors'
-import { BACKWARD_COMPATIBILITY_BASE_VERSION, BuildSetup, copyInstallerFile, downloadInstaller, sleep } from '../utils'
-import { createLogger } from '../logger'
-
-const logger = createLogger('backwardsCompatibility')
+import { MessageIds } from '../types'
+import { BACKWARD_COMPATIBILITY_BASE_VERSION, BuildSetup, copyInstallerFile, downloadInstaller } from '../utils'
 
 jest.setTimeout(1200000)
 describe('Backwards Compatibility', () => {
@@ -21,6 +19,8 @@ describe('Backwards Compatibility', () => {
   let secondChannel: Channel
   let messagesToCompare: WebElement[]
   let sidebar: Sidebar
+  let generalChannelMessageIds: MessageIds
+  let secondChannelMessageIds: MessageIds
 
   const dataDir = `e2e_${(Math.random() * 10 ** 18).toString(36)}`
   const communityName = 'testcommunity'
@@ -58,10 +58,10 @@ describe('Backwards Compatibility', () => {
       ownerAppOldVersion
         .closeUpdateModalIfPresent()
         .then(async () => {
-          logger.info('Closed update modal')
+          console.log('Closed update modal')
         })
         .catch(err => {
-          logger.error('Could not close update modal', err)
+          console.log('Could not close update modal', err)
         })
     })
 
@@ -71,6 +71,7 @@ describe('Backwards Compatibility', () => {
       expect(isJoinModal).toBeTruthy()
       await joinModal.switchToCreateCommunity()
     })
+
     it('Owner submits valid community name', async () => {
       const createModal = new CreateCommunityModal(ownerAppOldVersion.driver)
       const isCreateModal = await createModal.element.isDisplayed()
@@ -78,6 +79,7 @@ describe('Backwards Compatibility', () => {
       await createModal.typeCommunityName(communityName)
       await createModal.submit()
     })
+
     it('Owner sees "register username" modal and submits valid username', async () => {
       const registerModal = new RegisterUsernameModal(ownerAppOldVersion.driver)
       const isRegisterModal = await registerModal.element.isDisplayed()
@@ -93,25 +95,28 @@ describe('Backwards Compatibility', () => {
       expect(isGeneralChannel).toBeTruthy()
       expect(generalChannelText).toEqual('# general')
     })
+
     it(`Verify version - ${BACKWARD_COMPATIBILITY_BASE_VERSION}`, async () => {
       const settingsModal = await new Sidebar(ownerAppOldVersion.driver).openSettings()
       const isSettingsModal = await settingsModal.element.isDisplayed()
-      await sleep(2000)
       expect(isSettingsModal).toBeTruthy()
       const settingVersion = await settingsModal.getVersion()
       expect(settingVersion).toEqual(BACKWARD_COMPATIBILITY_BASE_VERSION)
-      await settingsModal.closeTabThenModal()
+      await settingsModal.close()
     })
-    it('Sends a message', async () => {
+
+    it('Owner sends a message in the general channel', async () => {
       const isMessageInput = await generalChannel.messageInput.isDisplayed()
       expect(isMessageInput).toBeTruthy()
-      await generalChannel.sendMessage(ownerMessages[0])
+      generalChannelMessageIds = await generalChannel.sendMessage(ownerMessages[0], ownerUsername)
     })
-    it('Sent message is visible on general channel', async () => {
+
+    it('Sent message is visible on general channel for owner', async () => {
       const messages = await generalChannel.getUserMessages(ownerUsername)
       const text = await messages[1].getText()
       expect(text).toEqual(ownerMessages[0])
     })
+
     it('Owner creates second channel', async () => {
       sidebar = new Sidebar(ownerAppOldVersion.driver)
       await sidebar.addNewChannel(newChannelName)
@@ -119,26 +124,28 @@ describe('Backwards Compatibility', () => {
       const channels = await sidebar.getChannelList()
       expect(channels.length).toEqual(2)
     })
+
     it('Owner sends a message in second channel', async () => {
       secondChannel = new Channel(ownerAppOldVersion.driver, newChannelName)
       const isMessageInput = await secondChannel.messageInput.isDisplayed()
       expect(isMessageInput).toBeTruthy()
-      await secondChannel.sendMessage(ownerMessages[1])
+      secondChannelMessageIds = await secondChannel.sendMessage(ownerMessages[1], ownerUsername)
     })
-    it('Message is visible in second channel', async () => {
+
+    it('Message is visible in second channel for owner', async () => {
       const messages = await secondChannel.getUserMessages(ownerUsername)
       const text = await messages[1].getText()
       expect(text).toEqual(ownerMessages[1])
     })
 
-    it(`User sends another ${loopMessages.length} messages to second channel`, async () => {
+    it(`Owner sends another ${loopMessages.length} messages to second channel`, async () => {
       for (const message of loopMessages) {
-        await secondChannel.sendMessage(message)
+        await secondChannel.sendMessage(message, ownerUsername)
       }
 
       messagesToCompare = await secondChannel.getUserMessages(ownerUsername)
     })
-    it('User closes the old app', async () => {
+    it('Owner closes the old app', async () => {
       await ownerAppOldVersion.close()
       await new Promise<void>(resolve => setTimeout(() => resolve(), 5000))
     })
@@ -146,21 +153,21 @@ describe('Backwards Compatibility', () => {
     // ________________________________
 
     it('Owner opens the app in new version', async () => {
-      logger.info('New version', 1)
+      console.log('New version', 1)
       ownerAppNewVersion = new App({ dataDir })
       await ownerAppNewVersion.open()
     })
 
     if (isAlpha) {
       it('Owner closes debug modal if opened', async () => {
-        logger.info('New version', 2)
+        console.log('New version', 2)
         const debugModal = new DebugModeModal(ownerAppNewVersion.driver)
         await debugModal.close()
       })
     }
 
-    it('Owener sees general channel', async () => {
-      logger.info('New version', 3)
+    it('Owner sees general channel', async () => {
+      console.log('New version', 3)
       generalChannel = new Channel(ownerAppNewVersion.driver, 'general')
       const isGeneralChannel = await generalChannel.element.isDisplayed()
       const generalChannelText = await generalChannel.element.getText()
@@ -169,20 +176,19 @@ describe('Backwards Compatibility', () => {
     })
 
     it('Confirm that the opened app is the latest version', async () => {
-      logger.info('New version', 4)
+      console.log('New version', 4)
       await new Promise<void>(resolve => setTimeout(() => resolve(), 10000))
       const settingsModal = await new Sidebar(ownerAppNewVersion.driver).openSettings()
       const isSettingsModal = await settingsModal.element.isDisplayed()
-      await sleep(2000)
       expect(isSettingsModal).toBeTruthy()
       const settingVersion = await settingsModal.getVersion()
       const envVersion = ownerAppNewVersion.buildSetup.getVersionFromEnv()
       expect(settingVersion).toEqual(envVersion)
-      await settingsModal.closeTabThenModal()
+      await settingsModal.close()
     })
 
     it('Check number of messages on second channel', async () => {
-      logger.info('New version', 5)
+      console.log('New version', 5)
       await new Promise<void>(resolve => setTimeout(() => resolve(), 2000))
       sidebar = new Sidebar(ownerAppNewVersion.driver)
       await sidebar.switchChannel(newChannelName)

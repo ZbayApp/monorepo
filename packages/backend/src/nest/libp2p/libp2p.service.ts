@@ -165,9 +165,10 @@ export class Libp2pService extends EventEmitter {
     return { psk: psk.toString('base64'), fullKey }
   }
 
-  public async hangUpPeers(peers: string[]) {
+  public async hangUpPeers(peers?: string[]) {
     this.logger.info('Hanging up on all peers')
-    for (const peer of peers) {
+    const peersToHangUp = peers ?? Array.from(this.dialedPeers)
+    for (const peer of peersToHangUp) {
       await this.hangUpPeer(peer)
     }
     this.logger.info('All peers hung up')
@@ -229,7 +230,7 @@ export class Libp2pService extends EventEmitter {
 
     this.logger.info(`Creating or opening existing level datastore for libp2p`)
     this.libp2pDatastore = new Libp2pDatastore({
-      inMemory: false,
+      inMemory: true,
       datastorePath: this.datastorePath,
     })
 
@@ -379,8 +380,9 @@ export class Libp2pService extends EventEmitter {
 
   public async close(): Promise<void> {
     this.logger.info('Closing libp2p service')
-    await this.libp2pInstance?.stop()
     clearTimeout(this.redialTimeout)
+    await this.hangUpPeers()
+    await this.libp2pInstance?.stop()
 
     this.libp2pInstance = null
     this.connectedPeers = new Map()

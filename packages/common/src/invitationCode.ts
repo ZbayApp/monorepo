@@ -116,15 +116,15 @@ const parseDeepUrl = ({ url, expectedProtocol = `${DEEP_URL_SCHEME}:` }: ParseDe
  * Extract invitation data from deep url.
  * Valid format: quiet://?<peerid1>=<address1>&<peerid2>=<addresss2>&k=<psk>
  */
-export const parseInvitationCodeDeepUrl = (url: string): InvitationData => {
+export const parseInvitationLinkDeepUrl = (url: string): InvitationData => {
   return parseDeepUrl({ url })
 }
 
 /**
  * @param code <peerId1>=<address1>&<peerId2>=<address2>&k=<psk>
  */
-export const parseInvitationCode = (code: string): InvitationData => {
-  return parseDeepUrl({ url: code, expectedProtocol: '' })
+export const parseInvitationLink = (inviteLink: string): InvitationData => {
+  return parseDeepUrl({ url: inviteLink, expectedProtocol: '' })
 }
 
 export const p2pAddressesToPairs = (addresses: string[]): InvitationPair[] => {
@@ -214,7 +214,7 @@ export const argvInvitationCode = (argv: string[]): InvitationData | null => {
       continue
     }
     logger.info('Parsing deep url', arg)
-    invitationData = parseInvitationCodeDeepUrl(arg)
+    invitationData = parseInvitationLinkDeepUrl(arg)
     switch (invitationData.version) {
       case InvitationDataVersion.v1:
         if (invitationData.pairs.length > 0) {

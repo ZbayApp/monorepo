@@ -1,4 +1,4 @@
-import { composeInvitationShareUrl, createLibp2pAddress, parseInvitationCode } from '@quiet/common'
+import { composeInvitationShareUrl, createLibp2pAddress, parseInvitationLink } from '@quiet/common'
 import { App, Channel, CreateCommunityModal, JoinCommunityModal, RegisterUsernameModal, Sidebar } from '../selectors'
 import { InvitationDataV1, InvitationDataV2, InvitationDataVersion } from '@quiet/types'
 import { UserTestData } from '../types'
@@ -77,7 +77,7 @@ describe('User joining with storage server', () => {
       const settingsModal = await new Sidebar(users.owner.app.driver).openSettings()
       const isSettingsModal = await settingsModal.element.isDisplayed()
       expect(isSettingsModal).toBeTruthy()
-      const invitationCodeElement = await settingsModal.invitationCode()
+      const invitationCodeElement = await settingsModal.invitationLink()
       await sleep(2000)
       invitationLinkV1 = await invitationCodeElement.getText()
       await sleep(2000)
@@ -92,7 +92,7 @@ describe('User joining with storage server', () => {
       // Workaround until we have an UI for retrieving v2 invitation link from owner
       // Compose server data from v1 invitation link
       // @ts-expect-error
-      const v1Data: InvitationDataV1 = parseInvitationCode(invitationLinkV1.split('#')[1])
+      const v1Data: InvitationDataV1 = parseInvitationLink(invitationLinkV1.split('#')[1])
       const data: InvitationDataV2 = {
         version: InvitationDataVersion.v2,
         cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',

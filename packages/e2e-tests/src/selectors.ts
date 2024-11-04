@@ -1,7 +1,8 @@
-import { By, Key, type ThenableWebDriver, type WebElement, until } from 'selenium-webdriver'
-import { BuildSetup, sleep, type BuildSetupInit } from './utils'
+import { By, Key, type ThenableWebDriver, type WebElement, until, error } from 'selenium-webdriver'
+import { BuildSetup, logAndReturnError, promiseWithRetries, sleep, type BuildSetupInit } from './utils'
 import path from 'path'
 import { X_DATA_TESTID } from './enums'
+import { MessageIds, RetryConfig } from './types'
 import { createLogger } from './logger'
 
 const logger = createLogger('selectors')
@@ -10,6 +11,15 @@ export class App {
   thenableWebDriver?: ThenableWebDriver
   buildSetup: BuildSetup
   isOpened: boolean
+  retryConfig: RetryConfig = {
+    attempts: 3,
+    timeoutMs: 600000,
+  }
+  shortRetryConfig: RetryConfig = {
+    ...this.retryConfig,
+    timeoutMs: 30000,
+  }
+
   constructor(buildSetupConfig?: BuildSetupInit) {
     this.buildSetup = new BuildSetup({ ...buildSetupConfig })
     this.isOpened = false
@@ -26,7 +36,7 @@ export class App {
     return this.buildSetup.dataDir
   }
 
-  async open() {
+  async open(): Promise<void> {
     logger.info('opening the app', this.buildSetup.dataDir)
     this.buildSetup.resetDriver()
     await this.buildSetup.createChromeDriver()
@@ -37,7 +47,16 @@ export class App {
     await debugModal.close()
   }
 
-  async close(options?: { forceSaveState?: boolean }) {
+  async openWithRetries(overrideConfig?: RetryConfig): Promise<void> {
+    const config = {
+      ...this.retryConfig,
+      ...(overrideConfig ? overrideConfig : {}),
+    }
+    const failureReason = `Failed to open app within ${config.timeoutMs}ms`
+    await promiseWithRetries(this.open(), failureReason, config, this.close)
+  }
+
+  async close(options?: { forceSaveState?: boolean }): Promise<void> {
     if (!this.isOpened) return
     logger.info('Closing the app', this.buildSetup.dataDir)
     if (options?.forceSaveState) {
@@ -48,7 +67,7 @@ export class App {
     await this.buildSetup.killChromeDriver()
     if (process.platform === 'win32') {
       this.buildSetup.killNine()
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 2000))
+      await sleep(2000)
     }
     this.isOpened = false
     logger.info('App closed', this.buildSetup.dataDir)
@@ -140,11 +159,7 @@ export class ChannelContextMenu {
   async deleteChannel() {
     const button = this.driver.wait(until.elementLocated(By.xpath('//button[@data-testid="deleteChannelButton"]')))
     await button.click()
-    await new Promise<void>(resolve =>
-      setTimeout(() => {
-        resolve()
-      }, 5000)
-    )
+    await sleep(5000)
   }
 }
 
@@ -330,26 +345,19 @@ export class Channel {
     return this.driver.findElement(By.xpath('//ul[@id="messages-scroll"]'))
   }
 
-  async messagesGroup() {
-    const messagesList = await this.messagesList
-    return await messagesList.findElement(By.css('li'))
-  }
-
-  async messagesGroupContent() {
-    const messagesGroup = await this.messagesGroup()
-    return await messagesGroup.findElement(By.xpath('//p[@data-testid="/messagesGroupContent-/"]'))
-  }
-
   async waitForUserMessage(username: string, messageContent: string) {
     logger.info(`Waiting for user "${username}" message "${messageContent}"`)
     return this.driver.wait(async () => {
       const messages = await this.getUserMessages(username)
-      const hasMessage = messages.find(async msg => {
-        const messageText = await msg.getText()
-        logger.info(`got message "${messageText}"`)
-        return messageText.includes(messageContent)
-      })
-      return hasMessage
+      for (const element of messages) {
+        const text = await element.getText()
+        logger.info(`Potential message with text: ${text}`)
+        if (text.includes(messageContent)) {
+          logger.info(`Found message with matching text ${text}`)
+          return element
+        }
+      }
+      throw logAndReturnError(`No message found for user ${username} and message content ${messageContent}`)
     })
   }
 
@@ -365,15 +373,38 @@ export class Channel {
     return this.driver.wait(until.elementLocated(By.xpath('//*[@data-testid="messageInput"]')))
   }
 
-  async sendMessage(message: string) {
+  async sendMessage(message: string, username: string): Promise<MessageIds> {
     const communityNameInput = await this.messageInput
     await communityNameInput.sendKeys(message)
     await communityNameInput.sendKeys(Key.ENTER)
-    await new Promise<void>(resolve =>
-      setTimeout(() => {
-        resolve()
-      }, 5000)
-    )
+    await sleep(5000)
+    return this.getMessageIdsByText(message, username)
+  }
+
+  async getMessageIdsByText(message: string, username: string): Promise<MessageIds> {
+    const messageElement = await this.waitForUserMessage(username, message)
+    if (!messageElement) {
+      throw logAndReturnError(`No message element found for message ${message}`)
+    }
+
+    let testId = await messageElement.getAttribute('data-testid')
+    logger.info(`Data Test ID for message content: ${testId}`)
+    let testIdSplit = testId.split('-')
+    const parentMessageId = testIdSplit[testIdSplit.length - 1]
+
+    const contentElement = await this.waitForMessageContentByText(message, messageElement)
+    if (!contentElement) {
+      throw logAndReturnError(`No message content element found for message content ${message}`)
+    }
+
+    testId = await contentElement.getAttribute('data-testid')
+    logger.info(`Data Test ID for message content: ${testId}`)
+    testIdSplit = testId.split('-')
+    const messageId = testIdSplit[testIdSplit.length - 1]
+    return {
+      messageId,
+      parentMessageId,
+    }
   }
 
   async getUserMessages(username: string) {
@@ -404,7 +435,64 @@ export class Channel {
         return labelText === label
       })
       return properLabels.length > 0
-    }, 20_000)
+    })
+  }
+
+  async waitForAvatar(username: string, messageId: string): Promise<WebElement> {
+    logger.info(`Waiting for user's avatar with username ${username} for message with ID ${messageId}`)
+    const avatarElement = await this.driver.wait(
+      this.driver.findElement(By.xpath(`//*[contains(@data-testid, "userAvatar-${username}-${messageId}")]`))
+    )
+    if (avatarElement) {
+      logger.info(`Found user's avatar with username ${username} for message with ID ${messageId}`)
+      return avatarElement
+    }
+
+    throw logAndReturnError(`Failed to find user's avatar with username ${username} for message with ID ${messageId}`)
+  }
+
+  async waitForDateLabel(username: string, messageId: string): Promise<WebElement> {
+    logger.info(`Waiting for date for message with ID ${messageId}`)
+    const dateElement = await this.driver.wait(
+      this.driver.findElement(By.xpath(`//*[contains(@data-testid, "messageDateLabel-${username}-${messageId}")]`))
+    )
+    if (dateElement) {
+      logger.info(`Found date label for message with ID ${messageId}`)
+      return dateElement
+    }
+
+    throw logAndReturnError(`Failed to find date label for message with ID ${messageId}`)
+  }
+
+  async waitForMessageContentById(messageId: string): Promise<WebElement> {
+    logger.info(`Waiting for content for message with ID ${messageId}`)
+    const messageContentElement = await this.driver.wait(
+      this.driver.findElement(By.xpath(`//*[contains(@data-testid, "messagesGroupContent-${messageId}")]`))
+    )
+    if (messageContentElement) {
+      logger.info(`Found content for message with ID ${messageId}`)
+      return messageContentElement
+    }
+
+    throw logAndReturnError(`Failed to find content for message with ID ${messageId}`)
+  }
+
+  async waitForMessageContentByText(messageContent: string, messageElement: WebElement): Promise<WebElement> {
+    logger.info(`Waiting for content for message with text ${messageContent}`)
+    const messageContentElements = await this.driver.wait(
+      messageElement.findElements(By.xpath(`//*[contains(@data-testid, "messagesGroupContent-")]`))
+    )
+    for (const element of messageContentElements) {
+      logger.info(await element.getId())
+      const text = await element.getText()
+      logger.info(`Testing content: ${messageContent}`)
+      if (text.includes(messageContent)) {
+        logger.info(`Found content element for message with text ${messageContent}`)
+        return element
+      }
+    }
+
+    throw logAndReturnError(`Failed to find content for message with content ${messageContent}`)
   }
 
   async waitForLabelsNotPresent(username: string) {
@@ -419,6 +507,7 @@ export class Channel {
     return await this.driver.wait(until.elementLocated(By.xpath(`//span[contains(text(),"${text}")]`)))
   }
 }
+
 export class Sidebar {
   private readonly driver: ThenableWebDriver
   constructor(driver: ThenableWebDriver) {
@@ -525,15 +614,9 @@ export class Settings {
     return this.driver.wait(until.elementLocated(By.xpath("//p[text()='Community Settings']")))
   }
 
-  async switchTab(name: string) {
-    const tab = await this.driver.findElement(By.xpath(`//div[@data-testid='${name}-settings-tab']`))
-    await tab.click()
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 500))
-  }
-
   async getVersion() {
     await this.switchTab('about')
-
+    await sleep(500)
     const textWebElement = await this.driver.findElement(By.xpath('//p[contains(text(),"Version")]'))
     const text = await textWebElement.getText()
 
@@ -549,39 +632,44 @@ export class Settings {
     return version
   }
 
-  async leaveCommunity() {
-    await this.switchTab('leave-community')
+  async openLeaveCommunityModal() {
+    const tab = await this.driver.wait(until.elementLocated(By.xpath('//p[@data-testid="leave-community-tab"]')))
+    await tab.click()
+  }
 
-    const button = await this.driver.wait(
-      until.elementLocated(By.xpath('//button[@data-testid="leave-community-button"]'))
-    )
+  async leaveCommunityButton() {
+    const button = await this.driver.wait(until.elementLocated(By.xpath('//button[text()="Leave community"]')))
     await button.click()
   }
 
-  async invitationCode() {
-    await this.switchTab('invite')
+  async switchTab(name: string) {
+    const tab = await this.driver.findElement(By.xpath(`//div[@data-testid='${name}-settings-tab']`))
+    await tab.click()
+  }
 
+  async invitationLink() {
     const unlockButton = await this.driver.findElement(By.xpath('//button[@data-testid="show-invitation-link"]'))
+
     await unlockButton.click()
 
     return await this.driver.findElement(By.xpath("//p[@data-testid='invitation-link']"))
   }
 
-  async closeTab() {
-    const closeButton = await this.driver
-      .findElement(By.xpath('//div[@data-testid="close-tab-button-box"]'))
-      .findElement(By.css('button'))
-    await closeButton.click()
+  async closeTabThenModal() {
+    await this.closeTab()
+    await this.close()
   }
 
-  async closeModal() {
+  async close() {
     const closeButton = await this.driver.findElement(By.xpath('//div[@data-testid="close-settings-button"]'))
     await closeButton.click()
   }
 
-  async closeTabThenModal() {
-    await this.closeTab()
-    await this.closeModal()
+  async closeTab() {
+    const closeTabButton = await this.driver
+      .findElement(By.xpath('//div[@data-testid="close-tab-button-box"]'))
+      .findElement(By.css('button'))
+    await closeTabButton.click()
   }
 }
 
@@ -624,6 +712,6 @@ export class DebugModeModal {
     } catch (e) {
       logger.warn('Probably clicked hidden close button on debug modal')
     }
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 2000))
+    await sleep(2000)
   }
 }

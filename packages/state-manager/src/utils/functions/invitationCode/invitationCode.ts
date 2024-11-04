@@ -1,4 +1,4 @@
-import { Site, parseInvitationCode } from '@quiet/common'
+import { Site, parseInvitationLink } from '@quiet/common'
 import { type InvitationData } from '@quiet/types'
 
 export const getInvitationCodes = (codeOrUrl: string): InvitationData => {
@@ -29,5 +29,5 @@ export const getInvitationCodes = (codeOrUrl: string): InvitationData => {
     code = potentialCode
   }
 
-  return parseInvitationCode(code)
+  return parseInvitationLink(code)
 }
