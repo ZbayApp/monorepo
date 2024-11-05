@@ -62,13 +62,6 @@ jobs:
           max_attempts: 3
           command: cd packages/e2e-tests && npm run test userProfile.test.ts
 
-      - name: Run invitation link test - Includes 2 separate application clients
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
-        with:
-          timeout_minutes: 25
-          max_attempts: 1
-          command: cd packages/e2e-tests && npm run test invitationLink.test.ts
-
       - name: Run Backwards Compatibility test
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         with:
@@ -82,3 +75,10 @@ jobs:
           timeout_minutes: 25
           max_attempts: 3
           command: cd packages/e2e-tests && npm run test multipleClients.test.ts
+
+      - name: Run invitation link test - Includes 2 separate application clients
+        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        with:
+          timeout_minutes: 25
+          max_attempts: 1
+          command: cd packages/e2e-tests && npm run test invitationLink.test.ts

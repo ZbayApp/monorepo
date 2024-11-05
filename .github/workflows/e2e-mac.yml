@@ -53,13 +53,6 @@ jobs:
       - name: Add App file to applications
         run: cd ~ && cp -R "/Volumes/Quiet $VERSION/Quiet.app" /Applications
 
-      - name: Run invitation link test - Includes 2 separate application clients
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
-        with:
-          timeout_minutes: 25
-          max_attempts: 3
-          command: cd packages/e2e-tests && npm run test invitationLink.test.ts
-
       - name: Run one client test
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         with:
@@ -80,3 +73,10 @@ jobs:
           timeout_minutes: 25
           max_attempts: 3
           command: cd packages/e2e-tests && npm run test multipleClients.test.ts
+
+      - name: Run invitation link test - Includes 2 separate application clients
+        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        with:
+          timeout_minutes: 25
+          max_attempts: 3
+          command: cd packages/e2e-tests && npm run test invitationLink.test.ts
