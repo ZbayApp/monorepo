@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals'
+
 import { type DirResult } from 'tmp'
 import crypto from 'crypto'
 import { type PeerId, isPeerId } from '@libp2p/interface'
