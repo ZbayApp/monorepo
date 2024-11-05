@@ -29,16 +29,10 @@ export const identitySlice = createSlice({
     updateIdentity: (state, action: PayloadAction<Identity>) => {
       // addOne if action.payload.id is not in state.identities
       if (!state.identities.ids.includes(action.payload.id)) {
-        logger.info(
-          'Adding new identity',
-          JSON.stringify({ ...action.payload, userCsr: action.payload.userCsr?.userCsr }, null, 2)
-        )
+        logger.info('Adding new identity', action.payload.id, action.payload.nickname)
         identityAdapter.addOne(state.identities, action.payload)
       } else {
-        logger.info(
-          'Updating existing identity',
-          JSON.stringify({ ...action.payload, userCsr: action.payload.userCsr?.userCsr }, null, 2)
-        )
+        logger.info('Updating existing identity', action.payload.id, action.payload.nickname)
         identityAdapter.updateOne(state.identities, {
           id: action.payload.id,
           changes: action.payload,

@@ -39,11 +39,12 @@ import { createFromJSON } from '@libp2p/peer-id-factory'
 import { createLibp2pAddress, filterValidAddresses, generateChannelId } from '@quiet/common'
 import { createLogger } from '../common/logger'
 import { ServiceState } from './connections-manager.types'
+import { SocketService } from '../socket/socket.service'
 
 const logger = createLogger('connectionsManager:test')
 
 const MANY_PEERS_COUNT = 7
-const MANY_PEERS_DIALS = MANY_PEERS_COUNT * 2
+const MANY_PEERS_DIALS = MANY_PEERS_COUNT // keeping this separate because we may change this behavior again in the future and it reduces test rewriting
 
 jest.setTimeout(100_000)
 
@@ -97,7 +98,6 @@ beforeEach(async () => {
       torHashedPassword: '16:FCFFE21F3D9138906021FAADD9E49703CC41848A95F829E0F6E1BDBE63',
     })
     .compile()
-  quietDir = await module.resolve(QUIET_DIR)
   connectionsManagerService = await module.resolve(ConnectionsManagerService)
   localDbService = await module.resolve(LocalDbService)
   registrationService = await module.resolve(RegistrationService)
@@ -115,7 +115,6 @@ beforeEach(async () => {
   await localDbService.put(LocalDBKeys.PSK, pskBase64)
   await localDbService.put(LocalDBKeys.CURRENT_COMMUNITY_ID, community.id)
   await localDbService.setCommunity(community)
-  await localDbService.setIdentity(userIdentity)
 })
 
 afterEach(async () => {
@@ -128,6 +127,7 @@ afterEach(async () => {
 describe('Connections manager', () => {
   it('saves peer stats when peer has been disconnected', async () => {
     const emitSpy = jest.spyOn(libp2pService, 'emit')
+    await localDbService.setIdentity(userIdentity)
 
     // Peer connected
     await connectionsManagerService.init()
@@ -180,8 +180,10 @@ describe('Connections manager', () => {
 
     let peerAddress: string
     const peerList: string[] = []
+    const localAddress = createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id)
     // add local peer to the list
-    peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id))
+    peerList.push(localAddress)
+    logger.info(localAddress)
 
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
@@ -200,13 +202,15 @@ describe('Connections manager', () => {
     // will not match the one in the storage set in beforeEach
     await connectionsManagerService.init()
     await connectionsManagerService.launchCommunity({ ...community, peerList: peerList })
-    await sleep(5000)
-
     expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
-    // expect to dial all peers except self
-    expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
-    // Temporary fix for hanging test - websocketOverTor doesn't have abortController
-    await sleep(5000)
+
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
+    }, 2_000)
   })
 
   it('dials same number of peers on start when launched from storage', async () => {
@@ -233,13 +237,15 @@ describe('Connections manager', () => {
     expect(connectionsManagerService.communityState).toBe(undefined)
     // community will launch from storage
     await connectionsManagerService.init()
-    await sleep(5000)
-
     expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
-    // expect to dial all peers except self
-    expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
-    // Temporary fix for hanging test - websocketOverTor doesn't have abortController
-    await sleep(5000)
+
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
+    }, 2_000)
   })
 
   it('dials only valid peers on start when launched from storage', async () => {
@@ -268,14 +274,18 @@ describe('Connections manager', () => {
     expect(connectionsManagerService.communityState).toBe(undefined)
     // community will launch from storage
     await connectionsManagerService.init()
-    await sleep(5000)
 
     expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
-    // expect to dial all peers except self
-    expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
-    // Temporary fix for hanging test - websocketOverTor doesn't have abortController
-    await sleep(5000)
+
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
+    }, 2_000)
   })
+
   it('dials only valid peers on start when provided peer list', async () => {
     logger.info('dials only valid peers on start when provided peer list')
     const store = prepareStore().store
@@ -306,14 +316,16 @@ describe('Connections manager', () => {
     // will not match the one in the storage set in beforeEach
     await connectionsManagerService.init()
     await connectionsManagerService.launchCommunity({ ...community, peerList: peerList })
-    await sleep(5000)
 
-    expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
-    // expect to dial all peers except self
-    expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
-    // Temporary fix for hanging test - websocketOverTor doesn't have abortController
-    await sleep(5000)
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
+    }, 2_000)
   })
+
   it.skip('Bug reproduction - iOS app crashing because lack of data server', async () => {
     await connectionsManagerService.init()
     const spyOnDial = jest.spyOn(WebSockets.prototype, 'dial')
@@ -325,9 +337,17 @@ describe('Connections manager', () => {
     }
 
     await connectionsManagerService.launchCommunity({ ...community, peerList: peerList })
-    expect(spyOnDial).toHaveBeenCalledTimes(peersCount)
+
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(peersCount)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(peersCount)
+    }, 2_000)
+
     await connectionsManagerService.closeAllServices()
-    await sleep(5000)
+    await sleep(2000)
 
     const launchSpy = jest.spyOn(connectionsManagerService, 'launch')
     await connectionsManagerService.init()

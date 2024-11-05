@@ -738,7 +738,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     const onionAddress = await this.spawnTorHiddenService(community.id, identity)
 
+    this.logger.info(JSON.stringify(identity.peerId, null, 2))
     const peerId: PeerId = await createFromJSON(identity.peerId)
+    this.logger.info(peerId.toString())
     const peers = filterValidAddresses(community.peerList ? community.peerList : [])
     const localAddress = createLibp2pAddress(onionAddress, peerId.toString())
 
@@ -748,7 +750,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       agent: this.socksProxyAgent,
       localAddress: localAddress,
       targetPort: this.ports.libp2pHiddenService,
-      peers: peers.filter(p => p !== localAddress),
       psk: Libp2pService.generateLibp2pPSK(community.psk).fullKey,
     }
     await this.libp2pService.createInstance(params)

@@ -44,6 +44,7 @@ export class Libp2pService extends EventEmitter {
   public dialedPeers: Set<string>
   private libp2pDatastore: Libp2pDatastore
   private redialTimeout: NodeJS.Timeout
+  private localAddress: string
 
   private readonly logger = createLogger(Libp2pService.name)
 
@@ -76,10 +77,13 @@ export class Libp2pService extends EventEmitter {
   }
 
   public dialPeers = async (peerAddresses: string[]) => {
-    this.logger.info('Dialing peer addresses', peerAddresses)
+    const dialable = peerAddresses.filter(p => p !== this.localAddress)
+    this.logger.info('Dialing peer addresses', dialable)
+    this.logger.info('Local Address', this.localAddress)
+    this.logger.info(peerAddresses.length, dialable.length)
 
-    for (const addr of peerAddresses) {
-      await this.dialPeer(addr)
+    for (const addr of dialable) {
+      this.dialPeer(addr)
     }
   }
 
@@ -215,9 +219,7 @@ export class Libp2pService extends EventEmitter {
     // TODO: Sort peers
     await this.hangUpPeers(dialed)
 
-    for (const addr of toDial) {
-      await this.dialPeer(addr)
-    }
+    await this.dialPeers(toDial)
   }
 
   public async createInstance(params: Libp2pNodeParams): Promise<Libp2p> {
@@ -233,6 +235,8 @@ export class Libp2pService extends EventEmitter {
       inMemory: true,
       datastorePath: this.datastorePath,
     })
+
+    this.localAddress = params.localAddress
 
     let libp2p: Libp2p
 
