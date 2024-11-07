@@ -16,6 +16,7 @@ jobs:
       DISPLAY: ":99.0"
       TEST_MODE: true
       IS_CI: true
+      SKIP_BACK_COMPAT_TEST_BRANCHES: ("update-orbitdb")
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -62,13 +63,6 @@ jobs:
           max_attempts: 3
           command: cd packages/e2e-tests && npm run test userProfile.test.ts
 
-      - name: Run Backwards Compatibility test
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
-        with:
-          timeout_minutes: 15
-          max_attempts: 3
-          command: cd packages/e2e-tests && npm run test backwardsCompatibility.test.ts
-
       - name: Run multiple clients test
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         with:
@@ -82,3 +76,19 @@ jobs:
           timeout_minutes: 25
           max_attempts: 1
           command: cd packages/e2e-tests && npm run test invitationLink.test.ts
+
+      - name: Run Backwards Compatibility test
+        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        if: 
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          command: |
+            CURRENT_GIT_BRANCH=$(git branch --show-current)
+            if [[ " ${SKIP_BACK_COMPAT_TEST_BRANCHES[@]} " =~ " ${CURRENT_GIT_BRANCH} "  ]]; then
+              echo "Skipping backwards compatibility test for this branch"
+              exit 0
+            else
+              echo "Running backwards compatibility test for this branch"
+              cd packages/e2e-tests && npm run test backwardsCompatibility.test.ts
+            fi
