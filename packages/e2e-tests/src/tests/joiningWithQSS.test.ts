@@ -42,7 +42,7 @@ describe('User joining with storage server', () => {
   })
 
   beforeEach(async () => {
-    logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ${expect.getState().currentTestName}`)
+    logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ ${expect.getState().currentTestName}`)
     await sleep(1_000)
   })
 
@@ -130,7 +130,7 @@ describe('User joining with storage server', () => {
       const isJoinCommunityModal = await joinCommunityModal.element.isDisplayed()
       expect(isJoinCommunityModal).toBeTruthy()
       logger.info({ invitationCode: invitationLinkV2 })
-      await joinCommunityModal.typeCommunityCode(invitationLinkV2)
+      await joinCommunityModal.typeCommunityInviteLink(invitationLinkV2)
       await joinCommunityModal.submit()
     })
 
@@ -148,7 +148,7 @@ describe('User joining with storage server', () => {
       const isMessageInput = await general.messageInput.isDisplayed()
       expect(isMessageInput).toBeTruthy()
       await sleep(2000)
-      await general.sendMessage(users.user1.messages[0])
+      await general.sendMessage(users.user1.messages[0], users.user1.username)
       await sleep(2000)
     })
   })
