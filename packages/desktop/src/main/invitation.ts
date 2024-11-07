@@ -16,6 +16,7 @@ export const processInvitationCode = (mainWindow: BrowserWindow, code: string | 
 
 export const updateDesktopFile = (isDev: boolean) => {
   if (isDev || process.platform !== 'linux') return
+  logger.info(`Updating desktop file and setting default scheme handler`)
 
   const desktopName = 'quiet.desktop'
   const appDesktopFile = path.join(os.homedir(), `.local/share/applications/${desktopName}`)
@@ -38,6 +39,7 @@ export const updateDesktopFile = (isDev: boolean) => {
   try {
     const scheme = 'x-scheme-handler/quiet'
     logger.info(execSync(`xdg-mime default ${desktopName} ${scheme}`).toString())
+    logger.info(execSync(`xdg-mime query default ${scheme}`).toString())
   } catch (e) {
     logger.error("Couldn't set default scheme handler", e)
   }
