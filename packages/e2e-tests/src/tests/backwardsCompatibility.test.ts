@@ -9,7 +9,7 @@ import {
   Sidebar,
 } from '../selectors'
 import { MessageIds } from '../types'
-import { BACKWARD_COMPATIBILITY_BASE_VERSION, BuildSetup, copyInstallerFile, downloadInstaller } from '../utils'
+import { BACKWARD_COMPATIBILITY_BASE_VERSION, BuildSetup, copyInstallerFile, downloadInstaller, sleep } from '../utils'
 import { createLogger } from '../logger'
 
 const logger = createLogger('backwardsCompatibility')
@@ -45,16 +45,18 @@ describe('Backwards Compatibility', () => {
   })
 
   beforeEach(async () => {
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 1000))
+    logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ${expect.getState().currentTestName}`)
+    await sleep(1_000)
   })
 
   afterAll(async () => {
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 5000))
+    await sleep(5_000)
     await ownerAppNewVersion?.close()
     await ownerAppNewVersion?.cleanup()
     await ownerAppOldVersion?.close()
     await ownerAppOldVersion?.cleanup()
   })
+
   describe('User opens app for the first time', () => {
     itif(process.platform == 'linux')('Owner opens the app', async () => {
       await ownerAppOldVersion.open()
@@ -159,7 +161,7 @@ describe('Backwards Compatibility', () => {
     )
     itif(process.platform == 'linux')('User closes the old app', async () => {
       await ownerAppOldVersion.close()
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 5000))
+      await sleep(5_000)
     })
 
     // ________________________________
@@ -189,7 +191,7 @@ describe('Backwards Compatibility', () => {
 
     itif(process.platform == 'linux')('Confirm that the opened app is the latest version', async () => {
       logger.info('New version', 4)
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 10000))
+      await sleep(10_000)
       const settingsModal = await new Sidebar(ownerAppNewVersion.driver).openSettings()
       const isSettingsModal = await settingsModal.element.isDisplayed()
       expect(isSettingsModal).toBeTruthy()
@@ -201,10 +203,10 @@ describe('Backwards Compatibility', () => {
 
     itif(process.platform == 'linux')('Check number of messages on second channel', async () => {
       logger.info('New version', 5)
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 2000))
+      await sleep(2_000)
       sidebar = new Sidebar(ownerAppNewVersion.driver)
       await sidebar.switchChannel(newChannelName)
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 5000))
+      await sleep(5_000)
       secondChannel = new Channel(ownerAppNewVersion.driver, newChannelName)
       const currentMessages = await secondChannel.getUserMessages(ownerUsername)
       expect(currentMessages.length).toEqual(messagesToCompare.length)

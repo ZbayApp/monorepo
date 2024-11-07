@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals'
+
 import {
   App,
   Channel,
@@ -40,14 +42,6 @@ describe('Multiple Clients', () => {
   const generalChannelName = 'general'
   const thirdChannelName = 'delete-this'
 
-  const sleep = async (time = 1000) => {
-    await new Promise<void>(resolve =>
-      setTimeout(() => {
-        resolve()
-      }, time)
-    )
-  }
-
   beforeAll(async () => {
     const commonApp = new App()
     users = {
@@ -82,6 +76,7 @@ describe('Multiple Clients', () => {
   })
 
   beforeEach(async () => {
+    logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ${expect.getState().currentTestName}`)
     await sleep(1000)
   })
 

@@ -9,7 +9,7 @@ import { createLogger } from '../logger'
 
 const logger = createLogger('joiningWithQSS')
 
-jest.setTimeout(1200000) // 20 minutes
+jest.setTimeout(1_200_000) // 20 minutes
 
 // Run QSS locally before this test
 const serverAddress = 'http://127.0.0.1:3000'
@@ -39,6 +39,11 @@ describe('User joining with storage server', () => {
   afterAll(async () => {
     await users.owner.app.close()
     await users.user1.app.close()
+  })
+
+  beforeEach(async () => {
+    logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ${expect.getState().currentTestName}`)
+    await sleep(1_000)
   })
 
   describe('Owner creates the community', () => {

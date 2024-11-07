@@ -36,6 +36,7 @@ describe('New user joins using invitation link while having app opened', () => {
   })
 
   beforeEach(async () => {
+    logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ${expect.getState().currentTestName}`)
     await sleep(1000)
   })
 

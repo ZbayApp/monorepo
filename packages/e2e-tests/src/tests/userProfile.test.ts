@@ -50,7 +50,8 @@ describe('User Profile Feature', () => {
   })
 
   beforeEach(async () => {
-    await sleep(1000)
+    logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ${expect.getState().currentTestName}`)
+    await sleep(1_000)
   })
 
   it('Owner opens the app', async () => {

@@ -10,6 +10,7 @@ import getPort from 'get-port'
 import { fork } from 'child_process'
 import path from 'path'
 import { createLogger } from '../logger'
+import { sleep } from '../utils'
 
 const logger = createLogger('oneClient')
 
@@ -32,6 +33,12 @@ describe('One Client', () => {
     await app.close()
     await app.cleanup()
   })
+
+  beforeEach(async () => {
+    logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ${expect.getState().currentTestName}`)
+    await sleep(200)
+  })
+
   describe('User opens app for the first time', () => {
     it('Get opened app process data', () => {
       const processData = app.buildSetup.getProcessData()
