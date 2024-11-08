@@ -23,16 +23,6 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Print vars
-        if: ${{ !contains(fromJson(env.SKIP_BACK_COMPAT_TEST_BRANCHES), github.head_ref) }}
-        shell: bash
-        run: |
-          echo $GITHUB_HEAD_REF
-          echo $SKIP_BACK_COMPAT_TEST_BRANCHES
-          FOO=("update-orbitdb")
-          echo $FOO
-          
-
       - name: Install WM
         run: sudo apt install fluxbox
 
