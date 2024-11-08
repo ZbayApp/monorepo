@@ -83,11 +83,10 @@ jobs:
           timeout_minutes: 15
           max_attempts: 3
           command: |
-            CURRENT_GIT_BRANCH=$(git branch --show-current)
-            if [[ " ${SKIP_BACK_COMPAT_TEST_BRANCHES[@]} " =~ " ${CURRENT_GIT_BRANCH} "  ]]; then
-              echo "Skipping backwards compatibility test for this branch"
+            if [[ " ${SKIP_BACK_COMPAT_TEST_BRANCHES[@]} " =~ " ${GITHUB_HEAD_REF} "  ]]; then
+              echo "Skipping backwards compatibility test for branch $GITHUB_HEAD_REF"
               exit 0
             else
-              echo "Running backwards compatibility test for this branch"
+              echo "Running backwards compatibility test for branch $GITHUB_HEAD_REF"
               cd packages/e2e-tests && npm run test backwardsCompatibility.test.ts
             fi
