@@ -16,7 +16,7 @@ jobs:
       DISPLAY: ":99.0"
       TEST_MODE: true
       IS_CI: true
-      SKIP_BACK_COMPAT_TEST_BRANCHES: ("update-orbitdb1")
+      SKIP_BACK_COMPAT_TEST_BRANCHES: '["update-orbitdb1"]'
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -24,7 +24,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Print vars
-        if: ${{ !contains(env.SKIP_BACK_COMPAT_TEST_BRANCHES, github.head_ref) }}
+        if: ${{ !contains(fromJson(env.SKIP_BACK_COMPAT_TEST_BRANCHES), github.head_ref) }}
         shell: bash
         run: |
           echo $GITHUB_HEAD_REF
