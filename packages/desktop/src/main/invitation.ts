@@ -41,7 +41,13 @@ export const updateDesktopFile = (isDev: boolean) => {
     logger.info(execSync(`xdg-mime default ${desktopName} ${scheme}`).toString())
     logger.info(execSync(`xdg-mime query default ${scheme}`).toString())
   } catch (e) {
-    logger.error("Couldn't set default scheme handler", e)
+    logger.error("Couldn't set default scheme handler via xdg-mime", e)
+  }
+
+  try {
+    logger.info(execSync('xdg-settings set default-url-scheme-handler quiet quiet.desktop').toString())
+  } catch (e) {
+    logger.error("Couldn't update default scheme handler via xdg-settings", e)
   }
 }
 
