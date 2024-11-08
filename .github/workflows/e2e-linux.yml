@@ -23,6 +23,12 @@ jobs:
         with:
           submodules: 'recursive'
 
+      - name: Print vars
+        shell: bash
+        run: |
+          echo $GITHUB_HEAD_REF
+          echo $SKIP_BACK_COMPAT_TEST_BRANCHES
+
       - name: Install WM
         run: sudo apt install fluxbox
 
