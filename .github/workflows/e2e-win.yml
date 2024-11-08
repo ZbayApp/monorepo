@@ -3,7 +3,7 @@ name: E2E Windows
 on: [workflow_call]
 jobs:
   windows:
-    runs-on: windows-latest
+    runs-on: windows-latest-l
 
     timeout-minutes: 180
 
