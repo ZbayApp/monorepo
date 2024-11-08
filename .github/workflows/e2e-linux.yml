@@ -24,6 +24,7 @@ jobs:
           submodules: 'recursive'
 
       - name: Print vars
+        if: ${{ github.event_name == 'push' && contains(env.SKIP_BACK_COMPAT_TEST_BRANCHES, github.head_ref) }}
         shell: bash
         run: |
           echo $GITHUB_HEAD_REF
@@ -88,14 +89,10 @@ jobs:
 
       - name: Run Backwards Compatibility test
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        if: ${{ github.event_name == 'push' && contains(env.SKIP_BACK_COMPAT_TEST_BRANCHES, github.head_ref) }}
         with:
           timeout_minutes: 15
           max_attempts: 3
           command: |
-            if [[ " ${SKIP_BACK_COMPAT_TEST_BRANCHES[@]} " =~ " ${GITHUB_HEAD_REF} "  ]]; then
-              echo "Skipping backwards compatibility test for branch $GITHUB_HEAD_REF"
-              exit 0
-            else
-              echo "Running backwards compatibility test for branch $GITHUB_HEAD_REF"
-              cd packages/e2e-tests && npm run test backwardsCompatibility.test.ts
-            fi
+            echo "Running backwards compatibility test for branch $GITHUB_HEAD_REF"
+            cd packages/e2e-tests && npm run test backwardsCompatibility.test.ts
