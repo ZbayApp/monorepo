@@ -226,10 +226,11 @@ describe('Connections manager', () => {
     localDbService.setIdentity(userIdentity)
 
     expect(connectionsManagerService.communityState).toBe(undefined)
-    // community will fail to launch from storage on init because factory community id
-    // will not match the one in the storage set in beforeEach
+
+    localDbService.setCommunity({ ...community, peerList: peerList })
+    localDbService.setCurrentCommunityId(community.id)
+    logger.info('Launching community', community.id, 'with peer list', peerList)
     await connectionsManagerService.init()
-    await connectionsManagerService.launchCommunity({ ...community, peerList: peerList })
     await sleep(5000)
 
     expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
@@ -332,10 +333,9 @@ describe('Connections manager', () => {
     localDbService.setIdentity(userIdentity)
 
     expect(connectionsManagerService.communityState).toBe(undefined)
-    // community will fail to launch from storage on init because factory community id
-    // will not match the one in the storage set in beforeEach
+    localDbService.setCommunity({ ...community, peerList: peerList })
+    localDbService.setCurrentCommunityId(community.id)
     await connectionsManagerService.init()
-    await connectionsManagerService.launchCommunity({ ...community, peerList: peerList })
     await sleep(5000)
 
     expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)

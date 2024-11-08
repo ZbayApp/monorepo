@@ -98,7 +98,7 @@ jobs:
 
   build-macos:
     # needs: run-e2e-tests-mac
-    runs-on: macos-12
+    runs-on: macos-13
     if: |
       startsWith(github.ref, 'refs/tags/@quiet/desktop')
 
