@@ -7,8 +7,7 @@ gpg --quiet --batch --yes --decrypt --passphrase="$IOS_CERTIFICATE_KEY" --output
 
 mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
 
-cp ./.github/secrets/match_AppStore_comquietmobile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/718ac015-309f-49b6-9653-f6cf84a6377c.mobileprovision
-
+cp ./.github/secrets/match_AppStore_comquietmobile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/762df280-302c-4336-a56d-c74914169337.mobileprovision
 
 security create-keychain -p "" build.keychain
 security import ./.github/secrets/Certificates.p12 -t agg -k ~/Library/Keychains/build.keychain -P "$IOS_CERTIFICATE_KEY" -A
