@@ -1,11 +1,3 @@
-/**
- * @namespace Databases-KeyValue
- * @memberof module:Databases
- * @description
- * Key-Value database
- *
- * Key-value pairs are stored to the configured storage.
- **/
 import { AccessControllerType, IdentitiesType, LogEntry, Events, LogType } from '@orbitdb/core'
 import { type Helia } from 'helia'
 import { createLogger } from '../../common/logger'
@@ -13,14 +5,6 @@ import { OrbitDbService } from './orbitDb.service'
 
 const logger = createLogger('orbitdb:keyValueWrapper')
 
-/**
- * Defines a KeyValueIndexed database.
- * @param {module:Storage} [storage=LevelStorage] A compatible storage where
- * the key/value pairs are indexed.
- * @return {module:Databases.Databases-KeyValueIndexed} A KeyValueIndexed
- * function.
- * @memberof module:Databases
- */
 export const EventsWithStorage =
   (pinIpfs = true) =>
   async ({
@@ -55,7 +39,7 @@ export const EventsWithStorage =
       pinIpfs
     )
 
-    // Set up the underlying KeyValue database
+    // Set up the underlying Events database
     return await Events()({
       ipfs,
       identity,
