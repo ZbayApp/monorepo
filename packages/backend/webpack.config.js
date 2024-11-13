@@ -80,10 +80,6 @@ const webpackConfig = (env) => {
                 root('classic_level.cjs')
             ),
             new webpack.NormalModuleReplacementPlugin(
-                /node_modules[\/\\]node-datachannel[\/\\]dist[\/\\]cjs[\/\\]lib[\/\\]node-datachannel.cjs/,
-                root('node_datachannel.cjs')
-            ),
-            new webpack.NormalModuleReplacementPlugin(
                 /node_modules[\/\\]ipfs-utils[\/\\]src[\/\\]http[\/\\]fetch.js/,
                 'fetch.node.js'
             ),

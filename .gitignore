@@ -8,4 +8,3 @@ c4/workspace.json
 packages/.DS_Store
 .idea
 *.log
-packages/backend-bundle/deps/node_datachannel.node
