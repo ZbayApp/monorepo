@@ -425,7 +425,7 @@ project.android.sourceSets.main.assets.srcDirs+="${rootProject.buildDir}/nodejs-
 
 tasks.getByPath(":${project.name}:preBuild").dependsOn GenerateNodeProjectAssetsLists
 
-def abi_name = 'arm64-v8a'
+def abi_name = 'arm64'
 
 task "GenerateNodeNativeAssetsLists${abi_name}" {
     description "Generates a list for runtime copying"
