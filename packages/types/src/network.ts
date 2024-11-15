@@ -13,19 +13,20 @@ export enum InvitationDataVersion {
   v2 = 'v2',
 }
 
-export type InvitationDataV1 = {
-  version?: InvitationDataVersion.v1
+export type InvitationDataP2P = {
   pairs: InvitationPair[]
   psk: string
   ownerOrbitDbIdentity: string
 }
 
-export type InvitationDataV2 = {
+export type InvitationDataV1 = InvitationDataP2P & {
+  version?: InvitationDataVersion.v1
+}
+
+export type InvitationDataV2 = InvitationDataP2P & {
   version?: InvitationDataVersion.v2
-  cid: string
-  token: string
-  serverAddress: string
-  inviterAddress: string
+  communityName: string
+  seed: string
 }
 
 export type InvitationData = InvitationDataV1 | InvitationDataV2

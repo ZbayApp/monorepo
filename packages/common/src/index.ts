@@ -1,4 +1,4 @@
-export * from './invitationCode'
+export * from './invitationLink'
 export * from './const'
 export * from './capitalize'
 export * from './process'

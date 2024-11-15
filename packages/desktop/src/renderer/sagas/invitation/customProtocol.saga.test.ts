@@ -49,18 +49,19 @@ describe('Handle invitation code', () => {
       .run()
   })
 
-  it('joins network if v2 code is valid', async () => {
-    const validInvitationData = getValidInvitationUrlTestData(validInvitationDatav2[0]).data
-    const validInvitationDeepUrl = getValidInvitationUrlTestData(validInvitationDatav2[0]).deepUrl()
-    const createNetworkPayload: CreateNetworkPayload = {
-      ownership: CommunityOwnership.User,
-      inviteData: validInvitationData,
-    }
-    await expectSaga(customProtocolSaga, communities.actions.customProtocol([validInvitationDeepUrl]))
-      .withState(store.getState())
-      .put(communities.actions.createNetwork(createNetworkPayload))
-      .run()
-  })
+  // TODO: https://github.com/TryQuiet/quiet/issues/2628
+  // it('joins network if v2 code is valid', async () => {
+  //   const validInvitationData = getValidInvitationUrlTestData(validInvitationDatav2[0]).data
+  //   const validInvitationDeepUrl = getValidInvitationUrlTestData(validInvitationDatav2[0]).deepUrl()
+  //   const createNetworkPayload: CreateNetworkPayload = {
+  //     ownership: CommunityOwnership.User,
+  //     inviteData: validInvitationData,
+  //   }
+  //   await expectSaga(customProtocolSaga, communities.actions.customProtocol([validInvitationDeepUrl]))
+  //     .withState(store.getState())
+  //     .put(communities.actions.createNetwork(createNetworkPayload))
+  //     .run()
+  // })
 
   it('does not try to create network if user is already in community', async () => {
     community = await factory.create<ReturnType<typeof communities.actions.addNewCommunity>['payload']>('Community')

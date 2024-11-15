@@ -10,7 +10,8 @@
     "moduleResolution": "node",
     "typeRoots": [
       "./packages/@types",
-      "./node_modules/@types"
+      "./node_modules/@types",
+      "./3rd-party/auth/packages/**/src"
     ],
     "lib": [
       "ES2020",

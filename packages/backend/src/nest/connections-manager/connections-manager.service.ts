@@ -564,22 +564,23 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     return community
   }
 
-  public async downloadCommunityData(inviteData: InvitationDataV2) {
-    this.logger.info('Downloading invite data', inviteData)
-    this.storageServerProxyService.setServerAddress(inviteData.serverAddress)
-    let downloadedData: ServerStoredCommunityMetadata
-    try {
-      downloadedData = await this.storageServerProxyService.downloadData(inviteData.cid)
-    } catch (e) {
-      this.logger.error(`Downloading community data failed`, e)
-      return
-    }
-    return {
-      psk: downloadedData.psk,
-      peers: downloadedData.peerList,
-      ownerOrbitDbIdentity: downloadedData.ownerOrbitDbIdentity,
-    }
-  }
+  // TODO: add back when QSS is implemented
+  // public async downloadCommunityData(inviteData: InvitationDataV2) {
+  //   this.logger.info('Downloading invite data', inviteData)
+  //   this.storageServerProxyService.setServerAddress(inviteData.serverAddress)
+  //   let downloadedData: ServerStoredCommunityMetadata
+  //   try {
+  //     downloadedData = await this.storageServerProxyService.downloadData(inviteData.cid)
+  //   } catch (e) {
+  //     this.logger.error(`Downloading community data failed`, e)
+  //     return
+  //   }
+  //   return {
+  //     psk: downloadedData.psk,
+  //     peers: downloadedData.peerList,
+  //     ownerOrbitDbIdentity: downloadedData.ownerOrbitDbIdentity,
+  //   }
+  // }
 
   public async joinCommunity(payload: InitCommunityPayload): Promise<Community | undefined> {
     this.logger.info('Joining community: peers:', payload.peers)
@@ -594,29 +595,30 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    let metadata = {
+    const metadata = {
       psk: payload.psk,
       peers: payload.peers,
       ownerOrbitDbIdentity: payload.ownerOrbitDbIdentity,
     }
 
-    const inviteData = payload.inviteData
-    if (inviteData) {
-      this.logger.info(`Joining community: inviteData version: ${inviteData.version}`)
-      switch (inviteData.version) {
-        case InvitationDataVersion.v2:
-          const downloadedData = await this.downloadCommunityData(inviteData)
-          if (!downloadedData) {
-            emitError(this.serverIoProvider.io, {
-              type: SocketActionTypes.LAUNCH_COMMUNITY,
-              message: ErrorMessages.STORAGE_SERVER_CONNECTION_FAILED,
-            })
-            return
-          }
-          metadata = downloadedData
-          break
-      }
-    }
+    // TODO: add back when QSS is implemented
+    // const inviteData = payload.inviteData
+    // if (inviteData) {
+    //   this.logger.info(`Joining community: inviteData version: ${inviteData.version}`)
+    //   switch (inviteData.version) {
+    //     case InvitationDataVersion.v2:
+    //       const downloadedData = await this.downloadCommunityData(inviteData)
+    //       if (!downloadedData) {
+    //         emitError(this.serverIoProvider.io, {
+    //           type: SocketActionTypes.LAUNCH_COMMUNITY,
+    //           message: ErrorMessages.STORAGE_SERVER_CONNECTION_FAILED,
+    //         })
+    //         return
+    //       }
+    //       metadata = downloadedData
+    //       break
+    //   }
+    // }
 
     if (!metadata.peers || metadata.peers.length === 0) {
       this.logger.error('Joining community: Peers required')
@@ -650,7 +652,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       peerList: [...new Set([localAddress, ...metadata.peers])],
       psk: metadata.psk,
       ownerOrbitDbIdentity: metadata.ownerOrbitDbIdentity,
-      inviteData,
+      inviteData: null,
     }
 
     await this.localDbService.setCommunity(community)

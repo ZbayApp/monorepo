@@ -15,7 +15,9 @@
     "moduleResolution": "node",
     "typeRoots": [
       "../@types",
-      "./node_modules/@types"
+      "./node_modules/@types",
+      "../../3rd-party/auth/packages/auth/src",
+      "../../3rd-party/auth/packages/crdx/src",
     ],
   },
   "include": [
