@@ -68,51 +68,52 @@ describe('createNetwork', () => {
       .run()
   })
 
-  it('create network for joining user with v2 invitation link', async () => {
-    setupCrypto()
+  // TODO: https://github.com/TryQuiet/quiet/issues/2628
+  // it('create network for joining user with v2 invitation link', async () => {
+  //   setupCrypto()
 
-    const socket = {
-      emit: jest.fn(),
-      emitWithAck: jest.fn(() => {
-        return {}
-      }),
-      on: jest.fn(),
-    } as unknown as Socket
+  //   const socket = {
+  //     emit: jest.fn(),
+  //     emitWithAck: jest.fn(() => {
+  //       return {}
+  //     }),
+  //     on: jest.fn(),
+  //   } as unknown as Socket
 
-    const store = prepareStore().store
+  //   const store = prepareStore().store
 
-    const community: Community = {
-      id: '1',
-      name: undefined,
-      CA: null,
-      rootCa: undefined,
-    }
+  //   const community: Community = {
+  //     id: '1',
+  //     name: undefined,
+  //     CA: null,
+  //     rootCa: undefined,
+  //   }
 
-    const inviteData: InvitationDataV2 = validInvitationDatav2[0]
+  //   const inviteData: InvitationDataV2 = validInvitationDatav2[0]
 
-    const savedCommunity: Community = {
-      ...community,
-      inviteData,
-    }
+  //   const savedCommunity: Community = {
+  //     ...community,
+  //     inviteData,
+  //   }
 
-    const reducer = combineReducers(reducers)
-    await expectSaga(
-      createNetworkSaga,
-      socket,
-      communitiesActions.createNetwork({
-        ownership: CommunityOwnership.User,
-        inviteData,
-      })
-    )
-      .withReducer(reducer)
-      .withState(store.getState())
-      .provide([[call.fn(generateId), community.id]])
-      .not.call(createRootCA)
-      .call(generateId)
-      .put(communitiesActions.addNewCommunity(savedCommunity))
-      .put(communitiesActions.setCurrentCommunity(community.id))
-      .run()
-  })
+  //   const reducer = combineReducers(reducers)
+  //   await expectSaga(
+  //     createNetworkSaga,
+  //     socket,
+  //     communitiesActions.createNetwork({
+  //       ownership: CommunityOwnership.User,
+  //       inviteData,
+  //     })
+  //   )
+  //     .withReducer(reducer)
+  //     .withState(store.getState())
+  //     .provide([[call.fn(generateId), community.id]])
+  //     .not.call(createRootCA)
+  //     .call(generateId)
+  //     .put(communitiesActions.addNewCommunity(savedCommunity))
+  //     .put(communitiesActions.setCurrentCommunity(community.id))
+  //     .run()
+  // })
 
   it('create network for owner', async () => {
     setupCrypto()

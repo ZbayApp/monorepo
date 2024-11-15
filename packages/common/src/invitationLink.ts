@@ -15,35 +15,54 @@ export const TOKEN_PARAM_KEY = 't'
 export const INVITER_ADDRESS_PARAM_KEY = 'i'
 export const SERVER_ADDRESS_PARAM_KEY = 's'
 
+// v3 invitation code format (v1 with LFA integration)
+export const INVITATION_SEED_KEY = 'd'
+export const COMMUNITY_NAME_KEY = 'n'
+
 export const DEEP_URL_SCHEME_WITH_SEPARATOR = 'quiet://'
 const DEEP_URL_SCHEME = 'quiet'
 const ONION_ADDRESS_REGEX = /^[a-z0-9]{56}$/g
 const PEER_ID_REGEX = /^[a-zA-Z0-9]{46}$/g
+const INVITATION_SEED_REGEX = /^[a-zA-Z0-9]{16}$/g
+const COMMUNITY_NAME_REGEX = /^[-a-zA-Z0-9 ]+$/g
 
 interface ParseDeepUrlParams {
   url: string
   expectedProtocol?: string
 }
 
-const parseCodeV2 = (url: string): InvitationDataV2 => {
+const parseLinkV2 = (url: string): InvitationDataV2 => {
   /**
-   * c=<cid>&t=<token>&s=<serverAddress>&i=<inviterAddress>
+   * <peerid1>=<address1>&<peerid2>=<addresss2>...&k=<psk>&o=<ownerOrbitDbIdentity>&d=<LFA invitation seed>&n=<community name>
    */
   const params = new URL(url).searchParams
-  const requiredParams = [CID_PARAM_KEY, TOKEN_PARAM_KEY, SERVER_ADDRESS_PARAM_KEY, INVITER_ADDRESS_PARAM_KEY]
+  const requiredParams = [PSK_PARAM_KEY, OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, INVITATION_SEED_KEY, COMMUNITY_NAME_KEY]
 
   const entries = validateUrlParams(params, requiredParams)
 
+  const pairs: InvitationPair[] = []
+
+  params.forEach((onionAddress, peerId) => {
+    if (!peerDataValid({ peerId, onionAddress })) return
+    pairs.push({
+      peerId,
+      onionAddress,
+    })
+  })
+
+  if (pairs.length === 0) throw new Error(`No valid peer addresses found in invitation link '${url}'`)
+
   return {
     version: InvitationDataVersion.v2,
-    cid: entries[CID_PARAM_KEY],
-    token: entries[TOKEN_PARAM_KEY],
-    serverAddress: entries[SERVER_ADDRESS_PARAM_KEY],
-    inviterAddress: entries[INVITER_ADDRESS_PARAM_KEY],
+    pairs,
+    psk: entries[PSK_PARAM_KEY],
+    ownerOrbitDbIdentity: entries[OWNER_ORBIT_DB_IDENTITY_PARAM_KEY],
+    seed: entries[INVITATION_SEED_KEY],
+    communityName: entries[COMMUNITY_NAME_KEY],
   }
 }
 
-const parseCodeV1 = (url: string): InvitationDataV1 => {
+const parseLinkV1 = (url: string): InvitationDataV1 => {
   /**
    * <peerid1>=<address1>&<peerid2>=<addresss2>...&k=<psk>&o=<ownerOrbitDbIdentity>
    */
@@ -52,21 +71,21 @@ const parseCodeV1 = (url: string): InvitationDataV1 => {
 
   const entries = validateUrlParams(params, requiredParams)
 
-  const codes: InvitationPair[] = []
+  const pairs: InvitationPair[] = []
 
   params.forEach((onionAddress, peerId) => {
     if (!peerDataValid({ peerId, onionAddress })) return
-    codes.push({
+    pairs.push({
       peerId,
       onionAddress,
     })
   })
 
-  if (codes.length === 0) throw new Error(`No valid peer addresses found in invitation code '${url}'`)
+  if (pairs.length === 0) throw new Error(`No valid peer addresses found in invitation link '${url}'`)
 
   return {
     version: InvitationDataVersion.v1,
-    pairs: codes,
+    pairs,
     psk: entries[PSK_PARAM_KEY],
     ownerOrbitDbIdentity: entries[OWNER_ORBIT_DB_IDENTITY_PARAM_KEY],
   }
@@ -85,11 +104,11 @@ const parseDeepUrl = ({ url, expectedProtocol = `${DEEP_URL_SCHEME}:` }: ParseDe
   try {
     validUrl = new URL(_url)
   } catch (e) {
-    logger.error(`Could not retrieve invitation code from deep url '${url}'. Reason: ${e.message}`)
+    logger.error(`Could not retrieve invitation data from deep url '${url}'. Reason: ${e.message}`)
     throw e
   }
   if (!validUrl || validUrl.protocol !== expectedProtocol) {
-    logger.error(`Could not retrieve invitation code from deep url '${url}'`)
+    logger.error(`Could not retrieve invitation data from deep url '${url}'`)
     throw new Error(`Invalid url`)
   }
 
@@ -97,16 +116,17 @@ const parseDeepUrl = ({ url, expectedProtocol = `${DEEP_URL_SCHEME}:` }: ParseDe
 
   const psk = params.get(PSK_PARAM_KEY)
   const cid = params.get(CID_PARAM_KEY)
-  if (!psk && !cid) throw new Error(`Invitation code does not match either v1 or v2 format '${url}'`)
+  const seed = params.get(INVITATION_SEED_KEY)
+  if (!psk && !cid) throw new Error(`Invitation link does not match either v1 or v2 format '${url}'`)
 
-  let data: InvitationData
-  if (psk) {
-    data = parseCodeV1(_url)
-  } else {
-    data = parseCodeV2(_url)
+  let data: InvitationData | null = null
+  if (psk != null && seed == null) {
+    data = parseLinkV1(_url)
+  } else if (psk != null && seed != null) {
+    data = parseLinkV2(_url)
   }
 
-  if (!data) throw new Error(`Could not parse invitation code from deep url '${url}'`)
+  if (!data) throw new Error(`Could not parse invitation data from deep url '${url}'`)
 
   logger.info(`Invitation data '${JSON.stringify(data)}' parsed`)
   return data
@@ -116,15 +136,15 @@ const parseDeepUrl = ({ url, expectedProtocol = `${DEEP_URL_SCHEME}:` }: ParseDe
  * Extract invitation data from deep url.
  * Valid format: quiet://?<peerid1>=<address1>&<peerid2>=<addresss2>&k=<psk>
  */
-export const parseInvitationCodeDeepUrl = (url: string): InvitationData => {
+export const parseInvitationLinkDeepUrl = (url: string): InvitationData => {
   return parseDeepUrl({ url })
 }
 
 /**
- * @param code <peerId1>=<address1>&<peerId2>=<address2>&k=<psk>
+ * @param link <peerId1>=<address1>&<peerId2>=<address2>&k=<psk>
  */
-export const parseInvitationCode = (code: string): InvitationData => {
-  return parseDeepUrl({ url: code, expectedProtocol: '' })
+export const parseInvitationLink = (link: string): InvitationData => {
+  return parseDeepUrl({ url: link, expectedProtocol: '' })
 }
 
 export const p2pAddressesToPairs = (addresses: string[]): InvitationPair[] => {
@@ -194,11 +214,13 @@ const composeInvitationUrl = (baseUrl: string, data: InvitationDataV1 | Invitati
       url.searchParams.append(OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity)
       break
     case InvitationDataVersion.v2:
-      url.searchParams.append(CID_PARAM_KEY, data.cid)
-      url.searchParams.append(TOKEN_PARAM_KEY, data.token)
-      url.searchParams.append(SERVER_ADDRESS_PARAM_KEY, data.serverAddress)
-      url.searchParams.append(INVITER_ADDRESS_PARAM_KEY, data.inviterAddress)
-      break
+      for (const pair of data.pairs) {
+        url.searchParams.append(pair.peerId, pair.onionAddress)
+      }
+      url.searchParams.append(PSK_PARAM_KEY, data.psk)
+      url.searchParams.append(OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity)
+      url.searchParams.append(COMMUNITY_NAME_KEY, data.communityName)
+      url.searchParams.append(INVITATION_SEED_KEY, data.seed)
   }
   return url.href
 }
@@ -206,7 +228,7 @@ const composeInvitationUrl = (baseUrl: string, data: InvitationDataV1 | Invitati
 /**
  * Extract invitation codes from deep url if url is present in argv
  */
-export const argvInvitationCode = (argv: string[]): InvitationData | null => {
+export const argvInvitationLink = (argv: string[]): InvitationData | null => {
   let invitationData: InvitationData | null = null
   for (const arg of argv) {
     if (!arg.startsWith(DEEP_URL_SCHEME_WITH_SEPARATOR)) {
@@ -214,9 +236,10 @@ export const argvInvitationCode = (argv: string[]): InvitationData | null => {
       continue
     }
     logger.info('Parsing deep url', arg)
-    invitationData = parseInvitationCodeDeepUrl(arg)
+    invitationData = parseInvitationLinkDeepUrl(arg)
     switch (invitationData.version) {
       case InvitationDataVersion.v1:
+      case InvitationDataVersion.v2:
         if (invitationData.pairs.length > 0) {
           break
         } else {
@@ -240,17 +263,33 @@ const peerDataValid = ({ peerId, onionAddress }: { peerId: string; onionAddress:
   return true
 }
 
+const invitationSeedValid = (seed: string): boolean => {
+  if (seed.match(INVITATION_SEED_REGEX) == null) {
+    logger.warn(`Invitation seed ${seed} is not valid`)
+    return false
+  }
+  return true
+}
+
+const communityNameValid = (communityName: string): boolean => {
+  if (communityName.match(COMMUNITY_NAME_REGEX) == null) {
+    logger.warn(`Community name ${communityName} is not valid`)
+    return false
+  }
+  return true
+}
+
 const validateUrlParams = (params: URLSearchParams, requiredParams: string[]) => {
   const entries = Object.fromEntries(params)
 
   requiredParams.forEach(key => {
     const value = params.get(key)
     if (!value) {
-      throw new Error(`Missing key '${key}' in invitation code`)
+      throw new Error(`Missing key '${key}' in invitation link`)
     }
     entries[key] = decodeURIComponent(value)
     if (!isParamValid(key, entries[key])) {
-      throw new Error(`Invalid value '${value}' for key '${key}' in invitation code`)
+      throw new Error(`Invalid value '${value}' for key '${key}' in invitation link`)
     }
     params.delete(key)
   })
@@ -291,6 +330,12 @@ const isParamValid = (param: string, value: string) => {
     case OWNER_ORBIT_DB_IDENTITY_PARAM_KEY:
       // TODO: validate orbit db identity format?
       return true
+
+    case COMMUNITY_NAME_KEY:
+      return communityNameValid(value)
+
+    case INVITATION_SEED_KEY:
+      return invitationSeedValid(value)
 
     default:
       return false
