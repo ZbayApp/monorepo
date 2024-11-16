@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals'
 import { SigChain } from '../../sigchain'
-import { SigChainManager } from '../../sigchainManager'
+import { SigChainService } from '../../sigchain.service'
 import { createLogger } from '../../../common/logger'
 import { device, InviteResult, LocalUserContext } from '@localfirst/auth'
 import { RoleName } from '..//roles/roles'
@@ -12,17 +12,15 @@ const logger = createLogger('auth:services:invite.spec')
 
 describe('invites', () => {
   let adminSigChain: SigChain
-  let adminContext: LocalUserContext
   let newMemberSigChain: SigChain
-  let newMemberContext: LocalUserContext
   it('should initialize a new sigchain and be admin', () => {
-    ;({ sigChain: adminSigChain, context: adminContext } = SigChain.create('test', 'user'))
+    adminSigChain = SigChain.create('test', 'user')
     expect(adminSigChain).toBeDefined()
-    expect(adminContext).toBeDefined()
+    expect(adminSigChain.context).toBeDefined()
     expect(adminSigChain.team.teamName).toBe('test')
-    expect(adminContext.user.userName).toBe('user')
-    expect(adminSigChain.roles.amIMemberOfRole(adminContext, RoleName.ADMIN)).toBe(true)
-    expect(adminSigChain.roles.amIMemberOfRole(adminContext, RoleName.MEMBER)).toBe(true)
+    expect(adminSigChain.context.user.userName).toBe('user')
+    expect(adminSigChain.roles.amIMemberOfRole(adminSigChain.context, RoleName.ADMIN)).toBe(true)
+    expect(adminSigChain.roles.amIMemberOfRole(adminSigChain.context, RoleName.MEMBER)).toBe(true)
   })
   it('admin should generate an invite and it be added to team graph', () => {
     const newInvite = adminSigChain.invites.createUserInvite()
@@ -38,26 +36,26 @@ describe('invites', () => {
     expect(inviteProof).toBeDefined()
     expect(adminSigChain.invites.validateProof(inviteProof)).toBe(true)
     expect(prospectiveMember).toBeDefined()
-    ;({ sigChain: newMemberSigChain, context: newMemberContext } = SigChain.join(
+    newMemberSigChain = SigChain.join(
       prospectiveMember.context,
       adminSigChain.team.save(),
       adminSigChain.team.teamKeyring()
-    ))
+    )
     expect(newMemberSigChain).toBeDefined()
-    expect(newMemberContext).toBeDefined()
-    expect(newMemberContext.user.userName).toBe('user2')
-    expect(newMemberContext.user.userId).not.toBe(adminContext.user.userId)
-    expect(newMemberSigChain.roles.amIMemberOfRole(newMemberContext, RoleName.MEMBER)).toBe(false)
-    expect(newMemberSigChain.roles.amIMemberOfRole(newMemberContext, RoleName.ADMIN)).toBe(false)
+    expect(newMemberSigChain.context).toBeDefined()
+    expect(newMemberSigChain.context.user.userName).toBe('user2')
+    expect(newMemberSigChain.context.user.userId).not.toBe(adminSigChain.context.user.userId)
+    expect(newMemberSigChain.roles.amIMemberOfRole(newMemberSigChain.context, RoleName.MEMBER)).toBe(false)
+    expect(newMemberSigChain.roles.amIMemberOfRole(newMemberSigChain.context, RoleName.ADMIN)).toBe(false)
     expect(
       adminSigChain.invites.admitMemberFromInvite(
         inviteProof,
-        newMemberContext.user.userName,
-        newMemberContext.user.userId,
-        newMemberContext.user.keys
+        newMemberSigChain.context.user.userName,
+        newMemberSigChain.context.user.userId,
+        newMemberSigChain.context.user.keys
       )
     ).toBeDefined()
-    expect(adminSigChain.roles.amIMemberOfRole(newMemberContext, RoleName.MEMBER)).toBe(true)
+    expect(adminSigChain.roles.amIMemberOfRole(newMemberSigChain.context, RoleName.MEMBER)).toBe(true)
   })
   it('admin should be able to revoke an invite', () => {
     const inviteToRevoke = adminSigChain.invites.createUserInvite()
@@ -88,7 +86,7 @@ describe('invites', () => {
     }).toThrowError()
   })
   it('should invite device', () => {
-    const newDevice = DeviceService.generateDeviceForUser(adminContext.user.userId)
+    const newDevice = DeviceService.generateDeviceForUser(adminSigChain.context.user.userId)
     const deviceInvite = adminSigChain.invites.createDeviceInvite()
     const inviteProof = InviteService.generateProof(deviceInvite.seed)
     expect(inviteProof).toBeDefined()

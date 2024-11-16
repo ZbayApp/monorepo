@@ -5,6 +5,8 @@ import { createLibp2pAddress, filterAndSortPeers } from '@quiet/common'
 import { LEVEL_DB } from '../const'
 import { LocalDBKeys, LocalDbStatus } from './local-db.types'
 import { createLogger } from '../common/logger'
+import { SigChainBlob } from '../auth/types'
+import { SigChain } from '../auth/sigchain'
 
 @Injectable()
 export class LocalDbService {
@@ -158,5 +160,26 @@ export class LocalDbService {
 
   public async getIdentities(): Promise<Record<string, Identity>> {
     return await this.get(LocalDBKeys.IDENTITIES)
+  }
+
+  public async setSigChain(sigChain: SigChain) {
+    // TODO: can this be made more efficient by using a prefix instead of loading all sigchains?
+    const teamName = sigChain.team.teamName
+    let sigChains = await this.get(LocalDBKeys.SIGCHAINS)
+    if (!sigChains) {
+      sigChains = {}
+    }
+    const sigChainBlob: SigChainBlob = {
+      serializedTeam: sigChain.save(),
+      context: sigChain.context,
+      teamKeyRing: sigChain.team.teamKeyring(),
+    }
+    sigChains[teamName] = sigChainBlob
+    await this.put(LocalDBKeys.SIGCHAINS, sigChains)
+  }
+
+  public async getSigChain(teamName: string): Promise<SigChainBlob | undefined> {
+    const sigChains = await this.get(LocalDBKeys.SIGCHAINS)
+    return sigChains?.[teamName]
   }
 }

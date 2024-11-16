@@ -6,9 +6,18 @@ import { StorageModule } from '../storage/storage.module'
 import { TorModule } from '../tor/tor.module'
 import { ConnectionsManagerService } from './connections-manager.service'
 import { StorageServiceClientModule } from '../storageServiceClient/storageServiceClient.module'
+import { SigChainModule } from '../auth/sigchain.service.module'
 
 @Module({
-  imports: [RegistrationModule, StorageModule, TorModule, SocketModule, LocalDbModule, StorageServiceClientModule],
+  imports: [
+    RegistrationModule,
+    StorageModule,
+    TorModule,
+    SocketModule,
+    LocalDbModule,
+    StorageServiceClientModule,
+    SigChainModule,
+  ],
   providers: [ConnectionsManagerService],
   exports: [ConnectionsManagerService],
 })

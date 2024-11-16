@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals'
 import { LazyModuleLoader } from '@nestjs/core'
 import { Test, TestingModule } from '@nestjs/testing'
-import { getFactory, prepareStore, type Store, type communities, type identity } from '@quiet/state-manager'
+import { getFactory, identity, prepareStore, type Store, type communities } from '@quiet/state-manager'
 import { type Community, type Identity, type InitCommunityPayload } from '@quiet/types'
 import { type FactoryGirl } from 'factory-girl'
 import PeerId from 'peer-id'
@@ -19,6 +19,12 @@ import { SocketModule } from '../socket/socket.module'
 import { ConnectionsManagerModule } from './connections-manager.module'
 import { ConnectionsManagerService } from './connections-manager.service'
 import { createLibp2pAddress } from '@quiet/common'
+import { SigChain } from '../auth/sigchain'
+import { createLogger } from '../common/logger'
+import { Logger } from '@nestjs/common'
+import { SigChainService } from '../auth/sigchain.service'
+
+const logger = createLogger('connections-manager.service.spec')
 
 describe('ConnectionsManagerService', () => {
   let module: TestingModule
@@ -34,6 +40,7 @@ describe('ConnectionsManagerService', () => {
   let userIdentity: Identity
   let communityRootCa: string
   let peerId: PeerId
+  let sigChainService: SigChainService
 
   beforeEach(async () => {
     jest.clearAllMocks()
@@ -58,6 +65,10 @@ describe('ConnectionsManagerService', () => {
     connectionsManagerService = await module.resolve(ConnectionsManagerService)
     localDbService = await module.resolve(LocalDbService)
     registrationService = await module.resolve(RegistrationService)
+    sigChainService = await module.resolve(SigChainService)
+
+    sigChainService.createChain(community.name!, userIdentity.nickname, false)
+    localDbService.setSigChain(sigChainService.getChainByTeamName(community.name!))
 
     lazyModuleLoader = await module.resolve(LazyModuleLoader)
     const { Libp2pModule: Module } = await import('../libp2p/libp2p.module')
@@ -91,6 +102,7 @@ describe('ConnectionsManagerService', () => {
   })
 
   it('launches community on init if its data exists in local db', async () => {
+    logger.info('launches community on init if its data exists in local db')
     const remotePeer = createLibp2pAddress(
       'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdvcbzw5vex2crsr26qd',
       'QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wfFJDPPLsbKSE'
@@ -100,13 +112,16 @@ describe('ConnectionsManagerService', () => {
     // below
     const actualCommunity = {
       id: community.id,
+      name: community.name,
       peerList: [remotePeer],
     }
+    // await localDbService.setSigChain(sigChain)
     await localDbService.setCommunity(actualCommunity)
     await localDbService.setCurrentCommunityId(community.id)
 
     await localDbService.setIdentity(userIdentity)
 
+    logger.info('Closing all services')
     await connectionsManagerService.closeAllServices()
 
     const launchCommunitySpy = jest.spyOn(connectionsManagerService, 'launchCommunity').mockResolvedValue()
@@ -116,10 +131,16 @@ describe('ConnectionsManagerService', () => {
     const localPeerAddress = createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id)
     const updatedLaunchCommunityPayload = { ...actualCommunity, peerList: [localPeerAddress, remotePeer] }
 
-    expect(launchCommunitySpy).toHaveBeenCalledWith(updatedLaunchCommunityPayload)
+    logger.info('updatedLaunchCommunityPayload', updatedLaunchCommunityPayload)
+
+    // expect(launchCommunitySpy).toHaveBeenCalledWith(updatedLaunchCommunityPayload)
+    expect(launchCommunitySpy).toBeCalledWith(updatedLaunchCommunityPayload)
+    expect(sigChainService.getActiveChain()).toBeDefined()
+    expect(sigChainService.getActiveChain()?.team.teamName).toBe(community.name)
   })
 
   it('does not launch community on init if its data does not exist in local db', async () => {
+    logger.info('does not launch community on init if its data does not exist in local db')
     await connectionsManagerService.closeAllServices()
     await connectionsManagerService.init()
     const launchCommunitySpy = jest.spyOn(connectionsManagerService, 'launchCommunity')

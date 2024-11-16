@@ -8,24 +8,23 @@ const logger = createLogger('auth:services:device.spec')
 
 describe('invites', () => {
   let adminSigChain: SigChain
-  let adminContext: LocalUserContext
   let newDevice: DeviceWithSecrets
 
   it('should initialize a new sigchain and be admin', () => {
-    ;({ sigChain: adminSigChain, context: adminContext } = SigChain.create('test', 'user'))
+    adminSigChain = SigChain.create('test', 'user')
     expect(adminSigChain).toBeDefined()
-    expect(adminContext).toBeDefined()
+    expect(adminSigChain.context).toBeDefined()
     expect(adminSigChain.team.teamName).toBe('test')
-    expect(adminContext.user.userName).toBe('user')
-    expect(adminSigChain.roles.amIMemberOfRole(adminContext, RoleName.ADMIN)).toBe(true)
-    expect(adminSigChain.roles.amIMemberOfRole(adminContext, RoleName.MEMBER)).toBe(true)
+    expect(adminSigChain.context.user.userName).toBe('user')
+    expect(adminSigChain.roles.amIMemberOfRole(adminSigChain.context, RoleName.ADMIN)).toBe(true)
+    expect(adminSigChain.roles.amIMemberOfRole(adminSigChain.context, RoleName.MEMBER)).toBe(true)
   })
   it('sigchain should contain admin device', () => {
     const adminDeviceName = DeviceService.determineDeviceName()
-    adminSigChain.team.hasDevice(adminContext.device.deviceId)
+    adminSigChain.team.hasDevice(adminSigChain.context.device.deviceId)
   })
   it('should generate a new device', () => {
-    newDevice = DeviceService.generateDeviceForUser(adminContext.user.userId)
+    newDevice = DeviceService.generateDeviceForUser(adminSigChain.context.user.userId)
     expect(newDevice).toBeDefined()
   })
   it('should redactDevice', () => {

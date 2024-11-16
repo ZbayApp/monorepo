@@ -3,7 +3,6 @@
  */
 
 import * as auth from '@localfirst/auth'
-import { LoadedSigChain } from './types'
 import { UserService } from './services/members/user.service'
 import { RoleService } from './services/roles/role.service'
 import { ChannelService } from './services/roles/channel.service'
@@ -17,6 +16,7 @@ import { createLogger } from '../common/logger'
 const logger = createLogger('auth:sigchain')
 
 class SigChain {
+  private _context: auth.LocalUserContext | null = null
   private _team: auth.Team
   private _users: UserService | null = null
   private _devices: DeviceService | null = null
@@ -26,8 +26,9 @@ class SigChain {
   private _invites: InviteService | null = null
   private _crypto: CryptoService | null = null
 
-  private constructor(team: auth.Team) {
+  private constructor(team: auth.Team, context: auth.LocalUserContext) {
     this._team = team
+    this._context = context
   }
 
   /**
@@ -37,47 +38,41 @@ class SigChain {
    * @param username Username of the initial user we are generating
    * @returns LoadedSigChain instance with the new SigChain and user context
    */
-  public static create(teamName: string, username: string): LoadedSigChain {
+  public static create(teamName: string, username: string): SigChain {
     const context = UserService.create(username)
     const team: auth.Team = this.lfa.createTeam(teamName, context)
-    const sigChain = this.init(team)
+    const sigChain = this.init(team, context)
 
     // sigChain.roles.createWithMembers(RoleName.ADMIN, [context.user.userId])
     sigChain.roles.createWithMembers(RoleName.MEMBER, [context.user.userId])
 
-    return {
-      sigChain,
-      context,
-    }
+    return sigChain
   }
 
-  public static createFromTeam(team: auth.Team, context: auth.LocalUserContext): LoadedSigChain {
-    const sigChain = this.init(team)
-    return {
-      context,
-      sigChain,
-    }
+  public static createFromTeam(team: auth.Team, context: auth.LocalUserContext): SigChain {
+    const sigChain = this.init(team, context)
+    return sigChain
+  }
+
+  public static load(serializedTeam: Uint8Array, context: auth.LocalUserContext, teamKeyRing: auth.Keyring): SigChain {
+    const team: auth.Team = this.lfa.loadTeam(serializedTeam, context, teamKeyRing)
+    const sigChain = this.init(team, context)
+
+    return sigChain
   }
 
   // TODO: Is this the right signature for this method?
-  public static join(
-    context: auth.LocalUserContext,
-    serializedTeam: Uint8Array,
-    teamKeyRing: auth.Keyring
-  ): LoadedSigChain {
+  public static join(context: auth.LocalUserContext, serializedTeam: Uint8Array, teamKeyRing: auth.Keyring): SigChain {
     const team: auth.Team = this.lfa.loadTeam(serializedTeam, context, teamKeyRing)
     team.join(teamKeyRing)
 
-    const sigChain = this.init(team)
+    const sigChain = this.init(team, context)
 
-    return {
-      sigChain,
-      context,
-    }
+    return sigChain
   }
 
-  private static init(team: auth.Team): SigChain {
-    const sigChain = new SigChain(team)
+  private static init(team: auth.Team, context: auth.LocalUserContext): SigChain {
+    const sigChain = new SigChain(team, context)
     sigChain.initServices()
 
     return sigChain
@@ -94,8 +89,16 @@ class SigChain {
   }
 
   // TODO: persist to storage
-  public persist(): Uint8Array {
+  public save(): Uint8Array {
     return this.team.save() // this doesn't actually do anything but create the new state to save
+  }
+
+  get context(): auth.LocalUserContext {
+    return this._context!
+  }
+
+  set context(context: auth.LocalUserContext) {
+    this._context = context
   }
 
   get team(): auth.Team {

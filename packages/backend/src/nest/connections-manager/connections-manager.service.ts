@@ -70,6 +70,8 @@ import { DateTime } from 'luxon'
 import { createLogger } from '../common/logger'
 import { createUserCsr, getPubKey, loadPrivateKey, pubKeyFromCsr } from '@quiet/identity'
 import { config } from '@quiet/state-manager'
+import { SigChainService } from '../auth/sigchain.service'
+import { SigChain } from '../auth/sigchain'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -92,7 +94,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     private readonly localDbService: LocalDbService,
     private readonly storageService: StorageService,
     private readonly tor: Tor,
-    private readonly lazyModuleLoader: LazyModuleLoader
+    private readonly lazyModuleLoader: LazyModuleLoader,
+    private readonly sigChainService: SigChainService
   ) {
     super()
   }
@@ -213,7 +216,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
   public async launchCommunityFromStorage() {
     this.logger.info('Launching community from storage')
-    const community = await this.localDbService.getCurrentCommunity()
+    const community: Community | undefined = await this.localDbService.getCurrentCommunity()
     if (!community) {
       this.logger.info('No community found in storage')
       return
@@ -225,6 +228,22 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
+    if (community.name) {
+      const sigChainBlob = await this.localDbService.getSigChain(community.name)
+      if (sigChainBlob) {
+        try {
+          this.sigChainService.loadChain(
+            sigChainBlob.serializedTeam,
+            sigChainBlob.context,
+            sigChainBlob.teamKeyRing,
+            true
+          )
+        } catch (e) {
+          this.logger.error('Failed to load sigchain', e)
+        }
+      }
+    }
+
     const sortedPeers = await this.localDbService.getSortedPeers(community.peerList ?? [])
     this.logger.info('launchCommunityFromStorage - sorted peers', sortedPeers)
     if (sortedPeers.length > 0) {
@@ -232,10 +251,14 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     }
     await this.localDbService.setCommunity(community)
 
+    this.logger.info('Launching community from storage with peers', community.peerList)
     await this.launchCommunity(community)
   }
 
   public async closeAllServices(options: { saveTor: boolean } = { saveTor: false }) {
+    this.logger.info('Saving active sigchain')
+    await this.saveActiveChain()
+
     this.logger.info('Closing services')
 
     await this.closeSocket()
@@ -262,6 +285,15 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
   public async closeSocket() {
     await this.socketService.close()
+  }
+
+  public async saveActiveChain() {
+    try {
+      const activeChain = this.sigChainService.getActiveChain()
+      await this.localDbService.setSigChain(activeChain)
+    } catch (e) {
+      this.logger.info('Failed to save active chain', e)
+    }
   }
 
   public async pause() {
@@ -561,6 +593,13 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     if (identity.userCsr?.userCsr) {
       await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
     }
+
+    // create sigchain
+    if (!community.name) {
+      this.logger.error('Community name is required to create sigchain')
+      return community
+    }
+    this.sigChainService.createChain(community.name, identity.nickname, true)
     return community
   }
 
@@ -653,6 +692,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       inviteData,
     }
 
+    // TODO: Add initialization of sigchain from invite
     await this.localDbService.setCommunity(community)
     await this.localDbService.setCurrentCommunityId(community.id)
 

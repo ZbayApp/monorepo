@@ -1,16 +1,20 @@
 import { jest } from '@jest/globals'
-import { SigChain } from './sigchain'
-import { SigChainManager } from './sigchainManager'
+import { Test, TestingModule } from '@nestjs/testing'
+import { SigChainService } from './sigchain.service'
 import { createLogger } from '../common/logger'
 
 const logger = createLogger('auth:sigchainManager.spec')
 
 describe('SigChainManager', () => {
-  let sigChainManager: SigChainManager
+  let module: TestingModule
+  let sigChainManager: SigChainService
 
-  it('should initialize a new SigChainManager', () => {
-    sigChainManager = SigChainManager.init()
-    expect(sigChainManager).toBeDefined()
+  beforeAll(async () => {
+    module = await Test.createTestingModule({
+      providers: [SigChainService],
+      exports: [SigChainService],
+    }).compile()
+    sigChainManager = await module.resolve(SigChainService)
   })
   it('should throw an error when trying to get an active chain without setting one', () => {
     expect(() => sigChainManager.getActiveChain()).toThrowError()
@@ -19,14 +23,13 @@ describe('SigChainManager', () => {
     expect(() => sigChainManager.setActiveChain('nonexistent')).toThrowError()
   })
   it('should add a new chain and it not be active if not set to be', () => {
-    const { context, sigChain } = sigChainManager.createChain('test', 'user', false)
-    expect(sigChainManager.activeChainTeamName).toBeUndefined()
+    const sigChain = sigChainManager.createChain('test', 'user', false)
     expect(() => sigChainManager.getActiveChain()).toThrowError()
     sigChainManager.setActiveChain('test')
     expect(sigChainManager.getActiveChain()).toBe(sigChain)
   })
   it('should add a new chain and it be active if set to be', () => {
-    const { context, sigChain } = sigChainManager.createChain('test2', 'user2', true)
+    const sigChain = sigChainManager.createChain('test2', 'user2', true)
     expect(sigChainManager.getActiveChain()).toBe(sigChain)
     const prevSigChain = sigChainManager.getChainByTeamName('test')
     expect(prevSigChain).toBeDefined()
@@ -38,6 +41,6 @@ describe('SigChainManager', () => {
   })
   it('should delete active chain and set active chain to undefined', () => {
     sigChainManager.deleteChain('test2')
-    expect(sigChainManager.activeChainTeamName).toBeUndefined()
+    expect(sigChainManager.getActiveChain).toThrowError()
   })
 })
