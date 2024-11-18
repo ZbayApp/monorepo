@@ -164,6 +164,7 @@ export class LocalDbService {
 
   public async setSigChain(sigChain: SigChain) {
     // TODO: can this be made more efficient by using a prefix instead of loading all sigchains?
+    this.logger.info('Setting sigchain', sigChain.team.teamName)
     const teamName = sigChain.team.teamName
     let sigChains = await this.get(LocalDBKeys.SIGCHAINS)
     if (!sigChains) {
@@ -180,6 +181,7 @@ export class LocalDbService {
 
   public async getSigChain(teamName: string): Promise<SigChainBlob | undefined> {
     const sigChains = await this.get(LocalDBKeys.SIGCHAINS)
+    this.logger.info('Getting sigchain', teamName)
     return sigChains?.[teamName]
   }
 }
