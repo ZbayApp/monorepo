@@ -601,8 +601,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       ownerOrbitDbIdentity: payload.ownerOrbitDbIdentity,
     }
 
+    const inviteData = payload.inviteData
     // TODO: add back when QSS is implemented
-    // const inviteData = payload.inviteData
     // if (inviteData) {
     //   this.logger.info(`Joining community: inviteData version: ${inviteData.version}`)
     //   switch (inviteData.version) {
@@ -652,7 +652,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       peerList: [...new Set([localAddress, ...metadata.peers])],
       psk: metadata.psk,
       ownerOrbitDbIdentity: metadata.ownerOrbitDbIdentity,
-      inviteData: null,
+      inviteData,
     }
 
     await this.localDbService.setCommunity(community)
