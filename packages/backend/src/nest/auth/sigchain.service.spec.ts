@@ -2,19 +2,24 @@ import { jest } from '@jest/globals'
 import { Test, TestingModule } from '@nestjs/testing'
 import { SigChainService } from './sigchain.service'
 import { createLogger } from '../common/logger'
+import { LocalDbService } from '../local-db/local-db.service'
+import { LocalDbModule } from '../local-db/local-db.module'
+import { TestModule } from '../common/test.module'
+import { SigChainModule } from './sigchain.service.module'
 
 const logger = createLogger('auth:sigchainManager.spec')
 
 describe('SigChainManager', () => {
   let module: TestingModule
   let sigChainManager: SigChainService
+  let localDbService: LocalDbService
 
   beforeAll(async () => {
     module = await Test.createTestingModule({
-      providers: [SigChainService],
-      exports: [SigChainService],
+      imports: [TestModule, SigChainModule, LocalDbModule],
     }).compile()
     sigChainManager = await module.resolve(SigChainService)
+    localDbService = await module.resolve(LocalDbService)
   })
   it('should throw an error when trying to get an active chain without setting one', () => {
     expect(() => sigChainManager.getActiveChain()).toThrowError()
@@ -42,5 +47,23 @@ describe('SigChainManager', () => {
   it('should delete active chain and set active chain to undefined', () => {
     sigChainManager.deleteChain('test2')
     expect(sigChainManager.getActiveChain).toThrowError()
+  })
+  it('should save and load a chain', async () => {
+    const sigChain = sigChainManager.createChain('test', 'user', true)
+    await localDbService.setSigChain(sigChain)
+    const serializedChain = sigChain.save()
+    const retrievedChain = await localDbService.getSigChain('test')
+    expect(retrievedChain).toBeDefined()
+    expect(retrievedChain?.context.user.userName).toBe('user')
+    sigChainManager.deleteChain('test')
+    const loadedSigChain = sigChainManager.loadChain(
+      serializedChain,
+      retrievedChain!.context,
+      retrievedChain!.teamKeyRing,
+      false
+    )
+    expect(loadedSigChain).toBeDefined()
+    expect(loadedSigChain.context.user.userName).toBe('user')
+    expect(loadedSigChain.team.teamName).toBe('test')
   })
 })
