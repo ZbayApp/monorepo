@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### New features
+
+* Added in LFA-ready invite links ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
+
 ## [2.3.2]
 
 ### Chores
