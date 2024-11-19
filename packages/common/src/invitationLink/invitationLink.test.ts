@@ -5,12 +5,14 @@ import {
   composeInvitationShareUrl,
   parseInvitationLinkDeepUrl,
   p2pAddressesToPairs,
+  peerPairsToUrlParamString,
 } from './invitationLink'
 import {
   PSK_PARAM_KEY,
   OWNER_ORBIT_DB_IDENTITY_PARAM_KEY,
   DEEP_URL_SCHEME_WITH_SEPARATOR,
   AUTH_DATA_KEY,
+  PEER_ADDRESS_KEY,
 } from './invitationLink.const'
 import { QUIET_JOIN_PAGE } from '../const'
 import { validInvitationDatav1, validInvitationDatav2 } from '../tests'
@@ -25,8 +27,7 @@ describe(`Invitation link helper ${InvitationDataVersion.v1}`, () => {
     pairs: [...validInvitationDatav1[0].pairs, { peerId: peerId, onionAddress: address }],
   }
   const urlParams = [
-    [data.pairs[0].peerId, data.pairs[0].onionAddress],
-    [data.pairs[1].peerId, data.pairs[1].onionAddress],
+    [PEER_ADDRESS_KEY, peerPairsToUrlParamString([data.pairs[0], data.pairs[1]])],
     [PSK_PARAM_KEY, data.psk],
     [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
   ]
@@ -127,8 +128,7 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
     pairs: [...validInvitationDatav1[0].pairs, { peerId: peerId, onionAddress: address }],
   }
   const urlParams = [
-    [data.pairs[0].peerId, data.pairs[0].onionAddress],
-    [data.pairs[1].peerId, data.pairs[1].onionAddress],
+    [PEER_ADDRESS_KEY, peerPairsToUrlParamString([data.pairs[0], data.pairs[1]])],
     [PSK_PARAM_KEY, data.psk],
     [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
     [AUTH_DATA_KEY, encodeAuthData(data.authData)],
@@ -189,8 +189,7 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
   it('throw error if auth data string is invalid', () => {
     const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
     const urlParams = [
-      [data.pairs[0].peerId, data.pairs[0].onionAddress],
-      [data.pairs[1].peerId, data.pairs[1].onionAddress],
+      [PEER_ADDRESS_KEY, peerPairsToUrlParamString([data.pairs[0], data.pairs[1]])],
       [PSK_PARAM_KEY, data.psk],
       [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
       [AUTH_DATA_KEY, '()_*'],
@@ -205,11 +204,46 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
     }
   })
 
+  it('throw error if peer address param is present but no valid addresses are found', () => {
+    const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
+    const urlParams = [
+      [PEER_ADDRESS_KEY, 'foobar'],
+      [PSK_PARAM_KEY, data.psk],
+      [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
+      [AUTH_DATA_KEY, encodeAuthData(data.authData)],
+    ]
+    urlParams.forEach(([key, value]) => url.searchParams.append(key, value))
+
+    try {
+      const parsed = parseInvitationLinkDeepUrl(url.href)
+      expect(parsed).toBe(null)
+    } catch (e) {
+      expect(e.message).toContain(`Invalid value 'foobar' for key 'p' in invitation link`)
+    }
+  })
+
+  // TODO: TECH DEBT: Get rid of when we go to 3.0
+  it('LEGACY - throw error if no peer pairs are found as named param or dynamic params', () => {
+    const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
+    const urlParams = [
+      [PSK_PARAM_KEY, data.psk],
+      [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
+      [AUTH_DATA_KEY, encodeAuthData(data.authData)],
+    ]
+    urlParams.forEach(([key, value]) => url.searchParams.append(key, value))
+
+    try {
+      const parsed = parseInvitationLinkDeepUrl(url.href)
+      expect(parsed).toBe(null)
+    } catch (e) {
+      expect(e.message).toContain(`No valid peer addresses found in invitation link`)
+    }
+  })
+
   it('throw error if community name is invalid', () => {
     const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
     const urlParams = [
-      [data.pairs[0].peerId, data.pairs[0].onionAddress],
-      [data.pairs[1].peerId, data.pairs[1].onionAddress],
+      [PEER_ADDRESS_KEY, peerPairsToUrlParamString([data.pairs[0], data.pairs[1]])],
       [PSK_PARAM_KEY, data.psk],
       [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
       [
@@ -233,8 +267,7 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
   it('throw error if seed is invalid', () => {
     const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
     const urlParams = [
-      [data.pairs[0].peerId, data.pairs[0].onionAddress],
-      [data.pairs[1].peerId, data.pairs[1].onionAddress],
+      [PEER_ADDRESS_KEY, peerPairsToUrlParamString([data.pairs[0], data.pairs[1]])],
       [PSK_PARAM_KEY, data.psk],
       [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
       [
@@ -273,9 +306,17 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
 
   it('retrieves invitation data from deep url with partly invalid addresses', () => {
     const urlParamsWithInvalidAddress = [
-      [data.pairs[0].peerId, data.pairs[0].onionAddress],
-      [data.pairs[1].peerId, data.pairs[1].onionAddress],
-      ['QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wf', 'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdv'],
+      [
+        PEER_ADDRESS_KEY,
+        peerPairsToUrlParamString([
+          data.pairs[0],
+          data.pairs[1],
+          {
+            peerId: 'QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wf',
+            onionAddress: 'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdv',
+          },
+        ]),
+      ],
       [PSK_PARAM_KEY, data.psk],
       [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
       [AUTH_DATA_KEY, encodeAuthData(data.authData)],
@@ -283,6 +324,26 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
 
     const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
     urlParamsWithInvalidAddress.forEach(([key, value]) => url.searchParams.append(key, value))
+
+    const parsed = parseInvitationLinkDeepUrl(url.href)
+    expect(parsed).toEqual({
+      version: InvitationDataVersion.v2,
+      ...data,
+    })
+  })
+
+  // TODO: TECH DEBT: Get rid of when we go to 3.0
+  it('LEGACY - retrieves invitation data from url with dynamic peer address params', () => {
+    const urlParamsWithDynamicPeerParams = [
+      [data.pairs[0].peerId, data.pairs[0].onionAddress],
+      [data.pairs[1].peerId, data.pairs[1].onionAddress],
+      [PSK_PARAM_KEY, data.psk],
+      [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
+      [AUTH_DATA_KEY, encodeAuthData(data.authData)],
+    ]
+
+    const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
+    urlParamsWithDynamicPeerParams.forEach(([key, value]) => url.searchParams.append(key, value))
 
     const parsed = parseInvitationLinkDeepUrl(url.href)
     expect(parsed).toEqual({
