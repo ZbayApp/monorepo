@@ -23,10 +23,39 @@ export type InvitationDataV1 = InvitationDataP2P & {
   version?: InvitationDataVersion.v1
 }
 
-export type InvitationDataV2 = InvitationDataP2P & {
-  version?: InvitationDataVersion.v2
+export type InvitationAuthData = {
   communityName: string
   seed: string
 }
 
+export type InvitationDataV2 = InvitationDataP2P & {
+  version?: InvitationDataVersion.v2
+  authData: InvitationAuthData
+}
+
 export type InvitationData = InvitationDataV1 | InvitationDataV2
+
+export type InvitationLinkUrlParamValidatorFun<T> = (
+  value: string,
+  processor?: InvitationLinkUrlParamProcessorFun<any>
+) => Partial<T> | never
+export type InvitationLinkUrlParamProcessorFun<T> = (value: string) => T
+
+export type InvitationLinkUrlParamConfigMap<T> = Map<string, InvitationLinkUrlParamConfig<T | any>>
+
+export type VersionedInvitationLinkUrlParamConfig<T extends InvitationData> = {
+  version: InvitationDataVersion
+  map: InvitationLinkUrlParamConfigMap<T | any>
+}
+
+export type InvitationLinkUrlParamConfig<T> = {
+  required: boolean
+  validator: InvitationLinkUrlParamValidatorFun<T | string>
+  processor?: InvitationLinkUrlParamProcessorFun<any> | undefined
+  nested?:
+    | {
+        key: string
+        config: InvitationLinkUrlParamConfigMap<any>
+      }
+    | undefined
+}
