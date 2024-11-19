@@ -56,7 +56,7 @@ export class UrlParamValidatorError extends Error {
  *
  * @param authData InvitationAuthData object to encode
  *
- * @returns Base64url-encoded string
+ * @returns {string} Base64url-encoded string
  */
 export const encodeAuthData = (authData: InvitationAuthData): string => {
   const encodedAuthData = `${COMMUNITY_NAME_KEY}=${encodeURIComponent(authData.communityName)}&${INVITATION_SEED_KEY}=${encodeURIComponent(authData.seed)}`
@@ -72,7 +72,7 @@ export const encodeAuthData = (authData: InvitationAuthData): string => {
  *
  * @param authDataString Base64url-encoded string representing the InvitationAuthData of the invite link
  *
- * @returns URL-encoded string of the InvitationAuthData object as URL with parameters
+ * @returns {string} URL-encoded string of the InvitationAuthData object as URL with parameters
  */
 export const decodeAuthData: InvitationLinkUrlParamProcessorFun<string> = (authDataString: string): string => {
   return `${DEEP_URL_SCHEME_WITH_SEPARATOR}?${Buffer.from(authDataString, 'base64url').toString('utf8')}`
@@ -83,7 +83,7 @@ export const decodeAuthData: InvitationLinkUrlParamProcessorFun<string> = (authD
  *
  * @param peerData The peer ID and onion address to validate
  *
- * @returns `true` if the data is valid, else false
+ * @returns {boolean} `true` if the data is valid, else false
  */
 export const validatePeerData = ({ peerId, onionAddress }: { peerId: string; onionAddress: string }): boolean => {
   if (!peerId.match(PEER_ID_REGEX)) {
@@ -106,7 +106,7 @@ export const validatePeerData = ({ peerId, onionAddress }: { peerId: string; oni
  * @param url Invite link URL to validate peer data on
  * @param unnamedParams Parameters that were not previously parsed and validated
  *
- * @returns Validated InvitationPair objects
+ * @returns {InvitationPair[]} Validated InvitationPairs
  */
 const validatePeerPairs = (url: string, unnamedParams: URLSearchParams): InvitationPair[] => {
   const pairs: InvitationPair[] = []
@@ -142,7 +142,7 @@ const validatePeerPairs = (url: string, unnamedParams: URLSearchParams): Invitat
  * @param value PSK string pulled from invite link
  * @param processor Optional post-processor to run the validated value through
  *
- * @returns The processed PSK represented as a partial InvitationData object
+ * @returns {Partial<InvitationData>} The processed PSK represented as a partial InvitationData object
  */
 const validatePsk: InvitationLinkUrlParamValidatorFun<InvitationDataV1> = (
   value: string,
@@ -176,7 +176,7 @@ const validatePsk: InvitationLinkUrlParamValidatorFun<InvitationDataV1> = (
  * @param value Owner's OrbitDB identity string pulled from invite link
  * @param processor Optional post-processor to run the validated value through
  *
- * @returns The processed owner OrbitDB identity represented as a partial InvitationData object
+ * @returns {Partial<InvitationData>} The processed owner OrbitDB identity represented as a partial InvitationData object
  */
 const validateOwnerOrbitDbIdentity: InvitationLinkUrlParamValidatorFun<InvitationDataV1> = (
   value: string,
@@ -206,7 +206,7 @@ const validateOwnerOrbitDbIdentity: InvitationLinkUrlParamValidatorFun<Invitatio
  * @param value Auth data string pulled from invite link
  * @param processor Optional post-processor to run the validated value through
  *
- * @returns The processed auth data represented as a partial InvitationData object
+ * @returns {Partial<InvitationData>} The processed auth data represented as a partial InvitationData object
  */
 const validateAuthData: InvitationLinkUrlParamValidatorFun<string> = (
   value: string,
@@ -237,7 +237,7 @@ const validateAuthData: InvitationLinkUrlParamValidatorFun<string> = (
  * @param value Nested LFA invitation seed string pulled from the decoded auth data string
  * @param processor Optional post-processor to run the validated value through
  *
- * @returns The processed LFA invitation seed represented as a partial InvitationAuthData object
+ * @returns {Partial<InvitationAuthData>} The processed LFA invitation seed represented as a partial InvitationAuthData object
  */
 const validateInvitationSeed: InvitationLinkUrlParamValidatorFun<InvitationAuthData> = (
   value: string,
@@ -270,7 +270,7 @@ const validateInvitationSeed: InvitationLinkUrlParamValidatorFun<InvitationAuthD
  * @param value Nested community name string pulled from the decoded auth data string
  * @param processor Optional post-processor to run the validated value through
  *
- * @returns The processed community name represented as a partial InvitationAuthData object
+ * @returns {Partial<InvitationAuthData>} The processed community name represented as a partial InvitationAuthData object
  */
 const validateCommunityName: InvitationLinkUrlParamValidatorFun<InvitationAuthData> = (
   value: string,
@@ -361,7 +361,7 @@ export const PARAM_CONFIG_V2: VersionedInvitationLinkUrlParamConfig<InvitationDa
  * @param value Value of URL param with the given key
  * @param config The validation config for this param
  *
- * @returns The processed URL param represented as a partial InvitationData object
+ * @returns {Partial<InvitationData>} The processed URL param represented as a partial InvitationData object
  */
 const _parseAndValidateParam = <T>(
   key: string,
@@ -397,7 +397,7 @@ const _parseAndValidateParam = <T>(
  * @param params List of named URL params pulled from the invite link URL
  * @param paramConfigMap Map of URL params that are expected on this invite URL
  *
- * @returns Object built from all named URL parameters and the remaining parameters
+ * @returns { output: Partial<T>; params: URLSearchParams } Object built from all named URL parameters and the remaining parameters
  */
 const _parseAndValidateUrlParams = <T>(
   params: URLSearchParams,
@@ -433,7 +433,7 @@ const _parseAndValidateUrlParams = <T>(
  * @param url Invite link URL
  * @param paramConfigMap Map of named URL params that are expected on this invite URL
  *
- * @returns InvitationData object of parsed URL params
+ * @returns {InvitationData} Parsed URL params
  */
 export const parseAndValidateUrlParams = <T extends InvitationData>(
   url: string,
