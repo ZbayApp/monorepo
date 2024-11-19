@@ -15,8 +15,8 @@ import {
   parseAndValidateUrlParams,
 } from './invitationLink.validator'
 import { createLibp2pAddress } from './libp2p'
-// import { CID } from 'multiformats/cid' // Fixme: dependency issue
 import { createLogger } from './logger'
+
 const logger = createLogger('invite')
 
 interface ParseDeepUrlParams {
@@ -24,13 +24,28 @@ interface ParseDeepUrlParams {
   expectedProtocol?: string
 }
 
+/**
+ * Parse and validate the URL parameters on a given V2 (LFA) invite link URL
+ *
+ * @param url V2 invite link URL to validate parameters on
+ *
+ * @returns {InvitationDataV2} Parsed V2 parameters
+ */
 const parseLinkV2 = (url: string): InvitationDataV2 => {
   /**
-   * <peerid1>=<address1>&<peerid2>=<addresss2>...&k=<psk>&o=<ownerOrbitDbIdentity>&a=<base64url-encoded string (decodes to `?c=<community name>&s=<base58 LFA invitation seed>`)
+   * <peerid1>=<address1>&<peerid2>=<addresss2>...&k=<psk>&o=<ownerOrbitDbIdentity>&a=<base64url-encoded string
+   * (decodes to `?c=<community name>&s=<base58 LFA invitation seed>`)
    */
   return parseAndValidateUrlParams(url, PARAM_CONFIG_V2)
 }
 
+/**
+ * Parse and validate the URL parameters on a given V1 (non-LFA) invite link URL
+ *
+ * @param url V1 invite link URL to validate parameters on
+ *
+ * @returns {InvitationDataV1} Parsed V1 parameters
+ */
 const parseLinkV1 = (url: string): InvitationDataV1 => {
   /**
    * <peerid1>=<address1>&<peerid2>=<addresss2>...&k=<psk>&o=<ownerOrbitDbIdentity>
@@ -38,6 +53,14 @@ const parseLinkV1 = (url: string): InvitationDataV1 => {
   return parseAndValidateUrlParams(url, PARAM_CONFIG_V1)
 }
 
+/**
+ * Extract invitation data from deep url.
+ * Valid format: quiet://?<peerid1>=<address1>&<peerid2>=<addresss2>&k=<psk>
+ *
+ * @param deepUrlOptions Object containing the deep URL to parse and the URL protocol
+ *
+ * @returns {InvitationData} Parsed parameters
+ */
 const parseDeepUrl = ({ url, expectedProtocol = `${DEEP_URL_SCHEME}:` }: ParseDeepUrlParams): InvitationData => {
   let _url = url
   let validUrl: URL | null = null
@@ -81,6 +104,10 @@ const parseDeepUrl = ({ url, expectedProtocol = `${DEEP_URL_SCHEME}:` }: ParseDe
 /**
  * Extract invitation data from deep url.
  * Valid format: quiet://?<peerid1>=<address1>&<peerid2>=<addresss2>&k=<psk>
+ *
+ * @param url V1 or V2 invite link URL to validate parameters on
+ *
+ * @returns {InvitationData} Parsed parameters
  */
 export const parseInvitationLinkDeepUrl = (url: string): InvitationData => {
   return parseDeepUrl({ url })
@@ -88,11 +115,22 @@ export const parseInvitationLinkDeepUrl = (url: string): InvitationData => {
 
 /**
  * @param link <peerId1>=<address1>&<peerId2>=<address2>&k=<psk>
+ *
+ * @param url V1 or V2 invite link URL to validate parameters on
+ *
+ * @returns {InvitationData} Parsed parameters
  */
 export const parseInvitationLink = (link: string): InvitationData => {
   return parseDeepUrl({ url: link, expectedProtocol: '' })
 }
 
+/**
+ * Convert an array of peer addresses to an array of peer ID/onion address pairs
+ *
+ * @param addresses Array of peer addresses to parse and validate
+ *
+ * @returns {InvitationPair[]} Parsed and validated peer data
+ */
 export const p2pAddressesToPairs = (addresses: string[]): InvitationPair[] => {
   /**
    * @arg {string[]} addresses - List of peer's p2p addresses
@@ -126,6 +164,13 @@ export const p2pAddressesToPairs = (addresses: string[]): InvitationPair[] => {
   return pairs
 }
 
+/**
+ * Convert an array of InvitationPair objects to an array of complete peer addresses
+ *
+ * @param pairs Array of InvitationPair objects
+ *
+ * @returns {string[]} Peer addresses formed from InvitationPairs
+ */
 export const pairsToP2pAddresses = (pairs: InvitationPair[]): string[] => {
   const addresses: string[] = []
   for (const pair of pairs) {
@@ -134,18 +179,41 @@ export const pairsToP2pAddresses = (pairs: InvitationPair[]): string[] => {
   return addresses
 }
 
-export const composeInvitationShareUrl = (data: InvitationData) => {
-  /**
-   * @returns {string} - Complete shareable invitation link, e.g.
-   * https://tryquiet.org/join/#<peerid1>=<address1>&<peerid2>=<addresss2>&k=<psk>&o=<ownerOrbitDbIdentity>
-   */
+/**
+ * Convert an InvitationData object to valid invite link URL parameters and return a completed shareable invite link
+ *
+ * Example: https://tryquiet.org/join/#<peerid1>=<address1>&<peerid2>=<addresss2>&k=<psk>&o=<ownerOrbitDbIdentity>
+ *
+ * @param data InvitationData object representing the URL parameters on a new invite link URL
+ *
+ * @returns {string} Complete shareable invitation link
+ */
+export const composeInvitationShareUrl = (data: InvitationData): string => {
   return composeInvitationUrl(`${QUIET_JOIN_PAGE}`, data).replace('?', '#')
 }
 
+/**
+ * Convert an InvitationData object to valid invite link URL parameters and return a completed deep invite link
+ *
+ * Example: quiet://?<peerid1>=<address1>&<peerid2>=<addresss2>&k=<psk>&o=<ownerOrbitDbIdentity>
+ *
+ * @param data InvitationData object representing the URL parameters on a new invite link URL
+ *
+ * @returns {string} Complete shareable invitation link
+ */
 export const composeInvitationDeepUrl = (data: InvitationData): string => {
   return composeInvitationUrl(`${DEEP_URL_SCHEME_WITH_SEPARATOR}`, data)
 }
 
+/**
+ * Given a base URL (e.g. `quiet://`) and an InvitationData object determine the version of the invite data and
+ * convert to URL parameters and return the completed invite link
+ *
+ * @param baseUrl Base URL for shareable or deep invite link URLs
+ * @param data InvitationData object representing the URL parameters on a new invite link URL
+ *
+ * @returns {string} Complete invite link URL
+ */
 const composeInvitationUrl = (baseUrl: string, data: InvitationDataV1 | InvitationDataV2): string => {
   const url = new URL(baseUrl)
 
@@ -172,6 +240,10 @@ const composeInvitationUrl = (baseUrl: string, data: InvitationDataV1 | Invitati
 
 /**
  * Extract invitation codes from deep url if url is present in argv
+ *
+ * @param argv Command line arguments to parse
+ *
+ * @returns {InvitationData | null} Parsed and validated invite link URL parameters as InvitationData (if invite link present in args)
  */
 export const argvInvitationLink = (argv: string[]): InvitationData | null => {
   let invitationData: InvitationData | null = null
