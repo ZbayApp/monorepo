@@ -36,8 +36,10 @@ export const validInvitationDatav2: InvitationDataV2[] = [
     ],
     psk: 'BNlxfE2WBF7LrlpIX0CvECN5o1oZtA16PkAb7GYiwYw=',
     ownerOrbitDbIdentity: '018f9e87541d0b61cb4565af8df9699f658116afc54ae6790c31bbf6df3fc343b0',
-    communityName: 'community-name',
-    seed: '4kgd5mwq5z4fmfwq',
+    authData: {
+      communityName: 'community-name',
+      seed: '4kgd5mwq5z4fmfwq',
+    },
   },
   {
     version: InvitationDataVersion.v2,
@@ -49,8 +51,10 @@ export const validInvitationDatav2: InvitationDataV2[] = [
     ],
     psk: '5T9GBVpDoRpKJQK4caDTz5e5nym2zprtoySL2oLrzr4=',
     ownerOrbitDbIdentity: '028f9e87541d0b61cb4565af8df9699f658116afc54ae6790c31bbf6df3fc343b0',
-    communityName: 'other-community-name',
-    seed: '6k6damwb3z1emfqw',
+    authData: {
+      communityName: 'other-community-name',
+      seed: '6k6damwb3z1emfqw',
+    },
   },
 ]
 

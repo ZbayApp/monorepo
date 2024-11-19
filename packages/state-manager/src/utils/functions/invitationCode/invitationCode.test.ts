@@ -1,16 +1,6 @@
 import { InvitationDataV1, InvitationDataVersion } from '@quiet/types'
 import { getInvitationLinks } from './invitationCode'
-import {
-  CID_PARAM_KEY,
-  INVITER_ADDRESS_PARAM_KEY,
-  OWNER_ORBIT_DB_IDENTITY_PARAM_KEY,
-  PSK_PARAM_KEY,
-  QUIET_JOIN_PAGE,
-  SERVER_ADDRESS_PARAM_KEY,
-  TOKEN_PARAM_KEY,
-  validInvitationDatav1,
-  validInvitationDatav2,
-} from '@quiet/common'
+import { OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, PSK_PARAM_KEY, QUIET_JOIN_PAGE, validInvitationDatav1 } from '@quiet/common'
 
 const getUrlParamsPart = (url: string) => url.split(QUIET_JOIN_PAGE + '?')[1]
 

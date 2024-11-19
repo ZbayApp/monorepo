@@ -4,20 +4,18 @@ import {
   composeInvitationDeepUrl,
   composeInvitationShareUrl,
   parseInvitationLinkDeepUrl,
+  p2pAddressesToPairs,
+} from './invitationLink'
+import {
   PSK_PARAM_KEY,
   OWNER_ORBIT_DB_IDENTITY_PARAM_KEY,
-  p2pAddressesToPairs,
-  CID_PARAM_KEY,
-  TOKEN_PARAM_KEY,
-  SERVER_ADDRESS_PARAM_KEY,
-  INVITER_ADDRESS_PARAM_KEY,
   DEEP_URL_SCHEME_WITH_SEPARATOR,
-  COMMUNITY_NAME_KEY,
-  INVITATION_SEED_KEY,
-} from './invitationLink'
+  AUTH_DATA_KEY,
+} from './invitationLink.const'
 import { QUIET_JOIN_PAGE } from './const'
 import { validInvitationDatav1, validInvitationDatav2 } from './tests'
 import { createLibp2pAddress } from './libp2p'
+import { encodeAuthData } from './invitationLink.validator'
 
 describe(`Invitation link helper ${InvitationDataVersion.v1}`, () => {
   const address = 'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad'
@@ -133,8 +131,7 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
     [data.pairs[1].peerId, data.pairs[1].onionAddress],
     [PSK_PARAM_KEY, data.psk],
     [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
-    [COMMUNITY_NAME_KEY, data.communityName],
-    [INVITATION_SEED_KEY, data.seed],
+    [AUTH_DATA_KEY, encodeAuthData(data.authData)],
   ]
 
   it('retrieves invitation link from argv', () => {
@@ -189,15 +186,14 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
     })
   })
 
-  it('throw error if community name is invalid', () => {
+  it('throw error if auth data string is invalid', () => {
     const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
     const urlParams = [
       [data.pairs[0].peerId, data.pairs[0].onionAddress],
       [data.pairs[1].peerId, data.pairs[1].onionAddress],
       [PSK_PARAM_KEY, data.psk],
       [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
-      [COMMUNITY_NAME_KEY, '()_*'],
-      [INVITATION_SEED_KEY, data.seed],
+      [AUTH_DATA_KEY, '()_*'],
     ]
     urlParams.forEach(([key, value]) => url.searchParams.append(key, value))
 
@@ -205,7 +201,32 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
       const parsed = parseInvitationLinkDeepUrl(url.href)
       expect(parsed).toBe(null)
     } catch (e) {
-      expect(e.message).toBe(`Invalid value '()_*' for key 'n' in invitation link`)
+      expect(e.message).toBe(`Invalid value '()_*' for key 'a' in invitation link`)
+    }
+  })
+
+  it('throw error if community name is invalid', () => {
+    const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
+    const urlParams = [
+      [data.pairs[0].peerId, data.pairs[0].onionAddress],
+      [data.pairs[1].peerId, data.pairs[1].onionAddress],
+      [PSK_PARAM_KEY, data.psk],
+      [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
+      [
+        AUTH_DATA_KEY,
+        encodeAuthData({
+          ...data.authData,
+          communityName: '()_*',
+        }),
+      ],
+    ]
+    urlParams.forEach(([key, value]) => url.searchParams.append(key, value))
+
+    try {
+      const parsed = parseInvitationLinkDeepUrl(url.href)
+      expect(parsed).toBe(null)
+    } catch (e) {
+      expect(e.message).toBe(`Invalid value '()_*' for key 'a.c' in invitation link`)
     }
   })
 
@@ -216,8 +237,13 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
       [data.pairs[1].peerId, data.pairs[1].onionAddress],
       [PSK_PARAM_KEY, data.psk],
       [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
-      [COMMUNITY_NAME_KEY, data.communityName],
-      [INVITATION_SEED_KEY, 'ABC!@#!@#!@#!#!@'],
+      [
+        AUTH_DATA_KEY,
+        encodeAuthData({
+          ...data.authData,
+          seed: 'ABC!@#!@#!@#!#!@',
+        }),
+      ],
     ]
     urlParams.forEach(([key, value]) => url.searchParams.append(key, value))
 
@@ -225,7 +251,7 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
       const parsed = parseInvitationLinkDeepUrl(url.href)
       expect(parsed).toBe(null)
     } catch (e) {
-      expect(e.message).toBe(`Invalid value 'ABC!@#!@#!@#!#!@' for key 'd' in invitation link`)
+      expect(e.message).toBe(`Invalid value 'ABC!@#!@#!@#!#!@' for key 'a.s' in invitation link`)
     }
   })
 
@@ -252,8 +278,7 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
       ['QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wf', 'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdv'],
       [PSK_PARAM_KEY, data.psk],
       [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity],
-      [COMMUNITY_NAME_KEY, data.communityName],
-      [INVITATION_SEED_KEY, data.seed],
+      [AUTH_DATA_KEY, encodeAuthData(data.authData)],
     ]
 
     const url = new URL(DEEP_URL_SCHEME_WITH_SEPARATOR)
