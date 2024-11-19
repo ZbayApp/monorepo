@@ -4,10 +4,10 @@ import {
   InvitationDataV1,
   InvitationDataV2,
   InvitationDataVersion,
-  InvitationLinkUrlParamConfig,
-  InvitationLinkUrlParamConfigMap,
-  InvitationLinkUrlParamProcessorFun,
-  InvitationLinkUrlParamValidatorFun,
+  InvitationLinkUrlNamedParamConfig,
+  InvitationLinkUrlNamedParamConfigMap,
+  InvitationLinkUrlNamedParamProcessorFun,
+  InvitationLinkUrlNamedParamValidatorFun,
   InvitationPair,
   VersionedInvitationLinkUrlParamConfig,
 } from '@quiet/types'
@@ -18,6 +18,7 @@ import {
   DEEP_URL_SCHEME_WITH_SEPARATOR,
   INVITATION_SEED_KEY,
   OWNER_ORBIT_DB_IDENTITY_PARAM_KEY,
+  PEER_ADDRESS_KEY,
   PSK_PARAM_KEY,
 } from './invitationLink.const'
 import { isPSKcodeValid } from '../libp2p'
@@ -74,7 +75,7 @@ export const encodeAuthData = (authData: InvitationAuthData): string => {
  *
  * @returns {string} URL-encoded string of the InvitationAuthData object as URL with parameters
  */
-export const decodeAuthData: InvitationLinkUrlParamProcessorFun<string> = (authDataString: string): string => {
+export const decodeAuthData: InvitationLinkUrlNamedParamProcessorFun<string> = (authDataString: string): string => {
   return `${DEEP_URL_SCHEME_WITH_SEPARATOR}?${Buffer.from(authDataString, 'base64url').toString('utf8')}`
 }
 
@@ -100,7 +101,10 @@ export const validatePeerData = ({ peerId, onionAddress }: { peerId: string; oni
   return true
 }
 
+// TODO: TECH DEBT: Get rid of when we go to 3.0
 /**
+ * **** LEGACY - This is only here to handle older invite links ****
+ *
  * Validate all peer data pairs on an invite link URL
  *
  * @param url Invite link URL to validate peer data on
@@ -108,7 +112,7 @@ export const validatePeerData = ({ peerId, onionAddress }: { peerId: string; oni
  *
  * @returns {InvitationPair[]} Validated InvitationPairs
  */
-const validatePeerPairs = (url: string, unnamedParams: URLSearchParams): InvitationPair[] => {
+const validatePeerPairsFromUrlParams = (url: string, unnamedParams: URLSearchParams): InvitationPair[] => {
   const pairs: InvitationPair[] = []
 
   unnamedParams.forEach((onionAddress, peerId) => {
@@ -140,13 +144,11 @@ const validatePeerPairs = (url: string, unnamedParams: URLSearchParams): Invitat
  * }
  *
  * @param value PSK string pulled from invite link
- * @param processor Optional post-processor to run the validated value through
  *
  * @returns {Partial<InvitationData>} The processed PSK represented as a partial InvitationData object
  */
-const validatePsk: InvitationLinkUrlParamValidatorFun<InvitationDataV1> = (
-  value: string,
-  processor?: InvitationLinkUrlParamProcessorFun<string>
+const validatePsk: InvitationLinkUrlNamedParamValidatorFun<InvitationDataV1> = (
+  value: string
 ): Partial<InvitationDataV1> => {
   if (!isPSKcodeValid(value)) {
     logger.warn(`PSK is null or not a valid PSK code`)
@@ -154,14 +156,14 @@ const validatePsk: InvitationLinkUrlParamValidatorFun<InvitationDataV1> = (
   }
 
   return {
-    psk: processor != null ? processor(value) : value,
+    psk: value,
   }
 }
 
 /**
  * Validate the format of the provided owner's OrbitDB identity string
  *
- * NOTE: currently we do no actual validation on this parameter other than the non-null check in _parseAndValidateParam
+ * NOTE: currently we do no actual validation on this parameter other than the non-null check in _parseAndValidateNamedParam
  *
  * Example:
  *
@@ -174,16 +176,58 @@ const validatePsk: InvitationLinkUrlParamValidatorFun<InvitationDataV1> = (
  * }
  *
  * @param value Owner's OrbitDB identity string pulled from invite link
- * @param processor Optional post-processor to run the validated value through
  *
  * @returns {Partial<InvitationData>} The processed owner OrbitDB identity represented as a partial InvitationData object
  */
-const validateOwnerOrbitDbIdentity: InvitationLinkUrlParamValidatorFun<InvitationDataV1> = (
-  value: string,
-  processor?: InvitationLinkUrlParamProcessorFun<string>
+const validateOwnerOrbitDbIdentity: InvitationLinkUrlNamedParamValidatorFun<InvitationDataV1> = (
+  value: string
 ): Partial<InvitationDataV1> => {
   return {
-    ownerOrbitDbIdentity: processor != null ? processor(value) : (value ?? undefined),
+    ownerOrbitDbIdentity: value,
+  }
+}
+
+/**
+ * Validate the format of the provided owner's OrbitDB identity string
+ *
+ * NOTE: currently we do no actual validation on this parameter other than the non-null check in _parseAndValidateNamedParam
+ *
+ * Example:
+ *
+ * Yz1jb21tdW5pdHktbmFtZSZzPTRrZ2Q1bXdxNXo0Zm1md3E
+ *
+ * =>
+ *
+ * {
+ *  "ownerOrbitDbIdentity": "018f9e87541d0b61cb4565af8df9699f658116afc54ae6790c31bbf6df3fc343b0"
+ * }
+ *
+ * @param value Owner's OrbitDB identity string pulled from invite link
+ *
+ * @returns {Partial<InvitationData>} The processed owner OrbitDB identity represented as a partial InvitationData object
+ */
+const validatePeerAddresses: InvitationLinkUrlNamedParamValidatorFun<InvitationDataV1> = (
+  value: string
+): Partial<InvitationDataV1> => {
+  const pairs: InvitationPair[] = []
+
+  const stringPairs = value.split(';')
+  stringPairs.forEach(stringPair => {
+    const [peerId, onionAddress] = stringPair.split(',')
+    if (!validatePeerData({ peerId, onionAddress })) return
+    pairs.push({
+      peerId,
+      onionAddress,
+    })
+  })
+
+  if (pairs.length === 0) {
+    logger.warn(`Peer address string contained no ID/address pairs`)
+    throw new UrlParamValidatorError(PEER_ADDRESS_KEY, value)
+  }
+
+  return {
+    pairs,
   }
 }
 
@@ -204,19 +248,15 @@ const validateOwnerOrbitDbIdentity: InvitationLinkUrlParamValidatorFun<Invitatio
  * }
  *
  * @param value Auth data string pulled from invite link
- * @param processor Optional post-processor to run the validated value through
  *
  * @returns {Partial<InvitationData>} The processed auth data represented as a partial InvitationData object
  */
-const validateAuthData: InvitationLinkUrlParamValidatorFun<string> = (
-  value: string,
-  processor?: InvitationLinkUrlParamProcessorFun<string>
-): string => {
+const validateAuthData: InvitationLinkUrlNamedParamValidatorFun<string> = (value: string): string => {
   if (value.match(AUTH_DATA_REGEX) == null) {
     logger.warn(`Auth data string is not a valid base64url-encoded string`)
     throw new UrlParamValidatorError(AUTH_DATA_KEY, value)
   }
-  return processor != null ? processor(value) : value
+  return decodeAuthData(value)
 }
 
 /**
@@ -235,20 +275,18 @@ const validateAuthData: InvitationLinkUrlParamValidatorFun<string> = (
  * }
  *
  * @param value Nested LFA invitation seed string pulled from the decoded auth data string
- * @param processor Optional post-processor to run the validated value through
  *
  * @returns {Partial<InvitationAuthData>} The processed LFA invitation seed represented as a partial InvitationAuthData object
  */
-const validateInvitationSeed: InvitationLinkUrlParamValidatorFun<InvitationAuthData> = (
-  value: string,
-  processor?: InvitationLinkUrlParamProcessorFun<string>
+const validateInvitationSeed: InvitationLinkUrlNamedParamValidatorFun<InvitationAuthData> = (
+  value: string
 ): Partial<InvitationAuthData> => {
   if (value.match(INVITATION_SEED_REGEX) == null) {
     logger.warn(`Invitation seed ${value} is not a valid LFA seed`)
     throw new UrlParamValidatorError(`${AUTH_DATA_KEY}.${INVITATION_SEED_KEY}`, value)
   }
   return {
-    seed: processor != null ? processor(value) : value,
+    seed: value,
   }
 }
 
@@ -272,16 +310,15 @@ const validateInvitationSeed: InvitationLinkUrlParamValidatorFun<InvitationAuthD
  *
  * @returns {Partial<InvitationAuthData>} The processed community name represented as a partial InvitationAuthData object
  */
-const validateCommunityName: InvitationLinkUrlParamValidatorFun<InvitationAuthData> = (
-  value: string,
-  processor?: InvitationLinkUrlParamProcessorFun<string>
+const validateCommunityName: InvitationLinkUrlNamedParamValidatorFun<InvitationAuthData> = (
+  value: string
 ): Partial<InvitationAuthData> => {
   if (value.match(COMMUNITY_NAME_REGEX) == null) {
     logger.warn(`Community name ${value} is not a valid Quiet community name`)
     throw new UrlParamValidatorError(`${AUTH_DATA_KEY}.${COMMUNITY_NAME_KEY}`, value)
   }
   return {
-    communityName: processor != null ? processor(value) : value,
+    communityName: value,
   }
 }
 
@@ -290,7 +327,7 @@ const validateCommunityName: InvitationLinkUrlParamValidatorFun<InvitationAuthDa
  */
 export const PARAM_CONFIG_V1: VersionedInvitationLinkUrlParamConfig<InvitationDataV1> = {
   version: InvitationDataVersion.v1,
-  map: new Map(
+  named: new Map(
     Object.entries({
       [PSK_PARAM_KEY]: {
         required: true,
@@ -299,6 +336,10 @@ export const PARAM_CONFIG_V1: VersionedInvitationLinkUrlParamConfig<InvitationDa
       [OWNER_ORBIT_DB_IDENTITY_PARAM_KEY]: {
         required: true,
         validator: validateOwnerOrbitDbIdentity,
+      },
+      [PEER_ADDRESS_KEY]: {
+        required: false,
+        validator: validatePeerAddresses,
       },
     })
   ),
@@ -309,7 +350,7 @@ export const PARAM_CONFIG_V1: VersionedInvitationLinkUrlParamConfig<InvitationDa
  */
 export const PARAM_CONFIG_V2: VersionedInvitationLinkUrlParamConfig<InvitationDataV2> = {
   version: InvitationDataVersion.v2,
-  map: new Map(
+  named: new Map(
     Object.entries({
       [PSK_PARAM_KEY]: {
         required: true,
@@ -319,10 +360,13 @@ export const PARAM_CONFIG_V2: VersionedInvitationLinkUrlParamConfig<InvitationDa
         required: true,
         validator: validateOwnerOrbitDbIdentity,
       },
+      [PEER_ADDRESS_KEY]: {
+        required: false,
+        validator: validatePeerAddresses,
+      },
       [AUTH_DATA_KEY]: {
         required: true,
         validator: validateAuthData,
-        processor: decodeAuthData,
         nested: {
           key: AUTH_DATA_OBJECT_KEY,
           config: new Map(
@@ -363,26 +407,17 @@ export const PARAM_CONFIG_V2: VersionedInvitationLinkUrlParamConfig<InvitationDa
  *
  * @returns {Partial<InvitationData>} The processed URL param represented as a partial InvitationData object
  */
-const _parseAndValidateParam = <T>(
+const _parseAndValidateNamedParam = <T>(
   key: string,
   value: string | null | undefined,
-  config: InvitationLinkUrlParamConfig<T>
-): any => {
-  if (value == null && config.required) {
-    throw new Error(`Missing required key '${key}' in invitation link`)
+  config: InvitationLinkUrlNamedParamConfig<T>
+): any | undefined => {
+  if (value == null) {
+    if (config.required) throw new Error(`Missing required key '${key}' in invitation link`)
+    return undefined
   }
 
-  let output: any
-  try {
-    output = config.validator(value, config.processor)
-  } catch (e) {
-    if (e.name === UrlParamValidatorError.name) {
-      if (config.required) throw e
-    } else {
-      throw e
-    }
-  }
-  return output
+  return config.validator(value)
 }
 
 /**
@@ -399,17 +434,21 @@ const _parseAndValidateParam = <T>(
  *
  * @returns { output: Partial<T>; params: URLSearchParams } Object built from all named URL parameters and the remaining parameters
  */
-const _parseAndValidateUrlParams = <T>(
+const _parseAndValidateNamedUrlParams = <T>(
   params: URLSearchParams,
-  paramConfigMap: InvitationLinkUrlParamConfigMap<T>
+  paramConfigMap: InvitationLinkUrlNamedParamConfigMap<T>
 ): { output: Partial<T>; params: URLSearchParams } => {
   let output: Partial<T> = {}
   for (const pc of paramConfigMap.entries()) {
     const [key, config] = pc
-    let value = _parseAndValidateParam(key, params.get(key), config)
+    let value = _parseAndValidateNamedParam(key, params.get(key), config)
+    if (value == null) {
+      continue
+    }
+
     if (config.nested) {
       const nestedParams = new URL(value).searchParams
-      const { output: nestedValue } = _parseAndValidateUrlParams(nestedParams, config.nested.config)
+      const { output: nestedValue } = _parseAndValidateNamedUrlParams(nestedParams, config.nested.config)
       value = {
         [config.nested.key]: nestedValue,
       }
@@ -440,10 +479,22 @@ export const parseAndValidateUrlParams = <T extends InvitationData>(
   paramConfigMap: VersionedInvitationLinkUrlParamConfig<T>
 ): T => {
   const params = new URL(url).searchParams
-  const { output, params: remainingParams } = _parseAndValidateUrlParams(params, paramConfigMap.map)
+  const { output, params: remainingParams } = _parseAndValidateNamedUrlParams<InvitationData>(
+    params,
+    paramConfigMap.named
+  )
+
+  // TODO: TECH DEBT: Get rid of when we go to 3.0
+  // To keep this backwards compatible we should check if peer pairs were found using the named key and try to pull them from
+  // dynamic params instead
+  let pairs: InvitationPair[] | undefined = output.pairs
+  if (pairs == null && paramConfigMap.named.get(PEER_ADDRESS_KEY) != null) {
+    pairs = validatePeerPairsFromUrlParams(url, remainingParams)
+  }
+
   return {
     ...output,
-    pairs: validatePeerPairs(url, remainingParams),
+    pairs,
     version: paramConfigMap.version,
   } as T
 }

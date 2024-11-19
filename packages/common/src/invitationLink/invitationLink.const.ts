@@ -1,6 +1,7 @@
 // V1 invitation code format (p2p without relay)
 export const PSK_PARAM_KEY = 'k'
 export const OWNER_ORBIT_DB_IDENTITY_PARAM_KEY = 'o'
+export const PEER_ADDRESS_KEY = 'p'
 
 // v2 invitation code format (v1 with LFA integration)
 export const AUTH_DATA_KEY = 'a'

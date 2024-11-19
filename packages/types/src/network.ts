@@ -35,27 +35,30 @@ export type InvitationDataV2 = InvitationDataP2P & {
 
 export type InvitationData = InvitationDataV1 | InvitationDataV2
 
-export type InvitationLinkUrlParamValidatorFun<T> = (
-  value: string,
-  processor?: InvitationLinkUrlParamProcessorFun<any>
-) => Partial<T> | never
-export type InvitationLinkUrlParamProcessorFun<T> = (value: string) => T
+/**
+ * Validation types
+ */
 
-export type InvitationLinkUrlParamConfigMap<T> = Map<string, InvitationLinkUrlParamConfig<T | any>>
+// Named parameters
 
-export type VersionedInvitationLinkUrlParamConfig<T extends InvitationData> = {
-  version: InvitationDataVersion
-  map: InvitationLinkUrlParamConfigMap<T | any>
-}
+export type InvitationLinkUrlNamedParamValidatorFun<T> = (value: string) => Partial<T> | never
+export type InvitationLinkUrlNamedParamProcessorFun<T> = (value: string) => T
+export type InvitationLinkUrlNamedParamConfigMap<T> = Map<string, InvitationLinkUrlNamedParamConfig<T | any>>
 
-export type InvitationLinkUrlParamConfig<T> = {
+export type InvitationLinkUrlNamedParamConfig<T> = {
   required: boolean
-  validator: InvitationLinkUrlParamValidatorFun<T | string>
-  processor?: InvitationLinkUrlParamProcessorFun<any> | undefined
+  validator: InvitationLinkUrlNamedParamValidatorFun<T | string>
   nested?:
     | {
         key: string
-        config: InvitationLinkUrlParamConfigMap<any>
+        config: InvitationLinkUrlNamedParamConfigMap<any>
       }
     | undefined
+}
+
+// Parent type
+
+export type VersionedInvitationLinkUrlParamConfig<T extends InvitationData> = {
+  version: InvitationDataVersion
+  named: InvitationLinkUrlNamedParamConfigMap<T | any>
 }

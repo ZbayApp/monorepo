@@ -5,6 +5,7 @@ import {
   DEEP_URL_SCHEME,
   DEEP_URL_SCHEME_WITH_SEPARATOR,
   OWNER_ORBIT_DB_IDENTITY_PARAM_KEY,
+  PEER_ADDRESS_KEY,
   PSK_PARAM_KEY,
 } from './invitationLink.const'
 import {
@@ -205,6 +206,14 @@ export const composeInvitationDeepUrl = (data: InvitationData): string => {
   return composeInvitationUrl(`${DEEP_URL_SCHEME_WITH_SEPARATOR}`, data)
 }
 
+export const peerPairsToUrlParamString = (pairs: InvitationPair[]): string => {
+  const commaSeparatedPairs: string[] = []
+  for (const pair of pairs) {
+    commaSeparatedPairs.push(`${pair.peerId},${pair.onionAddress}`)
+  }
+  return commaSeparatedPairs.join(';')
+}
+
 /**
  * Given a base URL (e.g. `quiet://`) and an InvitationData object determine the version of the invite data and
  * convert to URL parameters and return the completed invite link
@@ -221,16 +230,12 @@ const composeInvitationUrl = (baseUrl: string, data: InvitationDataV1 | Invitati
 
   switch (data.version) {
     case InvitationDataVersion.v1:
-      for (const pair of data.pairs) {
-        url.searchParams.append(pair.peerId, pair.onionAddress)
-      }
+      url.searchParams.append(PEER_ADDRESS_KEY, peerPairsToUrlParamString(data.pairs))
       url.searchParams.append(PSK_PARAM_KEY, data.psk)
       url.searchParams.append(OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity)
       break
     case InvitationDataVersion.v2:
-      for (const pair of data.pairs) {
-        url.searchParams.append(pair.peerId, pair.onionAddress)
-      }
+      url.searchParams.append(PEER_ADDRESS_KEY, peerPairsToUrlParamString(data.pairs))
       url.searchParams.append(PSK_PARAM_KEY, data.psk)
       url.searchParams.append(OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity)
       url.searchParams.append(AUTH_DATA_KEY, encodeAuthData(data.authData))
