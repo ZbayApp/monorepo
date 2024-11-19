@@ -34,3 +34,51 @@ document.addEventListener(
   },
   false
 )
+
+// Detects platform and display correct links on tryquiet.org/join
+function getPlatform() {
+  const primaryActionEl = document.getElementById("qt-download-action")
+  const platform = navigator.userAgent
+
+  if (/iPhone|iPad|iPod/i.test(platform)) {
+    primaryActionEl.innerHTML = `
+  <a href="https://testflight.apple.com/join/yaUjeiW7" target="_blank" aria-label="Download at App Store">Download
+          </a>
+  `;
+
+} else if (/Macintosh|Mac OS X/i.test(platform)) {
+    primaryActionEl.innerHTML = `
+<a href="../index.html#Downloads" target="_blank" aria-label="Go to download section, opens in a new tab">Download
+</a>
+  `;
+
+} else if (/Windows/i.test(platform)) {
+  primaryActionEl.innerHTML = `
+<a href="../index.html#Downloads" target="_blank" aria-label="Go to download section, opens in a new tab">Download
+</a>
+`;
+
+} else if (/Linux/i.test(platform) && !/Android/i.test(platform)) {
+  primaryActionEl.innerHTML = `
+<a href="../index.html#Downloads" target="_blank" aria-label="Go to download section, opens in a new tab">Download
+</a>
+`;
+
+} else if (/Android/i.test(platform)) {
+  primaryActionEl.innerHTML = `
+<a href="https://play.google.com/store/apps/details?id=com.quietmobile" style="display: block; margin-bottom: 30px;" aria-label="Download at Play Store">
+  Download
+</a>
+`;
+
+} else {
+  primaryActionEl.innerHTML = `
+<a href="../index.html#Downloads" target="_blank" aria-label="Go to download section, opens in a new tab">Download
+</a>
+`;
+}
+    
+  }
+
+
+onload = getPlatform
