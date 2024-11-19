@@ -1,5 +1,5 @@
 import { InvitationData, InvitationDataV1, InvitationDataV2, InvitationDataVersion } from '@quiet/types'
-import { composeInvitationDeepUrl, composeInvitationShareUrl } from './invitationLink'
+import { composeInvitationDeepUrl, composeInvitationShareUrl } from './invitationLink/invitationLink'
 import { QUIET_JOIN_PAGE } from './const'
 
 export const validInvitationDatav1: InvitationDataV1[] = [

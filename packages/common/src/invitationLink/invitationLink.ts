@@ -1,5 +1,5 @@
 import { InvitationData, InvitationDataV1, InvitationDataV2, InvitationDataVersion, InvitationPair } from '@quiet/types'
-import { QUIET_JOIN_PAGE } from './const'
+import { QUIET_JOIN_PAGE } from '../const'
 import {
   AUTH_DATA_KEY,
   DEEP_URL_SCHEME,
@@ -14,8 +14,8 @@ import {
   validatePeerData,
   parseAndValidateUrlParams,
 } from './invitationLink.validator'
-import { createLibp2pAddress } from './libp2p'
-import { createLogger } from './logger'
+import { createLibp2pAddress } from '../libp2p'
+import { createLogger } from '../logger'
 
 const logger = createLogger('invite')
 

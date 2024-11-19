@@ -1,5 +1,5 @@
-export * from './invitationLink'
-export * from './invitationLink.const'
+export * from './invitationLink/invitationLink'
+export * from './invitationLink/invitationLink.const'
 export * from './const'
 export * from './capitalize'
 export * from './process'
