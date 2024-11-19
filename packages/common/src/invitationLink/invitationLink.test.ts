@@ -12,9 +12,9 @@ import {
   DEEP_URL_SCHEME_WITH_SEPARATOR,
   AUTH_DATA_KEY,
 } from './invitationLink.const'
-import { QUIET_JOIN_PAGE } from './const'
-import { validInvitationDatav1, validInvitationDatav2 } from './tests'
-import { createLibp2pAddress } from './libp2p'
+import { QUIET_JOIN_PAGE } from '../const'
+import { validInvitationDatav1, validInvitationDatav2 } from '../tests'
+import { createLibp2pAddress } from '../libp2p'
 import { encodeAuthData } from './invitationLink.validator'
 
 describe(`Invitation link helper ${InvitationDataVersion.v1}`, () => {

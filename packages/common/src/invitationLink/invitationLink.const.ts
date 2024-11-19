@@ -8,7 +8,7 @@ export const COMMUNITY_NAME_KEY = 'c'
 export const INVITATION_SEED_KEY = 's'
 export const AUTH_DATA_OBJECT_KEY = 'authData'
 
-// TODO: OSS integration
+// TODO: QSS integration
 // V? invitation code format (oss support)
 // export const CID_PARAM_KEY = 'c'
 // export const TOKEN_PARAM_KEY = 't'

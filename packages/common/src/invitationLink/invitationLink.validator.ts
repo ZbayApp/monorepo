@@ -20,8 +20,8 @@ import {
   OWNER_ORBIT_DB_IDENTITY_PARAM_KEY,
   PSK_PARAM_KEY,
 } from './invitationLink.const'
-import { isPSKcodeValid } from './libp2p'
-import { createLogger } from './logger'
+import { isPSKcodeValid } from '../libp2p'
+import { createLogger } from '../logger'
 
 const logger = createLogger('invite:validator')
 
