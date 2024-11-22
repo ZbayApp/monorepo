@@ -7,7 +7,7 @@ describe('OpenlinkModal', () => {
   it('renders component', () => {
     const result = renderComponent(
       <OpenlinkModal
-        url='https://www.zbay.app/'
+        url='https://tryquiet.org/'
         open
         isImage
         handleClose={jest.fn()}
@@ -173,7 +173,7 @@ describe('OpenlinkModal', () => {
                               <span
                                 class="OpenlinkModalbold"
                               >
-                                www.zbay.app
+                                www.tryquiet.org
                               </span>
                               - I trust them with my data and I'm not using Quiet for anonymity protection. 
                             </div>
@@ -215,7 +215,7 @@ describe('OpenlinkModal', () => {
                               <span
                                 class="OpenlinkModalbold"
                               >
-                                www.zbay.app
+                                www.tryquiet.org
                               </span>
                                
                               again, but don't auto-load images.
@@ -281,7 +281,7 @@ describe('OpenlinkModal', () => {
                                 href=""
                                 style="color: rgb(103, 191, 211); text-decoration: none; word-break: break-all;"
                               >
-                                Load image from site www.zbay.app
+                                Load image from site www.tryquiet.org
                               </a>
                             </div>
                           </div>
