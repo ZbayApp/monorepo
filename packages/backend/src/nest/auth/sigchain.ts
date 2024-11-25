@@ -8,7 +8,6 @@ import { RoleService } from './services/roles/role.service'
 import { ChannelService } from './services/roles/channel.service'
 import { DeviceService } from './services/members/device.service'
 import { InviteService } from './services/invites/invite.service'
-import { DMService } from './services/dm/dm.service'
 import { CryptoService } from './services/crypto/crypto.service'
 import { RoleName } from './services/roles/roles'
 import { createLogger } from '../common/logger'
@@ -86,7 +85,6 @@ class SigChain {
     this._crypto = CryptoService.init(this)
   }
 
-  // TODO: persist to storage
   public save(): Uint8Array {
     return this.team.save() // this doesn't actually do anything but create the new state to save
   }
