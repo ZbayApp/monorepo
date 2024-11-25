@@ -13,6 +13,10 @@
 * Moved some responsibilities of identity management to the backend ([#2602](https://github.com/TryQuiet/quiet/issues/2602))
 * Added auth submodule in preparation for future encyrption work ([#2623](https://github.com/TryQuiet/quiet/issues/2623))
 
+### New features
+
+* Adds basic sigchain functions ([#2649](https://github.com/TryQuiet/quiet/pull/2649))
+
 ### Fixes
 
 * Fixed memory leak associated with autoUpdater ([#2606](https://github.com/TryQuiet/quiet/issues/2606))

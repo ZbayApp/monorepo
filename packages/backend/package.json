@@ -87,9 +87,10 @@
     "yargs": "^17.1.0"
   },
   "dependencies": {
-    "@localfirst/auth": "file:../../3rd-party/auth/packages/auth",
     "@chainsafe/libp2p-gossipsub": "6.1.0",
     "@chainsafe/libp2p-noise": "11.0.0",
+    "@localfirst/auth": "file:../../3rd-party/auth/packages/auth/dist",
+    "@localfirst/crdx": "file:../../3rd-party/auth/packages/crdx/dist",
     "@nestjs/common": "^10.2.10",
     "@nestjs/core": "^10.2.10",
     "@nestjs/platform-express": "^10.2.10",
@@ -99,6 +100,7 @@
     "@quiet/logger": "^2.0.2-alpha.0",
     "@quiet/types": "^2.0.2-alpha.1",
     "abortable-iterator": "^3.0.0",
+    "bs58": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.13.1",
     "cli-table": "^0.3.6",
@@ -112,6 +114,7 @@
     "fastq": "^1.17.1",
     "fetch-retry": "^6.0.0",
     "get-port": "^5.1.1",
+    "getmac": "^6.6.0",
     "go-ipfs": "npm:mocked-go-ipfs@0.17.0",
     "http-server": "^0.12.3",
     "https-proxy-agent": "^5.0.0",
@@ -142,6 +145,7 @@
     "socks-proxy-agent": "^5.0.0",
     "string-replace-loader": "3.1.0",
     "ts-jest-resolver": "^2.0.0",
+    "utf-8-validate": "^5.0.2",
     "validator": "^13.11.0"
   },
   "overrides": {
