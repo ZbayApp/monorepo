@@ -1,6 +1,11 @@
 import { createSelector } from '@reduxjs/toolkit'
-import { getCertFieldValue, getReqFieldValue, keyFromCertificate, loadCertificate } from '@quiet/identity'
-import { CertFieldsTypes } from './const/certFieldTypes'
+import {
+  getCertFieldValue,
+  getReqFieldValue,
+  keyFromCertificate,
+  loadCertificate,
+  CertFieldsTypes,
+} from '@quiet/identity'
 import { StoreKeys } from '../store.keys'
 import { certificatesAdapter } from './users.adapter'
 import { type Certificate } from 'pkijs'

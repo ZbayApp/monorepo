@@ -232,7 +232,7 @@ export class Libp2pService extends EventEmitter {
 
     this.logger.info(`Creating or opening existing level datastore for libp2p`)
     this.libp2pDatastore = new Libp2pDatastore({
-      inMemory: true,
+      inMemory: false,
       datastorePath: this.datastorePath,
     })
 

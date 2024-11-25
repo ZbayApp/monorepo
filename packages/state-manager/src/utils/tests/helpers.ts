@@ -1,8 +1,7 @@
-import { keyFromCertificate, loadPrivateKey, parseCertificate, sign } from '@quiet/identity'
+import { configCrypto, keyFromCertificate, loadPrivateKey, parseCertificate, sign } from '@quiet/identity'
 // import fs from 'fs'
 // import os from 'os'
 import { arrayBufferToString } from 'pvutils'
-import { config } from '../../sagas/users/const/certFieldTypes'
 import { type PeerId } from '@quiet/types'
 import { createLogger } from '../../utils/logger'
 
@@ -25,7 +24,7 @@ export const createMessageSignatureTestHelper = async (
   userKey: string
 ): Promise<{ signature: string; pubKey: string }> => {
   const pubKey = keyFromCertificate(parseCertificate(certificate))
-  const keyObject = await loadPrivateKey(userKey, config.signAlg)
+  const keyObject = await loadPrivateKey(userKey, configCrypto.signAlg)
   const signatureArrayBuffer = await sign(message, keyObject)
   const signature = arrayBufferToString(signatureArrayBuffer)
   return {

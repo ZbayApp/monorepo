@@ -14,6 +14,7 @@ import {
   CertFieldsTypes,
   createRootCA,
   createUserCsr,
+  configCrypto,
   getCertFieldValue,
   getPubKey,
   loadCertificate,
@@ -77,7 +78,6 @@ import { DateTime } from 'luxon'
 import { createLogger } from '../common/logger'
 import { createFromJSON } from '@libp2p/peer-id-factory'
 import { PeerId } from '@libp2p/interface'
-import { config } from '@quiet/state-manager'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -446,7 +446,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       }
       const _pubKey = await pubKeyFromCsr(identity.userCsr.userCsr)
       const publicKey = await getPubKey(_pubKey)
-      const privateKey = await loadPrivateKey(identity.userCsr.userKey, config.signAlg)
+      const privateKey = await loadPrivateKey(identity.userCsr.userKey, configCrypto.signAlg)
 
       const existingKeyPair: CryptoKeyPair = { privateKey, publicKey }
 
@@ -454,8 +454,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         nickname,
         commonName: identity.hiddenService.onionAddress,
         peerId: identity.peerId.id,
-        signAlg: config.signAlg,
-        hashAlg: config.hashAlg,
+        signAlg: configCrypto.signAlg,
+        hashAlg: configCrypto.hashAlg,
         existingKeyPair,
       }
     } else {
@@ -464,8 +464,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         nickname,
         commonName: identity.hiddenService.onionAddress,
         peerId: identity.peerId.id,
-        signAlg: config.signAlg,
-        hashAlg: config.hashAlg,
+        signAlg: configCrypto.signAlg,
+        hashAlg: configCrypto.hashAlg,
       }
     }
 
