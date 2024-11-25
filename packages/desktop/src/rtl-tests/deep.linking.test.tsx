@@ -68,7 +68,10 @@ describe('Deep linking', () => {
     expect(actions).toMatchInlineSnapshot(`
       Array [
         "Communities/customProtocol",
-        "Modals/openModal",
+        "Communities/createNetwork",
+        "Communities/setInvitationCodes",
+        "Communities/addNewCommunity",
+        "Communities/setCurrentCommunity",
         "Communities/customProtocol",
         "Modals/openModal",
       ]
