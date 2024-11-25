@@ -13,7 +13,6 @@ import { ModalName } from '../renderer/sagas/modals/modals.types'
 import { JoinCommunityDictionary } from '../renderer/components/CreateJoinCommunity/community.dictionary'
 import MockedSocket from 'socket.io-mock'
 import { ioMock } from '../shared/setupTests'
-import { socketEventData } from '@quiet/types'
 import {
   communities,
   RegisterUserCertificatePayload,
@@ -33,8 +32,17 @@ import {
   InitCommunityPayload,
   ResponseLaunchCommunityPayload,
   SocketActionTypes,
+  socketEventData,
+  Identity,
+  InitUserCsrPayload,
+  PeerId,
+  UserCsr,
 } from '@quiet/types'
 import { composeInvitationShareUrl } from '@quiet/common'
+
+import { createLogger } from './logger'
+
+const logger = createLogger('community.join.test')
 
 jest.setTimeout(20_000)
 
@@ -83,38 +91,73 @@ describe('User', () => {
 
     const mockEmitImpl = async (...input: [SocketActionTypes, ...socketEventData<[any]>]) => {
       const action = input[0]
-      if (action === SocketActionTypes.CREATE_NETWORK) {
-        return {
-          hiddenService: {
-            onionAddress: 'onionAddress',
-            privateKey: 'privKey',
-          },
-          peerId: {
-            id: 'peerId',
-          },
-        }
-      }
-      if (action === SocketActionTypes.LAUNCH_COMMUNITY) {
-        const payload = input[1] as InitCommunityPayload
-        const community = communities.selectors.currentCommunity(store.getState())
-        expect(payload.id).toEqual(community?.id)
-        socket.socketClient.emit<ResponseLaunchCommunityPayload>(SocketActionTypes.COMMUNITY_LAUNCHED, {
-          id: payload.id,
-        })
-        socket.socketClient.emit<ChannelsReplicatedPayload>(SocketActionTypes.CHANNELS_STORED, {
-          channels: {
-            general: {
-              name: 'general',
-              description: 'string',
-              owner: 'owner',
-              timestamp: 0,
-              id: 'general',
+      logger.info('emitWithAck', action)
+      const community = communities.selectors.currentCommunity(store.getState())
+      switch (action) {
+        case SocketActionTypes.CREATE_IDENTITY:
+          const createIdentityPayload = input[1] as InitCommunityPayload
+          return {
+            id: createIdentityPayload.id,
+            nickname: 'alice',
+            hiddenService: {
+              onionAddress: 'onionAddress',
+              privateKey: 'privKey',
             },
-          },
-        })
-        socket.socketClient.emit<ChannelSubscribedPayload>(SocketActionTypes.CHANNEL_SUBSCRIBED, {
-          channelId: 'general',
-        })
+            peerId: {
+              id: 'peerId',
+            },
+          } as Identity
+        case SocketActionTypes.CREATE_USER_CSR:
+          const csrPayload = input[1] as InitUserCsrPayload
+          // Mock identity object
+          const mockIdentity: Identity = {
+            id: csrPayload.communityId,
+            hiddenService: {
+              onionAddress: 'onionAddress',
+              privateKey: 'privKey',
+            },
+            peerId: {
+              id: csrPayload.communityId,
+              privKey: 'mock',
+              pubKey: 'mock',
+            } as PeerId,
+            nickname: csrPayload.nickname,
+            userCsr: {
+              userCsr: 'mock',
+              userKey: 'mock',
+              pkcs10: {
+                publicKey: 'mock',
+                privateKey: 'mock',
+                pkcs10: 'mock',
+              },
+            } as UserCsr,
+            userCertificate: null,
+            joinTimestamp: null,
+          }
+          return mockIdentity
+        case SocketActionTypes.LAUNCH_COMMUNITY:
+          const payload = input[1] as InitCommunityPayload
+          expect(payload.id).toEqual(community?.id)
+          socket.socketClient.emit<ResponseLaunchCommunityPayload>(SocketActionTypes.COMMUNITY_LAUNCHED, {
+            id: payload.id,
+          })
+          socket.socketClient.emit<ChannelsReplicatedPayload>(SocketActionTypes.CHANNELS_STORED, {
+            channels: {
+              general: {
+                name: 'general',
+                description: 'string',
+                owner: 'owner',
+                timestamp: 0,
+                id: 'general',
+              },
+            },
+          })
+          socket.socketClient.emit<ChannelSubscribedPayload>(SocketActionTypes.CHANNEL_SUBSCRIBED, {
+            channelId: 'general',
+          })
+          break
+        default:
+          throw new Error(`Unexpected action: ${action}`)
       }
     }
 
@@ -140,6 +183,7 @@ describe('User', () => {
     const joinCommunityInput = screen.getByPlaceholderText(dictionary.placeholder)
     const joinCommunityButton = screen.getByText(dictionary.button)
     await userEvent.type(joinCommunityInput, validCode)
+    expect(joinCommunityInput).toHaveValue(validCode)
     await userEvent.click(joinCommunityButton)
 
     // Confirm user is being redirected to username registration
@@ -169,13 +213,13 @@ describe('User', () => {
         "Communities/setInvitationCodes",
         "Communities/addNewCommunity",
         "Communities/setCurrentCommunity",
-        "Identity/addNewIdentity",
         "Modals/closeModal",
         "Modals/openModal",
+        "Identity/addNewIdentity",
         "Identity/registerUsername",
         "Network/setLoadingPanelType",
         "Modals/openModal",
-        "Identity/addCsr",
+        "Identity/updateIdentity",
         "Communities/launchCommunity",
         "Files/checkForMissingFiles",
         "Network/addInitializedCommunity",
@@ -186,19 +230,9 @@ describe('User', () => {
         "Messages/addPublicChannelsMessagesBase",
         "PublicChannels/sendIntroductionMessage",
         "Messages/sendMessage",
-        "Identity/updateIdentity",
         "Modals/closeModal",
         "Messages/lazyLoading",
         "Messages/resetCurrentPublicChannelCache",
-        "Messages/resetCurrentPublicChannelCache",
-        "Identity/saveUserCsr",
-        "Messages/addMessagesSendingStatus",
-        "Messages/addMessageVerificationStatus",
-        "Messages/addMessages",
-        "PublicChannels/cacheMessages",
-        "Identity/verifyJoinTimestamp",
-        "PublicChannels/updateNewestMessage",
-        "Identity/updateJoinTimestamp",
       ]
     `)
   })

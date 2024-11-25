@@ -98,7 +98,7 @@ const lightTheme = createTheme({
       darkPurple: '#4d1a6d', // To be replaced with theme.palette.primary.dark?
       lushSky: '#67BFD3',
       lushSky12: '#EDF7FA',
-      linkBlue: '#59c0d5', // Used in a variety of places - likely wants to be split / consolidated
+      linkBlue: '#1B6FEC', // Used in a variety of places - likely wants to be split / consolidated
       // Reds
       red: '#FF0000', // Replace with D13135 ?
       hotRed: '#E42656', // Replaced by theme.palette.secondary.main?

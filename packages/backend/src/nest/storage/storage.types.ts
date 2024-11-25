@@ -18,6 +18,7 @@ export enum StorageEvents {
   CSRS_STORED = 'csrsStored',
   CERTIFICATES_STORED = 'certificatesStored',
   USER_PROFILES_STORED = 'userProfilesStored',
+  IDENTITY_STORED = 'identityStored',
   // Community
   COMMUNITY_METADATA_STORED = 'communityMetadataStored',
   COMMUNITY_UPDATED = 'communityUpdated',

@@ -5,7 +5,7 @@ on: workflow_dispatch
 jobs:
   detox-ios:
     timeout-minutes: 25
-    runs-on: [macos-latest-xlarge]
+    runs-on: [macos-13-xlarge]
 
     steps:
       - uses: actions/checkout@v4

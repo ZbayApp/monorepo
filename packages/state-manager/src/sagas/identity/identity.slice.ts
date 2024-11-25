@@ -24,10 +24,16 @@ export const identitySlice = createSlice({
       identityAdapter.addOne(state.identities, action.payload)
     },
     updateIdentity: (state, action: PayloadAction<Identity>) => {
-      identityAdapter.updateOne(state.identities, {
-        id: action.payload.id,
-        changes: action.payload,
-      })
+      // addOne if action.payload.id is not in state.identities
+      if (!state.identities.ids.includes(action.payload.id)) {
+        console.log('Adding new identity')
+        identityAdapter.addOne(state.identities, action.payload)
+      } else {
+        identityAdapter.updateOne(state.identities, {
+          id: action.payload.id,
+          changes: action.payload,
+        })
+      }
     },
     registerUsername: (state, _action: PayloadAction<RegisterUsernamePayload>) => state,
     addCsr: (state, action: PayloadAction<RegisterCertificatePayload>) => {

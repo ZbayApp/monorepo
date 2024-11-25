@@ -6,6 +6,8 @@ export enum LocalDBKeys {
   // Record of peer details
   PEERS = 'peers',
 
+  IDENTITIES = 'identities',
+
   // TODO: Deprecate this once we move the Identity data model to the backend
   // (and delete the data from LevelDB).
   COMMUNITY = 'community',

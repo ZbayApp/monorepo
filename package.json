@@ -13,7 +13,8 @@
     "prepare": "husky",
     "lint-staged": "lerna run lint-staged",
     "build:auth": "cd ./3rd-party/auth && pnpm install && pnpm build",
-    "bootstrap": "npm run build:auth && lerna bootstrap"
+    "bootstrap": "npm run build:auth && lerna bootstrap",
+    "watch": "lerna watch -- lerna run build --since"
   },
   "engines": {
     "node": "18.12.1",

@@ -116,7 +116,6 @@ export const allUsers = createSelector(csrsMapping, certificatesMapping, (csrs, 
       pubKey,
     }
   })
-
   return users
 })
 

@@ -1,6 +1,11 @@
 # Changelog
 
-## [unreleased]
+## [2.3.2]
+
+### Chores
+
+* Moved some responsibilities of identity management to the backend ([#2602](https://github.com/TryQuiet/quiet/issues/2602))
+* Added auth submodule in preparation for future encyrption work ([#2623](https://github.com/TryQuiet/quiet/issues/2623))
 
 ### New features
 
