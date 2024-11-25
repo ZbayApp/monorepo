@@ -94,7 +94,7 @@ describe('BasicMessage', () => {
                       class="MuiGrid-root MuiGrid-item css-15myz84-MuiGrid-root"
                     >
                       <span
-                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-3qg0or-MuiTypography-root"
+                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-llt4u8-MuiTypography-root"
                         data-testid="messagesGroupContent-0"
                       >
                         message0
@@ -183,7 +183,7 @@ describe('BasicMessage', () => {
                       class="MuiGrid-root MuiGrid-item css-15myz84-MuiGrid-root"
                     >
                       <span
-                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-3qg0or-MuiTypography-root"
+                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-llt4u8-MuiTypography-root"
                         data-testid="messagesGroupContent-0"
                       >
                         message0
@@ -193,7 +193,7 @@ describe('BasicMessage', () => {
                       class="MuiGrid-root MuiGrid-item css-15myz84-MuiGrid-root"
                     >
                       <span
-                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-3qg0or-MuiTypography-root"
+                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-llt4u8-MuiTypography-root"
                         data-testid="messagesGroupContent-1"
                       >
                         message1
@@ -285,7 +285,7 @@ describe('BasicMessage', () => {
                       class="MuiGrid-root MuiGrid-item css-15myz84-MuiGrid-root"
                     >
                       <span
-                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-3qg0or-MuiTypography-root"
+                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-llt4u8-MuiTypography-root"
                         data-testid="messagesGroupContent-0"
                       >
                         message0
@@ -295,7 +295,7 @@ describe('BasicMessage', () => {
                       class="MuiGrid-root MuiGrid-item css-15myz84-MuiGrid-root"
                     >
                       <span
-                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-3qg0or-MuiTypography-root"
+                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-llt4u8-MuiTypography-root"
                         data-testid="messagesGroupContent-1"
                       >
                         message1
@@ -385,7 +385,7 @@ describe('BasicMessage', () => {
                       class="MuiGrid-root MuiGrid-item css-15myz84-MuiGrid-root"
                     >
                       <span
-                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-3qg0or-MuiTypography-root"
+                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-llt4u8-MuiTypography-root"
                         data-testid="messagesGroupContent-0"
                       >
                         message0
@@ -395,7 +395,7 @@ describe('BasicMessage', () => {
                       class="MuiGrid-root MuiGrid-item css-15myz84-MuiGrid-root"
                     >
                       <span
-                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-3qg0or-MuiTypography-root"
+                        class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-llt4u8-MuiTypography-root"
                         data-testid="messagesGroupContent-0"
                       >
                         message0
