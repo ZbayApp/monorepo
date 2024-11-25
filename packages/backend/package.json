@@ -113,8 +113,8 @@
     "express": "^4.17.1",
     "fastq": "^1.17.1",
     "fetch-retry": "^6.0.0",
-    "getmac": "^6.6.0",
     "get-port": "^5.1.1",
+    "getmac": "^6.6.0",
     "go-ipfs": "npm:mocked-go-ipfs@0.17.0",
     "http-server": "^0.12.3",
     "https-proxy-agent": "^5.0.0",
@@ -145,8 +145,8 @@
     "socks-proxy-agent": "^5.0.0",
     "string-replace-loader": "3.1.0",
     "ts-jest-resolver": "^2.0.0",
-    "validator": "^13.11.0",
-    "utf-8-validate": "^5.0.2"
+    "utf-8-validate": "^5.0.2",
+    "validator": "^13.11.0"
   },
   "overrides": {
     "level": "$level",

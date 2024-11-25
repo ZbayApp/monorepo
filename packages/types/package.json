@@ -30,7 +30,6 @@
     "typescript": "^4.9.3"
   },
   "dependencies": {
-    "@localfirst/auth": "file:../../3rd-party/auth/packages/auth/dist",
     "cross-env": "^5.2.0",
     "debug": "^4.3.1"
   },
