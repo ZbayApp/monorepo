@@ -87,10 +87,10 @@
     "yargs": "^17.1.0"
   },
   "dependencies": {
-    "@localfirst/auth": "file:../../3rd-party/auth/packages/auth/dist",
-    "@localfirst/crdx": "file:../../3rd-party/auth/packages/crdx/dist",
     "@chainsafe/libp2p-gossipsub": "6.1.0",
     "@chainsafe/libp2p-noise": "11.0.0",
+    "@localfirst/auth": "file:../../3rd-party/auth/packages/auth/dist",
+    "@localfirst/crdx": "file:../../3rd-party/auth/packages/crdx/dist",
     "@nestjs/common": "^10.2.10",
     "@nestjs/core": "^10.2.10",
     "@nestjs/platform-express": "^10.2.10",
@@ -100,6 +100,7 @@
     "@quiet/logger": "^2.0.2-alpha.0",
     "@quiet/types": "^2.0.2-alpha.1",
     "abortable-iterator": "^3.0.0",
+    "bs58": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.13.1",
     "cli-table": "^0.3.6",

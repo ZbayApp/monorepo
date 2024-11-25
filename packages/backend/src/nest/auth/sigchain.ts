@@ -22,7 +22,6 @@ class SigChain {
   private _devices: DeviceService | null = null
   private _roles: RoleService | null = null
   private _channels: ChannelService | null = null
-  private _dms: DMService | null = null
   private _invites: InviteService | null = null
   private _crypto: CryptoService | null = null
 
@@ -83,7 +82,6 @@ class SigChain {
     this._devices = DeviceService.init(this)
     this._roles = RoleService.init(this)
     this._channels = ChannelService.init(this)
-    this._dms = DMService.init(this)
     this._invites = InviteService.init(this)
     this._crypto = CryptoService.init(this)
   }
@@ -127,10 +125,6 @@ class SigChain {
 
   get invites(): InviteService {
     return this._invites!
-  }
-
-  get dms(): DMService {
-    return this._dms!
   }
 
   get crypto(): CryptoService {

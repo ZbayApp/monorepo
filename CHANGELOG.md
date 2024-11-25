@@ -4,8 +4,8 @@
 
 ### New features
 
-* Adds basic sigchain functions ([#2649](https://github.com/TryQuiet/quiet/pull/2649))
-* Instantiate signature chain when creating communities and reloading application ([#2626](https://github.com/TryQuiet/quiet/issues/2626))
+* Adds basic sigchain functions ([#2625](https://github.com/TryQuiet/quiet/issues/2625))
+* Instantiates signature chain when creating communities and reloading application ([#2626](https://github.com/TryQuiet/quiet/issues/2626))
 
 ## [2.3.2]
 

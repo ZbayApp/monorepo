@@ -68,7 +68,7 @@ const StyledTypography = styled(Typography)(({ theme }) => ({
   },
 
   [`& .${classes.link}`]: {
-    color: theme.palette.colors.lushSky,
+    color: theme.palette.colors.linkBlue,
     cursor: 'pointer',
     textDecoration: 'none',
     '&:hover': {
