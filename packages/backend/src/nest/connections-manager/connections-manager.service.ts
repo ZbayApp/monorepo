@@ -232,7 +232,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       const sigChainBlob = await this.localDbService.getSigChain(community.name)
       if (sigChainBlob) {
         try {
-          this.sigChainService.loadChain(
+          this.sigChainService.rehydrateSigChain(
             sigChainBlob.serializedTeam,
             sigChainBlob.context,
             sigChainBlob.teamKeyRing,

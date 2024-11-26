@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { SigChain } from './sigchain'
 import { Keyring, LocalUserContext } from '3rd-party/auth/packages/auth/dist'
+import { LocalDbService } from '../local-db/local-db.service'
 
 @Injectable()
 export class SigChainService implements OnModuleInit {
@@ -8,6 +9,7 @@ export class SigChainService implements OnModuleInit {
   private chains: Map<string, SigChain> = new Map()
   private activeChainTeamName: string | undefined
   private static _instance: SigChainService | undefined
+  private readonly localDbService: LocalDbService
 
   onModuleInit() {
     if (SigChainService._instance) {
@@ -62,10 +64,31 @@ export class SigChainService implements OnModuleInit {
     return sigChain
   }
 
-  loadChain(serializedTeam: Uint8Array, context: LocalUserContext, teamKeyRing: Keyring, setActive: boolean): SigChain {
+  rehydrateSigChain(
+    serializedTeam: Uint8Array,
+    context: LocalUserContext,
+    teamKeyRing: Keyring,
+    setActive: boolean
+  ): SigChain {
     const sigChain = SigChain.load(serializedTeam, context, teamKeyRing)
     this.addChain(sigChain, setActive)
     return sigChain
+  }
+
+  async loadChain(teamName: string, setActive: boolean): Promise<SigChain> {
+    const chain = await this.localDbService.getSigChain(teamName)
+    if (this.localDbService.getStatus() !== 'open') {
+      throw new Error('LocalDB not open!')
+    }
+    return this.rehydrateSigChain(chain!.serializedTeam, chain!.context, chain!.teamKeyRing, setActive)
+  }
+
+  saveChain(teamName: string): void {
+    if (this.localDbService.getStatus() !== 'open') {
+      throw new Error('LocalDB not open!')
+    }
+    const chain = this.getChainByTeamName(teamName)
+    this.localDbService.setSigChain(chain)
   }
 
   getChainByTeamName(teamName: string): SigChain {

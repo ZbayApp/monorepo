@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer'
 import { Inject, Injectable } from '@nestjs/common'
 import { Level } from 'level'
 import { type Community, type NetworkInfo, NetworkStats, Identity, IdentityUpdatePayload } from '@quiet/types'
@@ -5,7 +6,7 @@ import { createLibp2pAddress, filterAndSortPeers } from '@quiet/common'
 import { LEVEL_DB } from '../const'
 import { LocalDBKeys, LocalDbStatus } from './local-db.types'
 import { createLogger } from '../common/logger'
-import { SigChainBlob } from '../auth/types'
+import { SerializedSigChain, SigChainSaveData } from '../auth/types'
 import { SigChain } from '../auth/sigchain'
 
 @Injectable()
@@ -170,18 +171,25 @@ export class LocalDbService {
     if (!sigChains) {
       sigChains = {}
     }
-    const sigChainBlob: SigChainBlob = {
-      serializedTeam: sigChain.save(),
+    const serializedSigChain: SigChainSaveData = {
+      serializedTeam: Buffer.from(sigChain.save()).toString('base64'),
       context: sigChain.context,
       teamKeyRing: sigChain.team.teamKeyring(),
     }
-    sigChains[teamName] = sigChainBlob
+    sigChains[teamName] = serializedSigChain
     await this.put(LocalDBKeys.SIGCHAINS, sigChains)
   }
 
-  public async getSigChain(teamName: string): Promise<SigChainBlob | undefined> {
+  public async getSigChain(teamName: string): Promise<SerializedSigChain | undefined> {
     const sigChains = await this.get(LocalDBKeys.SIGCHAINS)
     this.logger.info('Getting sigchain', teamName)
-    return sigChains?.[teamName]
+    const sigChainBlob = sigChains?.[teamName]
+    if (sigChainBlob) {
+      return {
+        serializedTeam: Buffer.from(sigChainBlob.serializedTeam, 'base64'),
+        context: sigChainBlob.context,
+        teamKeyRing: sigChainBlob.teamKeyRing,
+      }
+    }
   }
 }

@@ -21,6 +21,18 @@ describe('SigChainManager', () => {
     sigChainManager = await module.resolve(SigChainService)
     localDbService = await module.resolve(LocalDbService)
   })
+
+  beforeEach(async () => {
+    if (localDbService.getStatus() === 'closed') {
+      await localDbService.open()
+    }
+  })
+
+  afterAll(async () => {
+    await localDbService.close()
+    await module.close()
+  })
+
   it('should throw an error when trying to get an active chain without setting one', () => {
     expect(() => sigChainManager.getActiveChain()).toThrowError()
   })
@@ -56,8 +68,8 @@ describe('SigChainManager', () => {
     expect(retrievedChain).toBeDefined()
     expect(retrievedChain?.context.user.userName).toBe('user')
     sigChainManager.deleteChain('test')
-    const loadedSigChain = sigChainManager.loadChain(
-      serializedChain,
+    const loadedSigChain = sigChainManager.rehydrateSigChain(
+      retrievedChain!.serializedTeam,
       retrievedChain!.context,
       retrievedChain!.teamKeyRing,
       false
@@ -65,5 +77,13 @@ describe('SigChainManager', () => {
     expect(loadedSigChain).toBeDefined()
     expect(loadedSigChain.context.user.userName).toBe('user')
     expect(loadedSigChain.team.teamName).toBe('test')
+  })
+  it('should save and load sigchain using nestjs service', async () => {
+    const sigChain = sigChainManager.createChain('test3', 'user', true)
+    sigChainManager.saveChain(sigChain.team.teamName)
+    sigChainManager.deleteChain(sigChain.team.teamName)
+    const loadedSigChain = await sigChainManager.loadChain('test3', false)
+    expect(loadedSigChain).toBeDefined()
+    expect(sigChainManager.getActiveChain()).toBe(loadedSigChain)
   })
 })
