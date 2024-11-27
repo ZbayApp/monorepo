@@ -71,6 +71,11 @@ describe('SigChainManager', () => {
     expect(loadedSigChain).toBeDefined()
     expect(sigChainManager.getActiveChain()).toBe(loadedSigChain)
   })
+  it('should delete sigchains from disk', async () => {
+    await sigChainManager.deleteChain('test3', true)
+    expect(() => sigChainManager.getChain('test3')).toThrowError()
+    await expect(sigChainManager.loadChain('test3', true)).rejects.toThrowError()
+  })
   it('should not allow duplicate chains to be added', async () => {
     await sigChainManager.createChain('test4', 'user4', false)
     await expect(sigChainManager.createChain('test4', 'user4', false)).rejects.toThrowError()
