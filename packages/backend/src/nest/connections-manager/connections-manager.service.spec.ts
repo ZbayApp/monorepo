@@ -67,8 +67,10 @@ describe('ConnectionsManagerService', () => {
     registrationService = await module.resolve(RegistrationService)
     sigChainService = await module.resolve(SigChainService)
 
+    // initialize sigchain on local db
     sigChainService.createChain(community.name!, userIdentity.nickname, false)
-    localDbService.setSigChain(sigChainService.getChainByTeamName(community.name!))
+    sigChainService.saveChain(community.name!)
+    sigChainService.deleteChain(community.name!, false)
 
     lazyModuleLoader = await module.resolve(LazyModuleLoader)
     const { Libp2pModule: Module } = await import('../libp2p/libp2p.module')

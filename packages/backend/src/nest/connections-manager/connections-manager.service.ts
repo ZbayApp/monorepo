@@ -229,18 +229,10 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     }
 
     if (community.name) {
-      const sigChainBlob = await this.localDbService.getSigChain(community.name)
-      if (sigChainBlob) {
-        try {
-          this.sigChainService.rehydrateSigChain(
-            sigChainBlob.serializedTeam,
-            sigChainBlob.context,
-            sigChainBlob.teamKeyRing,
-            true
-          )
-        } catch (e) {
-          this.logger.error('Failed to load sigchain', e)
-        }
+      try {
+        this.sigChainService.loadChain(community.name, true)
+      } catch (e) {
+        this.logger.error('Failed to load sigchain', e)
       }
     }
 

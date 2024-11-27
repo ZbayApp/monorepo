@@ -164,32 +164,37 @@ export class LocalDbService {
   }
 
   public async setSigChain(sigChain: SigChain) {
-    // TODO: can this be made more efficient by using a prefix instead of loading all sigchains?
-    this.logger.info('Setting sigchain', sigChain.team.teamName)
     const teamName = sigChain.team.teamName
-    let sigChains = await this.get(LocalDBKeys.SIGCHAINS)
-    if (!sigChains) {
-      sigChains = {}
-    }
+    const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
     const serializedSigChain: SigChainSaveData = {
       serializedTeam: Buffer.from(sigChain.save()).toString('base64'),
       context: sigChain.context,
       teamKeyRing: sigChain.team.teamKeyring(),
     }
-    sigChains[teamName] = serializedSigChain
-    await this.put(LocalDBKeys.SIGCHAINS, sigChains)
+    this.logger.info('Saving sigchain', teamName)
+    await this.put(key, serializedSigChain)
   }
 
   public async getSigChain(teamName: string): Promise<SerializedSigChain | undefined> {
-    const sigChains = await this.get(LocalDBKeys.SIGCHAINS)
-    this.logger.info('Getting sigchain', teamName)
-    const sigChainBlob = sigChains?.[teamName]
+    const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
+    this.logger.info('Getting sigchain', teamName, key)
+    const sigChainBlob = await this.get(key)
     if (sigChainBlob) {
+      // convert serializedTeam from base64 to buffer to Uint8Array
+      const serializedTeamBuffer = Buffer.from(sigChainBlob.serializedTeam, 'base64')
       return {
-        serializedTeam: Buffer.from(sigChainBlob.serializedTeam, 'base64'),
+        serializedTeam: new Uint8Array(serializedTeamBuffer),
         context: sigChainBlob.context,
         teamKeyRing: sigChainBlob.teamKeyRing,
-      }
+      } as SerializedSigChain
+    } else {
+      this.logger.error('Sigchain not found', teamName)
+      return undefined
     }
+  }
+
+  public async deleteSigChain(teamName: string) {
+    const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
+    await this.delete(key)
   }
 }
