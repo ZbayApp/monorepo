@@ -71,7 +71,6 @@ import { createLogger } from '../common/logger'
 import { createUserCsr, getPubKey, loadPrivateKey, pubKeyFromCsr } from '@quiet/identity'
 import { config } from '@quiet/state-manager'
 import { SigChainService } from '../auth/sigchain.service'
-import { SigChain } from '../auth/sigchain'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -230,9 +229,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     if (community.name) {
       try {
-        this.sigChainService.loadChain(community.name, true)
+        await this.sigChainService.loadChain(community.name, true)
       } catch (e) {
-        this.logger.error('Failed to load sigchain', e)
+        this.logger.warn('Failed to load sigchain', e)
       }
     }
 
@@ -281,8 +280,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
   public async saveActiveChain() {
     try {
-      const activeChain = this.sigChainService.getActiveChain()
-      await this.localDbService.setSigChain(activeChain)
+      await this.sigChainService.saveChain(this.sigChainService.activeChainTeamName!)
     } catch (e) {
       this.logger.info('Failed to save active chain', e)
     }
