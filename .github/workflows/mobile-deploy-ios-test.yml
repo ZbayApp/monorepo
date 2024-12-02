@@ -1,0 +1,72 @@
+name: Test IOS build
+
+on:
+  pull_request:
+
+jobs:
+  test-build-ios:
+    # needs: detox-ios
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-13]
+
+    steps:
+      - name: "Print OS"
+        run: echo ${{ matrix.os }}
+
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          submodules: 'recursive'
+          lfs: true
+
+      - name: Install gpg
+        run: brew install gnupg
+
+      - name: Setup XCode
+        uses: maxim-lobanov/setup-xcode@9a697e2b393340c3cacd97468baa318e4c883d98 # v1.5.1
+        with:
+          xcode-version: '15.2'
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+        with:
+          cachePrefix: "deploy-ios"
+          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/mobile,backend-bundle"
+
+      - name: Install pod dependencies
+        run: |
+          cd ./packages/mobile/ios
+          pod install
+        shell: bash
+
+      - name: Setup provisioning profile
+        run: ./.github/secrets/decrypt_secrets.sh
+        env:
+          IOS_PROFILE_KEY: ${{ secrets.IOS_PROFILE_KEY }}
+          IOS_CERTIFICATE_KEY: ${{ secrets.IOS_CERTIFICATE_KEY }}
+
+      - name: Build
+        run: |
+          cd ./packages/mobile/ios
+          xcodebuild archive \
+            -workspace Quiet.xcworkspace \
+            -scheme Quiet \
+            -configuration Release \
+            -archivePath build/Quiet.xcarchive \
+            PROVISIONING_PROFILE="762df280-302c-4336-a56d-c74914169337" \
+            CODE_SIGN_IDENTITY="Apple Distribution: A Quiet LLC (CTYKSWN9T4)"
+
+      - name: Export .ipa
+        run: |
+          cd ./packages/mobile/ios
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/Quiet.xcarchive \
+            -exportOptionsPlist ci.plist \
+            -exportPath build/
+
+      - name: Cleanup environment
+        if: always()
+        run: security delete-keychain build.keychain && rm -f ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision

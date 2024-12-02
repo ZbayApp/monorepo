@@ -78,6 +78,7 @@ import { DateTime } from 'luxon'
 import { createLogger } from '../common/logger'
 import { createFromJSON } from '@libp2p/peer-id-factory'
 import { PeerId } from '@libp2p/interface'
+import { SigChainService } from '../auth/sigchain.service'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -99,7 +100,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     private readonly storageServerProxyService: StorageServiceClient,
     private readonly localDbService: LocalDbService,
     private readonly storageService: StorageService,
-    private readonly tor: Tor
+    private readonly tor: Tor,
+    private readonly sigChainService: SigChainService
   ) {
     super()
   }
@@ -220,7 +222,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
   public async launchCommunityFromStorage() {
     this.logger.info('Launching community from storage')
-    const community = await this.localDbService.getCurrentCommunity()
+    const community: Community | undefined = await this.localDbService.getCurrentCommunity()
     if (!community) {
       this.logger.info('No community found in storage')
       return
@@ -232,6 +234,14 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
+    if (community.name) {
+      try {
+        await this.sigChainService.loadChain(community.name, true)
+      } catch (e) {
+        this.logger.warn('Failed to load sigchain', e)
+      }
+    }
+
     const sortedPeers = await this.localDbService.getSortedPeers(community.peerList ?? [])
     this.logger.info('launchCommunityFromStorage - sorted peers', sortedPeers)
     if (sortedPeers.length > 0) {
@@ -239,11 +249,20 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     }
     await this.localDbService.setCommunity(community)
 
+    this.logger.info('Launching community from storage with peers', community.peerList)
     await this.launchCommunity(community)
   }
 
   public async closeSocket() {
     await this.socketService.close()
+  }
+
+  public async saveActiveChain() {
+    try {
+      await this.sigChainService.saveChain(this.sigChainService.activeChainTeamName!)
+    } catch (e) {
+      this.logger.info('Failed to save active chain', e)
+    }
   }
 
   public async pause() {
@@ -284,6 +303,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
   public async closeAllServices(options: { saveTor: boolean } = { saveTor: false }) {
     this.logger.info('Closing services')
+    await this.saveActiveChain()
 
     await this.closeSocket()
 
@@ -576,25 +596,33 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     if (identity.userCsr?.userCsr) {
       await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
     }
+
+    // create sigchain
+    if (!community.name) {
+      this.logger.error('Community name is required to create sigchain')
+      return community
+    }
+    this.sigChainService.createChain(community.name, identity.nickname, true)
     return community
   }
 
-  public async downloadCommunityData(inviteData: InvitationDataV2) {
-    this.logger.info('Downloading invite data', inviteData)
-    this.storageServerProxyService.setServerAddress(inviteData.serverAddress)
-    let downloadedData: ServerStoredCommunityMetadata
-    try {
-      downloadedData = await this.storageServerProxyService.downloadData(inviteData.cid)
-    } catch (e) {
-      this.logger.error(`Downloading community data failed`, e)
-      return
-    }
-    return {
-      psk: downloadedData.psk,
-      peers: downloadedData.peerList,
-      ownerOrbitDbIdentity: downloadedData.ownerOrbitDbIdentity,
-    }
-  }
+  // TODO: add back when QSS is implemented
+  // public async downloadCommunityData(inviteData: InvitationDataV2) {
+  //   this.logger.info('Downloading invite data', inviteData)
+  //   this.storageServerProxyService.setServerAddress(inviteData.serverAddress)
+  //   let downloadedData: ServerStoredCommunityMetadata
+  //   try {
+  //     downloadedData = await this.storageServerProxyService.downloadData(inviteData.cid)
+  //   } catch (e) {
+  //     this.logger.error(`Downloading community data failed`, e)
+  //     return
+  //   }
+  //   return {
+  //     psk: downloadedData.psk,
+  //     peers: downloadedData.peerList,
+  //     ownerOrbitDbIdentity: downloadedData.ownerOrbitDbIdentity,
+  //   }
+  // }
 
   public async joinCommunity(payload: InitCommunityPayload): Promise<Community | undefined> {
     this.logger.info('Joining community: peers:', payload.peers)
@@ -609,29 +637,30 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    let metadata = {
+    const metadata = {
       psk: payload.psk,
       peers: payload.peers,
       ownerOrbitDbIdentity: payload.ownerOrbitDbIdentity,
     }
 
     const inviteData = payload.inviteData
-    if (inviteData) {
-      this.logger.info(`Joining community: inviteData version: ${inviteData.version}`)
-      switch (inviteData.version) {
-        case InvitationDataVersion.v2:
-          const downloadedData = await this.downloadCommunityData(inviteData)
-          if (!downloadedData) {
-            emitError(this.serverIoProvider.io, {
-              type: SocketActionTypes.LAUNCH_COMMUNITY,
-              message: ErrorMessages.STORAGE_SERVER_CONNECTION_FAILED,
-            })
-            return
-          }
-          metadata = downloadedData
-          break
-      }
-    }
+    // TODO: add back when QSS is implemented
+    // if (inviteData) {
+    //   this.logger.info(`Joining community: inviteData version: ${inviteData.version}`)
+    //   switch (inviteData.version) {
+    //     case InvitationDataVersion.v2:
+    //       const downloadedData = await this.downloadCommunityData(inviteData)
+    //       if (!downloadedData) {
+    //         emitError(this.serverIoProvider.io, {
+    //           type: SocketActionTypes.LAUNCH_COMMUNITY,
+    //           message: ErrorMessages.STORAGE_SERVER_CONNECTION_FAILED,
+    //         })
+    //         return
+    //       }
+    //       metadata = downloadedData
+    //       break
+    //   }
+    // }
 
     if (!metadata.peers || metadata.peers.length === 0) {
       this.logger.error('Joining community: Peers required')
@@ -668,6 +697,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       inviteData,
     }
 
+    // TODO: Add initialization of sigchain from invite
     await this.localDbService.setCommunity(community)
     await this.localDbService.setCurrentCommunityId(community.id)
 

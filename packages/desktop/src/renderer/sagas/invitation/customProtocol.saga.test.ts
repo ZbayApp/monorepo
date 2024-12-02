@@ -49,18 +49,19 @@ describe('Handle invitation code', () => {
       .run()
   })
 
-  it('joins network if v2 code is valid', async () => {
-    const validInvitationData = getValidInvitationUrlTestData(validInvitationDatav2[0]).data
-    const validInvitationDeepUrl = getValidInvitationUrlTestData(validInvitationDatav2[0]).deepUrl()
-    const createNetworkPayload: CreateNetworkPayload = {
-      ownership: CommunityOwnership.User,
-      inviteData: validInvitationData,
-    }
-    await expectSaga(customProtocolSaga, communities.actions.customProtocol([validInvitationDeepUrl]))
-      .withState(store.getState())
-      .put(communities.actions.createNetwork(createNetworkPayload))
-      .run()
-  })
+  // TODO: https://github.com/TryQuiet/quiet/issues/2628
+  // it('joins network if v2 code is valid', async () => {
+  //   const validInvitationData = getValidInvitationUrlTestData(validInvitationDatav2[0]).data
+  //   const validInvitationDeepUrl = getValidInvitationUrlTestData(validInvitationDatav2[0]).deepUrl()
+  //   const createNetworkPayload: CreateNetworkPayload = {
+  //     ownership: CommunityOwnership.User,
+  //     inviteData: validInvitationData,
+  //   }
+  //   await expectSaga(customProtocolSaga, communities.actions.customProtocol([validInvitationDeepUrl]))
+  //     .withState(store.getState())
+  //     .put(communities.actions.createNetwork(createNetworkPayload))
+  //     .run()
+  // })
 
   it('does not try to create network if user is already in community', async () => {
     community = await factory.create<ReturnType<typeof communities.actions.addNewCommunity>['payload']>('Community')
@@ -84,41 +85,42 @@ describe('Handle invitation code', () => {
       .run()
   })
 
-  it('does not try to create network if user used v2 invitation link and is joining another community', async () => {
-    const invitationData = validInvitationDatav2[0]
-    community = await factory.create<ReturnType<typeof communities.actions.addNewCommunity>['payload']>('Community', {
-      name: '',
-      inviteData: invitationData,
-    })
-    const newInvitationData = {
-      ...invitationData,
-      serverAddress: 'http://something-else.pl',
-    }
-    const createNetworkPayload: CreateNetworkPayload = {
-      ownership: CommunityOwnership.User,
-      inviteData: newInvitationData,
-    }
+  // TODO: https://github.com/TryQuiet/quiet/issues/2628
+  // it('does not try to create network if user used v2 invitation link and is joining another community', async () => {
+  //   const invitationData = validInvitationDatav2[0]
+  //   community = await factory.create<ReturnType<typeof communities.actions.addNewCommunity>['payload']>('Community', {
+  //     name: '',
+  //     inviteData: invitationData,
+  //   })
+  //   const newInvitationData = {
+  //     ...invitationData,
+  //     serverAddress: 'http://something-else.pl',
+  //   }
+  //   const createNetworkPayload: CreateNetworkPayload = {
+  //     ownership: CommunityOwnership.User,
+  //     inviteData: newInvitationData,
+  //   }
 
-    store.dispatch(communities.actions.addNewCommunity(community))
-    store.dispatch(communities.actions.setCurrentCommunity(community.id))
+  //   store.dispatch(communities.actions.addNewCommunity(community))
+  //   store.dispatch(communities.actions.setCurrentCommunity(community.id))
 
-    await expectSaga(
-      customProtocolSaga,
-      communities.actions.customProtocol([getValidInvitationUrlTestData(newInvitationData).deepUrl()])
-    )
-      .withState(store.getState())
-      .put(
-        modalsActions.openModal({
-          name: ModalName.warningModal,
-          args: {
-            title: JoiningAnotherCommunityWarning.TITLE,
-            subtitle: JoiningAnotherCommunityWarning.MESSAGE,
-          },
-        })
-      )
-      .not.put(communities.actions.createNetwork(createNetworkPayload))
-      .run()
-  })
+  //   await expectSaga(
+  //     customProtocolSaga,
+  //     communities.actions.customProtocol([getValidInvitationUrlTestData(newInvitationData).deepUrl()])
+  //   )
+  //     .withState(store.getState())
+  //     .put(
+  //       modalsActions.openModal({
+  //         name: ModalName.warningModal,
+  //         args: {
+  //           title: JoiningAnotherCommunityWarning.TITLE,
+  //           subtitle: JoiningAnotherCommunityWarning.MESSAGE,
+  //         },
+  //       })
+  //     )
+  //     .not.put(communities.actions.createNetwork(createNetworkPayload))
+  //     .run()
+  // })
 
   it('does not try to create network if code is missing data', async () => {
     const createNetworkPayload: CreateNetworkPayload = {

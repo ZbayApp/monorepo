@@ -14,7 +14,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-latest]
+        os: [macos-13]
 
     steps:
       - name: "Print OS"
@@ -59,8 +59,8 @@ jobs:
             -scheme Quiet \
             -configuration Release \
             -archivePath build/Quiet.xcarchive \
-            PROVISIONING_PROFILE="718ac015-309f-49b6-9653-f6cf84a6377c" \
-            CODE_SIGN_IDENTITY="Apple Distribution: Zbay LLC (CTYKSWN9T4)"
+            PROVISIONING_PROFILE="762df280-302c-4336-a56d-c74914169337" \
+            CODE_SIGN_IDENTITY="Apple Distribution: A Quiet LLC (CTYKSWN9T4)"
 
       - name: Export .ipa
         run: |

@@ -17,5 +17,9 @@ export enum LocalDBKeys {
   // TODO: Deprecate this soon (and delete the data from LevelDB). This data
   // exists in the Community object.
   OWNER_ORBIT_DB_IDENTITY = 'ownerOrbitDbIdentity',
+
+  SIGCHAINS = 'sigchains:',
+  USER_CONTEXTS = 'userContexts',
+  KEYRINGS = 'keyrings',
 }
 export type LocalDbStatus = 'opening' | 'open' | 'closing' | 'closed'

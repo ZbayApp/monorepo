@@ -7,6 +7,7 @@ import { TorModule } from '../tor/tor.module'
 import { ConnectionsManagerService } from './connections-manager.service'
 import { StorageServiceClientModule } from '../storageServiceClient/storageServiceClient.module'
 import { Libp2pModule } from '../libp2p/libp2p.module'
+import { SigChainModule } from '../auth/sigchain.service.module'
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { Libp2pModule } from '../libp2p/libp2p.module'
     SocketModule,
     LocalDbModule,
     StorageServiceClientModule,
+    SigChainModule,
   ],
   providers: [ConnectionsManagerService],
   exports: [ConnectionsManagerService],

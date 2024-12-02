@@ -80,7 +80,7 @@
   },
   "homepage": "https://github.com/TryQuiet",
   "@comment version": "To build new version for specific platform, just replace platform in version tag to one of following linux, mac, windows",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "Decentralized team chat",
   "main": "dist/main/main.js",
   "scripts": {

@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer'
 import { Inject, Injectable } from '@nestjs/common'
 import { Level } from 'level'
 import { type Community, type NetworkInfo, NetworkStats, Identity, IdentityUpdatePayload } from '@quiet/types'
@@ -5,6 +6,8 @@ import { createLibp2pAddress, filterAndSortPeers } from '@quiet/common'
 import { LEVEL_DB } from '../const'
 import { LocalDBKeys, LocalDbStatus } from './local-db.types'
 import { createLogger } from '../common/logger'
+import { SerializedSigChain, SigChainSaveData } from '../auth/types'
+import { SigChain } from '../auth/sigchain'
 
 @Injectable()
 export class LocalDbService {
@@ -160,5 +163,40 @@ export class LocalDbService {
 
   public async getIdentities(): Promise<Record<string, Identity>> {
     return await this.get(LocalDBKeys.IDENTITIES)
+  }
+
+  public async setSigChain(sigChain: SigChain) {
+    const teamName = sigChain.team.teamName
+    const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
+    const serializedSigChain: SigChainSaveData = {
+      serializedTeam: Buffer.from(sigChain.save()).toString('base64'),
+      context: sigChain.context,
+      teamKeyRing: sigChain.team.teamKeyring(),
+    }
+    this.logger.info('Saving sigchain', teamName)
+    await this.put(key, serializedSigChain)
+  }
+
+  public async getSigChain(teamName: string): Promise<SerializedSigChain | undefined> {
+    const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
+    this.logger.info('Getting sigchain', teamName, key)
+    const sigChainBlob = await this.get(key)
+    if (sigChainBlob) {
+      // convert serializedTeam from base64 to buffer to Uint8Array
+      const serializedTeamBuffer = Buffer.from(sigChainBlob.serializedTeam, 'base64')
+      return {
+        serializedTeam: new Uint8Array(serializedTeamBuffer),
+        context: sigChainBlob.context,
+        teamKeyRing: sigChainBlob.teamKeyRing,
+      } as SerializedSigChain
+    } else {
+      this.logger.error('Sigchain not found', teamName)
+      return undefined
+    }
+  }
+
+  public async deleteSigChain(teamName: string) {
+    const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
+    await this.delete(key)
   }
 }
