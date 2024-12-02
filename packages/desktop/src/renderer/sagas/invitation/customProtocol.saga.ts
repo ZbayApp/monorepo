@@ -5,7 +5,7 @@ import { communities } from '@quiet/state-manager'
 import { socketSelectors } from '../socket/socket.selectors'
 import { ModalName } from '../modals/modals.types'
 import { modalsActions } from '../modals/modals.slice'
-import { argvInvitationCode } from '@quiet/common'
+import { argvInvitationLink } from '@quiet/common'
 import {
   AlreadyBelongToCommunityWarning,
   InvalidInvitationLinkError,
@@ -36,7 +36,7 @@ export function* customProtocolSaga(
   let data: InvitationData | null
 
   try {
-    data = argvInvitationCode(code)
+    data = argvInvitationLink(code)
   } catch (e) {
     logger.warn(e)
     yield* put(

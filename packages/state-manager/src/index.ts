@@ -79,7 +79,7 @@ export * from './constants'
 
 export { formatBytes } from './utils/functions/formatBytes/formatBytes'
 
-export { getInvitationCodes } from './utils/functions/invitationCode/invitationCode'
+export { getInvitationLinks as getInvitationCodes } from './utils/functions/invitationCode/invitationCode'
 
 export type { Socket } from './types'
 
