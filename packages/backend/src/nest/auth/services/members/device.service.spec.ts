@@ -20,7 +20,7 @@ describe('invites', () => {
     expect(adminSigChain.roles.amIMemberOfRole(adminSigChain.context, RoleName.MEMBER)).toBe(true)
   })
   it('sigchain should contain admin device', () => {
-    const adminDeviceName = DeviceService.determineDeviceName()
+    const adminDeviceName = DeviceService.generateDeviceName()
     adminSigChain.team.hasDevice(adminSigChain.context.device.deviceId)
   })
   it('should generate a new device', () => {
