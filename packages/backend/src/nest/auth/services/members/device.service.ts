@@ -2,7 +2,7 @@
  * Handles device-related chain operations
  */
 
-import getMAC from 'getmac'
+import { createId } from '@paralleldrive/cuid2'
 import { ChainServiceBase } from '../chainServiceBase'
 import { Device, DeviceWithSecrets, redactDevice } from '@localfirst/auth'
 import { SigChain } from '../../sigchain'
@@ -23,7 +23,7 @@ class DeviceService extends ChainServiceBase {
   public static generateDeviceForUser(userId: string): DeviceWithSecrets {
     const params = {
       userId,
-      deviceName: DeviceService.determineDeviceName(),
+      deviceName: DeviceService.generateDeviceName(),
     }
 
     return SigChain.lfa.createDevice(params)
@@ -32,11 +32,11 @@ class DeviceService extends ChainServiceBase {
   /**
    * Get an identifier for the current device
    *
-   * @returns Formatted MAC address of the current device
+   * @returns collision-resistant device identifier
    */
-  public static determineDeviceName(): string {
-    const mac = getMAC()
-    return mac.replace(/:/g, '')
+  public static generateDeviceName(): string {
+    // TODO: let users set their own device name in a GUI
+    return createId()
   }
 
   public static redactDevice(device: DeviceWithSecrets): Device {
