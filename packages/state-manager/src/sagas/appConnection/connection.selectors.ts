@@ -6,12 +6,12 @@ import { peersStatsAdapter } from './connection.adapter'
 import { connectedPeers, isCurrentCommunityInitialized } from '../network/network.selectors'
 import { type NetworkStats } from './connection.types'
 import { type User } from '../users/users.types'
-import { composeInvitationShareUrl, filterAndSortPeers, p2pAddressesToPairs, pairsToP2pAddresses } from '@quiet/common'
+import { composeInvitationShareUrl, filterAndSortPeers, p2pAddressesToPairs } from '@quiet/common'
 import { areMessagesLoaded, areChannelsLoaded } from '../publicChannels/publicChannels.selectors'
 import { identitySelectors } from '../identity/identity.selectors'
 import { communitiesSelectors } from '../communities/communities.selectors'
-import { InvitationDataVersion } from '@quiet/types'
 import { createLogger } from '../../utils/logger'
+import { InvitationData, InvitationDataVersion } from '@quiet/types'
 
 const logger = createLogger('connectionSelectors')
 
@@ -49,17 +49,34 @@ export const peerList = createSelector(
   }
 )
 
+export const longLivedInvite = createSelector(connectionSlice, reducerState => {
+  return reducerState.longLivedInvite
+})
+
 export const invitationUrl = createSelector(
   communitiesSelectors.psk,
   communitiesSelectors.ownerOrbitDbIdentity,
+  communitiesSelectors.currentCommunity,
   peerList,
-  (communityPsk, ownerOrbitDbIdentity, sortedPeerList) => {
+  longLivedInvite,
+  (communityPsk, ownerOrbitDbIdentity, currentCommunity, sortedPeerList, longLivedInvite) => {
     if (!sortedPeerList || sortedPeerList?.length === 0) return ''
     if (!communityPsk) return ''
     if (!ownerOrbitDbIdentity) return ''
     const initialPeers = sortedPeerList.slice(0, 3)
     const pairs = p2pAddressesToPairs(initialPeers)
-    return composeInvitationShareUrl({ pairs, psk: communityPsk, ownerOrbitDbIdentity })
+    let inviteData: InvitationData = { pairs, psk: communityPsk, ownerOrbitDbIdentity }
+    if (currentCommunity != null && longLivedInvite != null) {
+      inviteData = {
+        ...inviteData,
+        version: InvitationDataVersion.v2,
+        authData: {
+          communityName: currentCommunity.name!,
+          seed: longLivedInvite.seed,
+        },
+      }
+    }
+    return composeInvitationShareUrl(inviteData)
   }
 )
 
@@ -94,6 +111,7 @@ export const connectionSelectors = {
   connectedPeersMapping,
   peerList,
   invitationUrl,
+  longLivedInvite,
   torBootstrapProcess,
   connectionProcess,
   isTorInitialized,

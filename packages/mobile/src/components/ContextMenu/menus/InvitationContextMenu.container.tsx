@@ -1,22 +1,18 @@
-import React, { FC, useCallback, useEffect } from 'react'
+import React, { FC, useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Share } from 'react-native'
-
 import Clipboard from '@react-native-clipboard/clipboard'
 
 import { connection } from '@quiet/state-manager'
 
 import { navigationSelectors } from '../../../store/navigation/navigation.selectors'
-
 import { useConfirmationBox } from '../../../hooks/useConfirmationBox'
 import { useContextMenu } from '../../../hooks/useContextMenu'
 import { MenuName } from '../../../const/MenuNames.enum'
 import { ContextMenu } from '../ContextMenu.component'
 import { ContextMenuItemProps } from '../ContextMenu.types'
-
 import { navigationActions } from '../../../store/navigation/navigation.slice'
 import { ScreenNames } from '../../../const/ScreenNames.enum'
-
 import { createLogger } from '../../../utils/logger'
 
 const logger = createLogger('invitationContextMenu:container')
@@ -25,7 +21,20 @@ export const InvitationContextMenu: FC = () => {
   const dispatch = useDispatch()
 
   const screen = useSelector(navigationSelectors.currentScreen)
-  const invitationLink = useSelector(connection.selectors.invitationUrl)
+
+  const inviteLink = useSelector(connection.selectors.invitationUrl)
+  const [invitationLink, setInvitationLink] = useState<string>(inviteLink)
+  const [invitationReady, setInvitationReady] = useState<boolean>(false)
+  useEffect(() => {
+    dispatch(connection.actions.createInvite({}))
+    setInvitationReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (invitationReady) {
+      setInvitationLink(inviteLink)
+    }
+  }, [invitationReady, inviteLink])
 
   const invitationContextMenu = useContextMenu(MenuName.Invitation)
 
@@ -41,7 +50,7 @@ export const InvitationContextMenu: FC = () => {
   )
 
   const copyLink = async () => {
-    Clipboard.setString(invitationLink)
+    Clipboard.setString(invitationLink!)
     await confirmationBox.flash()
   }
 

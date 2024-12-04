@@ -21,6 +21,8 @@ const logger = createLogger('auth:inviteService')
 
 export const DEFAULT_MAX_USES = 1
 export const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week
+export const DEFAULT_LONG_LIVED_MAX_USES = 0 // no limit
+export const DEFAULT_LONG_LIVED_VALID_FOR_MS = 0 // no limit
 
 class InviteService extends ChainServiceBase {
   public static init(sigChain: SigChain): InviteService {
@@ -32,13 +34,21 @@ class InviteService extends ChainServiceBase {
     maxUses: number = DEFAULT_MAX_USES,
     seed?: string
   ): InviteResult {
-    const expiration = (Date.now() + validForMs) as UnixTimestamp
+    let expiration: UnixTimestamp = 0 as UnixTimestamp
+    if (validForMs > 0) {
+      expiration = (Date.now() + validForMs) as UnixTimestamp
+    }
+
     const invitation: InviteResult = this.sigChain.team.inviteMember({
       seed,
       expiration,
       maxUses,
     })
     return invitation
+  }
+
+  public createLongLivedUserInvite(): InviteResult {
+    return this.createUserInvite(DEFAULT_LONG_LIVED_VALID_FOR_MS, DEFAULT_LONG_LIVED_MAX_USES)
   }
 
   public createDeviceInvite(validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS, seed?: string): InviteResult {
@@ -48,6 +58,23 @@ class InviteService extends ChainServiceBase {
       seed,
     })
     return invitation
+  }
+
+  public isValidLongLivedUserInvite(id: Base58): boolean {
+    logger.info(`Validating LFA invite with ID ${id}`)
+    const invites = this.getAllInvites()
+    for (const invite of invites) {
+      if (
+        invite.id === id && // is correct invite
+        !invite.revoked && // is not revoked
+        invite.maxUses == 0 && // is an unlimited invite
+        invite.expiration == 0 // is an unlimited invite
+      ) {
+        return true
+      }
+    }
+
+    return false
   }
 
   public revoke(id: string) {
