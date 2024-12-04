@@ -60,9 +60,9 @@ describe('ConnectionsManagerService', () => {
     sigChainService = await module.resolve(SigChainService)
 
     // initialize sigchain on local db
-    sigChainService.createChain(community.name!, userIdentity.nickname, false)
-    sigChainService.saveChain(community.name!)
-    sigChainService.deleteChain(community.name!, false)
+    await sigChainService.createChain(community.name!, userIdentity.nickname, false)
+    await sigChainService.saveChain(community.name!)
+    await sigChainService.deleteChain(community.name!, false)
     quietDir = await module.resolve(QUIET_DIR)
   })
 
