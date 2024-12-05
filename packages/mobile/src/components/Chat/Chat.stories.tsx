@@ -24,7 +24,7 @@ storiesOf('Chat', module)
       downloadFile={() => {}}
       cancelDownload={() => {}}
       channel={{
-        name: 'Zbay',
+        name: 'Quiet',
         description: '',
         owner: '',
         timestamp: 0,
@@ -266,7 +266,7 @@ storiesOf('Chat', module)
       downloadFile={() => {}}
       cancelDownload={() => {}}
       channel={{
-        name: 'Zbay',
+        name: 'Quiet',
         description: '',
         owner: '',
         timestamp: 0,

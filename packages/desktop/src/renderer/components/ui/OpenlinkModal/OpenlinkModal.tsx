@@ -93,7 +93,7 @@ export const OpenlinkModal: React.FC<OpenLinkModalProps> = ({
   open,
   handleClose,
   handleConfirm,
-  url = 'https://www.zbay.app/',
+  url = 'https://tryquiet.org/',
   addToWhitelist,
   setWhitelistAll,
   isImage = false,

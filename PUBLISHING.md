@@ -75,7 +75,7 @@ Alpha releases are pre-release versions of the release which are delivered to QA
 1. Trigger a production release with `GH_TOKEN=<token> npm run publish --release=[patch|minor|major|<EXACT_VERSION>]` (e.g. to create a prerelease of a minor update `npm run publish --release=minor`) This should remove the `alpha.x` suffix, and create a release on the [Releases Page](https://github.com/TryQuiet/quiet/releases), and trigger Github Actions to deploy the release to the Google Play Store and App Store. If the semantic version is different from the alpha release, select no in the prompt to create new versions, and call the command again with the exact version.
 1. Manually update the release notes on the [Releases Page](https://github.com/TryQuiet/quiet/releases) with the changes included in the release. See [RELEASE_NOTES_GUIDE.md](RELEASE_NOTES_GUIDE.md) for guidance on writing release notes.
 1. Promote the release on the [Google Play Console](https://play.google.com/console/) to a production track.
-1. Promote the release on the [App Store Connect](https://appstoreconnect.apple.com/).
+1. Promote the release on the [App Store Connect](https://appstoreconnect.apple.com/). If the new version has Approved status on the ios console but users see "This beta isn't accepting any new testers right now." please follow those instructions: [Resolving error](https://help.playtestcloud.com/en/articles/6824982-resolving-the-this-beta-isn-t-accepting-any-new-testers-right-now-error).
 1. Checkout the `gh-pages` branch, and create a PR ([example](https://github.com/TryQuiet/quiet/pull/2605)) to update the download links on the [Quiet website](https://tryquiet.org/#Downloads) to point to the new release.
 
 ## Post-release checklist (production)
