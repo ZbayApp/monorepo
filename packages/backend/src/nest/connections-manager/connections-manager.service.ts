@@ -12,7 +12,7 @@ import { getLibp2pAddressesFromCsrs, removeFilesFromDir } from '../common/utils'
 
 import { LazyModuleLoader } from '@nestjs/core'
 import { createLibp2pAddress, filterValidAddresses, isPSKcodeValid } from '@quiet/common'
-import { CertFieldsTypes, createRootCA, getCertFieldValue, loadCertificate } from '@quiet/identity'
+import { CertFieldsTypes, getCertFieldValue, loadCertificate } from '@quiet/identity'
 import {
   ChannelMessageIdsResponse,
   ChannelSubscribedPayload,
@@ -28,8 +28,6 @@ import {
   FileMetadata,
   GetMessagesPayload,
   InitCommunityPayload,
-  InvitationDataV2,
-  InvitationDataVersion,
   MessagesLoadedPayload,
   NetworkDataPayload,
   NetworkInfo,
@@ -62,7 +60,6 @@ import { SocketService } from '../socket/socket.service'
 import { StorageService } from '../storage/storage.service'
 import { StorageEvents } from '../storage/storage.types'
 import { StorageServiceClient } from '../storageServiceClient/storageServiceClient.service'
-import { ServerStoredCommunityMetadata } from '../storageServiceClient/storageServiceClient.types'
 import { Tor } from '../tor/tor.service'
 import { ConfigOptions, GetPorts, ServerIoProviderTypes } from '../types'
 import { ServiceState, TorInitState } from './connections-manager.types'

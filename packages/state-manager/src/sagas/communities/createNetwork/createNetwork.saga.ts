@@ -60,6 +60,7 @@ export function* createNetworkSaga(
 
   if (payload.inviteData) {
     switch (payload.inviteData.version) {
+      case InvitationDataVersion.v2: // TODO: update to have actual logic https://github.com/TryQuiet/quiet/issues/2628
       case InvitationDataVersion.v1:
         community.psk = payload.inviteData.psk
         community.ownerOrbitDbIdentity = payload.inviteData.ownerOrbitDbIdentity
