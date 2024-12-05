@@ -66,15 +66,19 @@ export const invitationUrl = createSelector(
     const initialPeers = sortedPeerList.slice(0, 3)
     const pairs = p2pAddressesToPairs(initialPeers)
     let inviteData: InvitationData = { pairs, psk: communityPsk, ownerOrbitDbIdentity }
-    if (currentCommunity != null && longLivedInvite != null) {
+    if (currentCommunity != null && currentCommunity.name != null && longLivedInvite != null) {
       inviteData = {
         ...inviteData,
         version: InvitationDataVersion.v2,
         authData: {
-          communityName: currentCommunity.name!,
+          communityName: currentCommunity.name,
           seed: longLivedInvite.seed,
         },
       }
+    } else {
+      logger.warn(
+        `Community and/or LFA invite data is missing, can't create V2 invite link! \nCommunity non-null? ${currentCommunity != null} \nCommunity name non-null? ${currentCommunity?.name != null} \nLFA invite data non-null? ${longLivedInvite != null}`
+      )
     }
     return composeInvitationShareUrl(inviteData)
   }

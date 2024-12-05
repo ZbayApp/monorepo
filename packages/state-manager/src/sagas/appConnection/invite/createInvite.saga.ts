@@ -24,14 +24,12 @@ export function* createInviteSaga(
     socket.emitWithAck,
     applyEmitParams(SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE, existingLongLivedInvite?.id)
   )
-  let longLivedInvite: InviteResult | undefined = undefined
-  if (lfaInviteData?.valid) {
-    longLivedInvite = existingLongLivedInvite
-  } else {
-    longLivedInvite = lfaInviteData?.newInvite
-  }
-
-  if (longLivedInvite != null) {
-    yield* putResolve(connectionActions.setLongLivedInvite(longLivedInvite))
+  if (!lfaInviteData?.valid && lfaInviteData?.newInvite != null) {
+    logger.info(`Existing long-lived invite was invalid, the invite has been replaced`)
+    yield* putResolve(connectionActions.setLongLivedInvite(lfaInviteData.newInvite))
+  } else if (!lfaInviteData?.valid && lfaInviteData?.newInvite == null) {
+    logger.warn(
+      `Existing invalid was missing or undefined and we failed to generate a new one - your sig chain may not be configured!`
+    )
   }
 }
