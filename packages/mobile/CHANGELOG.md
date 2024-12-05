@@ -1,17 +1,20 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-## [2.3.3-alpha.0](https://github.com/TryQuiet/quiet/compare/@quiet/mobile@2.2.1-alpha.1...@quiet/mobile@2.3.3-alpha.0) (2024-12-05)
-
-**Note:** Version bump only for package @quiet/mobile
-
-
-
-
-
 # Changelog
+
+## [unreleased]
+
+## [2.3.3]
+
+### New features
+
+* Adds basic sigchain functions ([#2625](https://github.com/TryQuiet/quiet/issues/2625))
+* Instantiates signature chain when creating communities and reloading application ([#2626](https://github.com/TryQuiet/quiet/issues/2626))
+* Added in LFA-ready invite links ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
+
+### Fixes
+
+* Changed company name in app to "A Quiet LLC" ([#2642](https://github.com/TryQuiet/quiet/issues/2642))
+* Fixed copyright statement in Electron app ([#2589](https://github.com/TryQuiet/quiet/issues/2589))
+* Improved clickable link contrast ([#2593](https://github.com/TryQuiet/quiet/issues/2593))
 
 ## [2.3.2]
 
