@@ -7,6 +7,7 @@
 * Adds basic sigchain functions ([#2625](https://github.com/TryQuiet/quiet/issues/2625))
 * Instantiates signature chain when creating communities and reloading application ([#2626](https://github.com/TryQuiet/quiet/issues/2626))
 * Added in LFA-ready invite links ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
+* Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 
 ## [2.3.2]
 
