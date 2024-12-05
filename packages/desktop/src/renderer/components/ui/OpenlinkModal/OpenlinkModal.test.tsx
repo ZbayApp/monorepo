@@ -173,7 +173,7 @@ describe('OpenlinkModal', () => {
                               <span
                                 class="OpenlinkModalbold"
                               >
-                                www.tryquiet.org
+                                tryquiet.org
                               </span>
                               - I trust them with my data and I'm not using Quiet for anonymity protection. 
                             </div>
@@ -215,7 +215,7 @@ describe('OpenlinkModal', () => {
                               <span
                                 class="OpenlinkModalbold"
                               >
-                                www.tryquiet.org
+                                tryquiet.org
                               </span>
                                
                               again, but don't auto-load images.
@@ -281,7 +281,7 @@ describe('OpenlinkModal', () => {
                                 href=""
                                 style="color: rgb(103, 191, 211); text-decoration: none; word-break: break-all;"
                               >
-                                Load image from site www.tryquiet.org
+                                Load image from site tryquiet.org
                               </a>
                             </div>
                           </div>
