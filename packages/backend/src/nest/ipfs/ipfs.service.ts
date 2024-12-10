@@ -151,7 +151,15 @@ export class IpfsService {
     await this.blockstore?.db.close()
     await this.blockstore?.close()
     await this.datastore?.close()
-    await this.ipfsInstance.stop()
+
+    try {
+      await this.ipfsInstance?.stop()
+    } catch (e) {
+      if ((e as Error).message !== 'Database is not open') {
+        this.logger.error(`Error while closing IPFS instance`, e)
+        throw e
+      }
+    }
     this.started = false
   }
 

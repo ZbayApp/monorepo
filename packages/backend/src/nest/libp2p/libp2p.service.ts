@@ -387,7 +387,7 @@ export class Libp2pService extends EventEmitter {
     clearTimeout(this.redialTimeout)
     await this.hangUpPeers()
     await this.libp2pInstance?.stop()
-    await this.libp2pDatastore.close()
+    await this.libp2pDatastore?.close()
 
     this.libp2pInstance = null
     this.connectedPeers = new Map()
