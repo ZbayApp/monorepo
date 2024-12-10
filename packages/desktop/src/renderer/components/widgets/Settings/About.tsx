@@ -34,7 +34,7 @@ export const About: FC = () => {
           <Typography variant='body2'>
             Version: {version}
             <br />
-            Copyright © {new Date().getFullYear()} Zbay LLC
+            Copyright © {new Date().getFullYear()} Quiet LLC and other contributors
           </Typography>
         </Grid>
       </Grid>

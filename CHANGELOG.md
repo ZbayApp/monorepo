@@ -8,6 +8,10 @@
 * Instantiates signature chain when creating communities and reloading application ([#2626](https://github.com/TryQuiet/quiet/issues/2626))
 * Added in LFA-ready invite links ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 
+### Fixes
+* Changed company name in app to "A Quiet LLC" ([#2642] (https://github.com/TryQuiet/quiet/issues/2642))
+* Fixed copyright statement in Electron app ([#2589] (https://github.com/TryQuiet/quiet/issues/2589))
+
 ## [2.3.2]
 
 ### Chores

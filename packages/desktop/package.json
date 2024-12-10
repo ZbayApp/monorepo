@@ -2,8 +2,8 @@
   "name": "@quiet/desktop",
   "productName": "Quiet",
   "author": {
-    "name": "Zbay LLC",
-    "email": "h@zbay.llc"
+    "name": "Quiet LLC",
+    "email": "h@quiet.chat"
   },
   "license": "GPL-3.0-or-later",
   "build": {
