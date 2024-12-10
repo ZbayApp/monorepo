@@ -42,7 +42,7 @@ export class Libp2pService extends EventEmitter {
   private dialQueue: string[]
   public connectedPeers: Map<string, Libp2pConnectedPeer>
   public dialedPeers: Set<string>
-  private libp2pDatastore: Libp2pDatastore
+  public libp2pDatastore: Libp2pDatastore
   private redialTimeout: NodeJS.Timeout
   private localAddress: string
 
@@ -387,6 +387,7 @@ export class Libp2pService extends EventEmitter {
     clearTimeout(this.redialTimeout)
     await this.hangUpPeers()
     await this.libp2pInstance?.stop()
+    await this.libp2pDatastore.close()
 
     this.libp2pInstance = null
     this.connectedPeers = new Map()

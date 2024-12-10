@@ -335,6 +335,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     this.logger.info('Resetting StorageService')
     await this.storageService.clean()
 
+    this.logger.info('Cleaning libp2p datastore')
+    await this.libp2pService.libp2pDatastore.clean()
+
     this.logger.info('Purging data')
     await this.purgeData()
 

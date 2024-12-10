@@ -2,9 +2,11 @@ import {
   App,
   Channel,
   CreateCommunityModal,
+  DebugModeModal,
   JoinCommunityModal,
   JoiningLoadingPanel,
   RegisterUsernameModal,
+  Sidebar,
 } from '../selectors'
 import getPort from 'get-port'
 import { fork } from 'child_process'
@@ -133,4 +135,73 @@ describe('One Client', () => {
       })
     })
   }
+
+  describe('User leaves community and recreates it', () => {
+    it('Leave community', async () => {
+      const settingsModal = await new Sidebar(app.driver).openSettings()
+      const isSettingsModal = await settingsModal.element.isDisplayed()
+      expect(isSettingsModal).toBeTruthy()
+      await settingsModal.switchTab('leave-community')
+      await sleep(2000)
+      await settingsModal.leaveCommunityButton()
+    })
+
+    it('User sees "join community" page and switches to "create community" view by clicking on the link', async () => {
+      const debugModal = new DebugModeModal(app.driver)
+      await debugModal.close()
+
+      const joinModal = new JoinCommunityModal(app.driver)
+      const isJoinModal = await joinModal.element.isDisplayed()
+      expect(isJoinModal).toBeTruthy()
+
+      if (!isJoinModal) {
+        const generalChannel = new Channel(app.driver, generalChannelName)
+        const isGeneralChannel = await generalChannel.element.isDisplayed()
+
+        expect(isGeneralChannel).toBeTruthy()
+      } else {
+        await joinModal.switchToCreateCommunity()
+      }
+    })
+
+    it('User is on "Create community" page, enters new valid community name and presses the button', async () => {
+      const createModal = new CreateCommunityModal(app.driver)
+      const isCreateModal = await createModal.element.isDisplayed()
+      expect(isCreateModal).toBeTruthy()
+      await createModal.typeCommunityName('testcommunity1')
+      await createModal.submit()
+    })
+
+    it('User sees "register username" page, enters the valid name and submits by clicking on the button', async () => {
+      const registerModal = new RegisterUsernameModal(app.driver)
+      const isRegisterModal = await registerModal.element.isDisplayed()
+
+      expect(isRegisterModal).toBeTruthy()
+      logger.info('Registration - vefore typeUsername')
+      await registerModal.typeUsername(ownerUserName)
+      logger.info('Registration - before submit')
+      await registerModal.submit()
+      logger.info('Registration - after submit')
+    })
+
+    it.skip('User waits for the modal JoiningLoadingPanel to disappear', async () => {
+      const loadingPanelCommunity = new JoiningLoadingPanel(app.driver)
+      const isLoadingPanelCommunity = await loadingPanelCommunity.element.isDisplayed()
+      expect(isLoadingPanelCommunity).toBeTruthy()
+    })
+
+    it('User sees general channel', async () => {
+      generalChannel = new Channel(app.driver, generalChannelName)
+      const isGeneralChannel = await generalChannel.element.isDisplayed()
+      const generalChannelText = await generalChannel.element.getText()
+      expect(isGeneralChannel).toBeTruthy()
+      expect(generalChannelText).toEqual(`# ${generalChannelName}`)
+    })
+
+    it('User sends a message', async () => {
+      const isMessageInput = await generalChannel.messageInput.isDisplayed()
+      expect(isMessageInput).toBeTruthy()
+      await generalChannel.sendMessage('this shows up as sent again', ownerUserName)
+    })
+  })
 })

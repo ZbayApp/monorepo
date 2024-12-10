@@ -66,6 +66,17 @@ export class Libp2pDatastore {
     return this._deleteKeysByPrefixLevel(prefix)
   }
 
+  public async close() {
+    if (!this.inMemory) {
+      await (this.datastore as LevelDatastore).db.close()
+      await (this.datastore as LevelDatastore).close()
+    }
+  }
+
+  public async clean() {
+    this.datastore = undefined
+  }
+
   private async _deleteKeysByPrefixInMemory(prefix: string): Promise<string[]> {
     const deletedKeys: string[] = []
     for await (const key of (this.datastore as MemoryDatastore)._allKeys()) {
