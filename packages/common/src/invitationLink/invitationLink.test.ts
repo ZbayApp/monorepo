@@ -20,8 +20,8 @@ import { createLibp2pAddress } from '../libp2p'
 import { encodeAuthData } from './invitationLink.validator'
 
 describe(`Invitation link helper ${InvitationDataVersion.v1}`, () => {
-  const address = 'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad'
-  const peerId = 'QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wfFJDPPLsbKSE'
+  const address = 'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdvcbzw5vex2crsr26qd'
+  const peerId = '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN4zF'
   const data: InvitationDataV1 = {
     ...validInvitationDatav1[0],
     pairs: [...validInvitationDatav1[0].pairs, { peerId: peerId, onionAddress: address }],
@@ -62,8 +62,8 @@ describe(`Invitation link helper ${InvitationDataVersion.v1}`, () => {
 
   it('converts list of p2p addresses to invitation pairs', () => {
     const pair: InvitationPair = {
-      peerId: 'QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wfFJDPPLsbKSE',
-      onionAddress: 'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
+      peerId,
+      onionAddress: address,
     }
     const peerList = [
       createLibp2pAddress(pair.onionAddress, pair.peerId),
@@ -121,8 +121,8 @@ describe(`Invitation link helper ${InvitationDataVersion.v1}`, () => {
 })
 
 describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
-  const address = 'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad'
-  const peerId = 'QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wfFJDPPLsbKSE'
+  const address = 'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdvcbzw5vex2crsr26qd'
+  const peerId = '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN4zF'
   const data: InvitationDataV2 = {
     ...validInvitationDatav2[0],
     pairs: [...validInvitationDatav1[0].pairs, { peerId: peerId, onionAddress: address }],
@@ -164,8 +164,8 @@ describe(`Invitation link helper ${InvitationDataVersion.v2}`, () => {
 
   it('converts list of p2p addresses to invitation pairs', () => {
     const pair: InvitationPair = {
-      peerId: 'QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wfFJDPPLsbKSE',
-      onionAddress: 'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
+      peerId,
+      onionAddress: address,
     }
     const peerList = [
       createLibp2pAddress(pair.onionAddress, pair.peerId),
