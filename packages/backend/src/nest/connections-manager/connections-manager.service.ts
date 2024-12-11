@@ -368,7 +368,12 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       .readdirSync(this.quietDir)
       .filter(
         i =>
-          i.startsWith('Ipfs') || i.startsWith('OrbitDB') || i.startsWith('backendDB') || i.startsWith('Local Storage')
+          i.startsWith('Ipfs') ||
+          i.startsWith('OrbitDB') ||
+          i.startsWith('backendDB') ||
+          i.startsWith('Local Storage') ||
+          i.startsWith('libp2pDatastore') ||
+          i.startsWith('databases')
       )
     for (const dir of dirsToRemove) {
       const dirPath = path.join(this.quietDir, dir)
