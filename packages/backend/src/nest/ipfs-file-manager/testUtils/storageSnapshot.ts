@@ -39,7 +39,7 @@ export class StorageTestSnapshot extends Storage {
   public useSnapshot: boolean
   public name: string
   public replicationTime: number
-  public declare options: StorageTestSnapshotOptions
+  declare public options: StorageTestSnapshotOptions
   protected snapshotSaved: boolean
   protected msgReplCount: number
 
@@ -133,9 +133,7 @@ export class StorageTestSnapshot extends Storage {
     })
 
     // eslint-disable-next-line
-    this.messages.events.on(
-      'replicate.progress',
-      async (_address, _hash, _entry, progress, _total) => {
+    this.messages.events.on('replicate.progress', async (_address, _hash, _entry, progress, _total) => {
       if (!this.replicationStartTime) {
         logger.time(`${this.name}; Replication time`)
         this.replicationStartTime = new Date()
