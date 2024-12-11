@@ -249,6 +249,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
   public async closeAllServices(options: { saveTor: boolean } = { saveTor: false }) {
     this.logger.info('Saving active sigchain')
     await this.saveActiveChain()
+    await this.sigChainService.deleteChain(this.sigChainService.activeChainTeamName!, false)
 
     this.logger.info('Closing services')
 
