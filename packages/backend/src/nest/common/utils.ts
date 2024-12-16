@@ -250,6 +250,7 @@ export const libp2pInstanceParams = async (): Promise<Libp2pNodeParams> => {
 export const createTmpDir = (prefix = 'quietTestTmp_'): tmp.DirResult => {
   return tmp.dirSync({ mode: 0o750, prefix, unsafeCleanup: true })
 }
+
 export const tmpQuietDirPath = (name: string): string => {
   return path.join(name, TestConfig.QUIET_DIR)
 }
@@ -257,15 +258,15 @@ export const tmpQuietDirPath = (name: string): string => {
 export function createFile(filePath: string, size: number) {
   const stream = fs.createWriteStream(filePath)
   const maxChunkSize = 1048576 // 1MB
-  if (size < maxChunkSize) {
-    stream.write(crypto.randomBytes(size))
-  } else {
-    const chunks = Math.floor(size / maxChunkSize)
-    for (let i = 0; i < chunks; i++) {
-      stream.write(crypto.randomBytes(Math.min(size, maxChunkSize)))
-      size -= maxChunkSize
-    }
+
+  let remainingSize = size
+
+  while (remainingSize > 0) {
+    const chunkSize = Math.min(maxChunkSize, remainingSize)
+    stream.write(crypto.randomBytes(chunkSize))
+    remainingSize -= chunkSize
   }
+
   stream.end()
 }
 

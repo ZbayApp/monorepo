@@ -19,8 +19,8 @@ import fs from 'fs'
 import { createLogger } from '../common/logger'
 
 const logger = createLogger('bigFiles:test')
+const BIG_FILE_SIZE = 2147483000
 
-jest.setTimeout(200_000)
 describe('IpfsFileManagerService', () => {
   let module: TestingModule
   let ipfsFileManagerService: IpfsFileManagerService
@@ -30,12 +30,11 @@ describe('IpfsFileManagerService', () => {
   let tmpDir: DirResult
   let filePath: string
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     tmpDir = createTmpDir()
     filePath = new URL('./testUtils/large-file.txt', import.meta.url).pathname
     // Generate 2.1GB file
-    createFile(filePath, 2147483000)
-    sleep(5000)
+    createFile(filePath, BIG_FILE_SIZE)
     module = await Test.createTestingModule({
       imports: [TestModule, IpfsFileManagerModule, IpfsModule, SocketModule, Libp2pModule],
     }).compile()
@@ -63,9 +62,7 @@ describe('IpfsFileManagerService', () => {
     await ipfsService.stop()
     await ipfsFileManagerService.stop()
     await module.close()
-    sleep(1000)
   })
-
   it('uploads large files', async () => {
     // Uploading
     const eventSpy = jest.spyOn(ipfsFileManagerService, 'emit')
@@ -79,6 +76,18 @@ describe('IpfsFileManagerService', () => {
         id: 'id',
         channelId: 'channelId',
       },
+    }
+    await waitForExpect(
+      () => {
+        expect(fs.statSync(filePath).size).toBe(BIG_FILE_SIZE)
+      },
+      100000,
+      100
+    )
+    if (metadata.path) {
+      logger.info(`Uploading file ${metadata.path} of size ${fs.statSync(metadata.path).size}`)
+    } else {
+      logger.error('File path is null')
     }
 
     await ipfsFileManagerService.uploadFile(metadata)
@@ -127,8 +136,6 @@ describe('IpfsFileManagerService', () => {
         })
       )
     })
-
-    await sleep(20_000)
 
     await ipfsFileManagerService.stop()
     logger.time('Stopping ipfs')
