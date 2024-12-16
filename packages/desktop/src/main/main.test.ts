@@ -20,7 +20,6 @@ const mockWindowOnce = jest.fn()
 const mockSetMovable = jest.fn()
 const mockSetAlwaysOnTop = jest.fn()
 
-const spyApplyDevTools = jest.spyOn(main, 'applyDevTools')
 const spyCreateWindow = jest.spyOn(main, 'createWindow')
 const spyGetPorts = jest.spyOn(backendHelpers, 'getPorts')
 
@@ -136,11 +135,6 @@ describe('electron app ready event', () => {
     expect(setApplicationMenu).toHaveBeenCalledTimes(1)
     expect(setApplicationMenu).toHaveBeenCalledWith(null)
   })
-
-  // todo
-  // it('apply devtools logic will trigger one time and ... todo', async () => {
-  //   expect(spyApplyDevTools).toHaveBeenCalledTimes(1)
-  // })
 
   it('get ports logic will trigger and will return propper ports', async () => {
     expect(spyGetPorts).toHaveBeenCalledTimes(1)
