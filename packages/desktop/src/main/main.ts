@@ -132,12 +132,21 @@ export const applyDevTools = async () => {
   ]
   await Promise.all(
     extensionsData.map(async extension => {
-      await installer.default(extension.name)
+      try {
+        await installer.default(extension.name)
+      } catch (error) {
+        logger.error(`Failed to install ${extension.name}:${extension.path}:`, error)
+      }
     })
   )
+
   await Promise.all(
     extensionsData.map(async extension => {
-      await session.defaultSession.loadExtension(extension.path, { allowFileAccess: true })
+      try {
+        await session.defaultSession.loadExtension(extension.path, { allowFileAccess: true })
+      } catch (error) {
+        logger.error(`Failed to load extension from ${extension.path}:`, error)
+      }
     })
   )
 }
