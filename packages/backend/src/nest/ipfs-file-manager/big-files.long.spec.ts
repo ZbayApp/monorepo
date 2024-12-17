@@ -14,7 +14,6 @@ import { SocketModule } from '../socket/socket.module'
 import { StorageEvents } from '../storage/storage.types'
 import { IpfsFileManagerModule } from './ipfs-file-manager.module'
 import { IpfsFileManagerService } from './ipfs-file-manager.service'
-import { sleep } from '../common/sleep'
 import fs from 'fs'
 import { createLogger } from '../common/logger'
 
