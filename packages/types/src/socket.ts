@@ -65,6 +65,12 @@ export enum SocketActionTypes {
   CSRS_STORED = 'csrsStored',
   REGISTER_USER_CERTIFICATE = 'registerUserCertificate',
 
+  // ====== Local First Auth ======
+
+  CREATE_LONG_LIVED_LFA_INVITE = 'createLongLivedLfaInvite',
+  VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE = 'validateOrCreateLongLivedLfaInvite',
+  CREATED_LONG_LIVED_LFA_INVITE = 'createdLongLivedLfaInvite',
+
   // ====== Network ======
 
   CLOSE = 'close',

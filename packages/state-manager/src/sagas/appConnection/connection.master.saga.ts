@@ -1,15 +1,17 @@
-import { all, takeEvery, fork, cancelled } from 'typed-redux-saga'
+import { all, fork, cancelled, takeEvery } from 'typed-redux-saga'
 import { uptimeSaga } from './uptime/uptime.saga'
-import { connectionActions } from './connection.slice'
+
+import { type Socket } from '../../types'
 import { createLogger } from '../../utils/logger'
-import { onConnectionProcessInfo } from './onConnectionProcessInfo/onConnectionProcessInfo.saga'
+import { connectionActions } from './connection.slice'
+import { createInviteSaga } from './invite/createInvite.saga'
 
 const logger = createLogger('connectionMasterSaga')
 
-export function* connectionMasterSaga(): Generator {
+export function* connectionMasterSaga(socket: Socket): Generator {
   logger.info('connectionMasterSaga starting')
   try {
-    yield all([fork(uptimeSaga), takeEvery(connectionActions.onConnectionProcessInfo.type, onConnectionProcessInfo)])
+    yield all([fork(uptimeSaga), takeEvery(connectionActions.createInvite.type, createInviteSaga, socket)])
   } finally {
     logger.info('connectionMasterSaga stopping')
     if (yield cancelled()) {

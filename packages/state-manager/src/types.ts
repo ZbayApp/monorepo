@@ -25,6 +25,7 @@ import {
   type DeleteChannelResponse,
   type Identity,
 } from '@quiet/types'
+import { InviteResult } from '3rd-party/auth/packages/auth/dist'
 
 interface EventsMap {
   [event: string]: (...args: any[]) => void
@@ -61,6 +62,11 @@ export interface EmitEvents {
   [SocketActionTypes.ADD_CSR]: EmitEvent<SaveCSRPayload>
   [SocketActionTypes.SET_USER_PROFILE]: EmitEvent<UserProfile>
   [SocketActionTypes.LOAD_MIGRATION_DATA]: EmitEvent<Record<string, any>>
+  // ====== Local First Auth ======
+  [SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE]: EmitEvent<
+    string,
+    (response: { valid: boolean; newInvite?: InviteResult }) => void
+  >
 }
 
 export type Socket = IOSocket<EventsMap, EmitEvents>
