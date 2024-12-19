@@ -14,6 +14,7 @@ import path from 'path'
 import { createLogger } from '../logger'
 import { sleep } from '../utils'
 import { UploadedFileType } from '../enums'
+import { TEST_IMAGE_FILE_NAME, UPLOAD_FILE_DIR } from '../uploadFile.const'
 
 const logger = createLogger('oneClient')
 
@@ -208,15 +209,13 @@ describe('One Client', () => {
 
   describe('Uploading files', () => {
     it('Owner uploads an image', async () => {
-      const filename = 'testImage.gif'
-      const uploadFilePath = path.resolve('./src/tests/resources/', filename)
-      await generalChannel.uploadFile(filename, uploadFilePath, UploadedFileType.IMAGE, ownerUserName)
+      const uploadFilePath = path.resolve(UPLOAD_FILE_DIR, TEST_IMAGE_FILE_NAME)
+      await generalChannel.uploadFile(TEST_IMAGE_FILE_NAME, uploadFilePath, UploadedFileType.IMAGE, ownerUserName)
     })
 
     it('Owner uploads a non-image file', async () => {
-      const filename = 'testFile.pdf'
-      const uploadFilePath = path.resolve('./src/tests/resources/', filename)
-      await generalChannel.uploadFile(filename, uploadFilePath, UploadedFileType.FILE, ownerUserName)
+      const uploadFilePath = path.resolve(UPLOAD_FILE_DIR, TEST_IMAGE_FILE_NAME)
+      await generalChannel.uploadFile(TEST_IMAGE_FILE_NAME, uploadFilePath, UploadedFileType.FILE, ownerUserName)
     })
   })
 })

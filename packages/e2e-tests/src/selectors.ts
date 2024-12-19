@@ -457,7 +457,7 @@ export class Channel {
   }
 
   get uploadFileInput() {
-    return this.driver.wait(this.driver.findElement(By.xpath('//*[@data-testid="uploadFileInput"]')))
+    return this.driver.wait(this.driver.findElement(By.xpath('//*[@data-testid="uploadFileInput"]')), 15_000)
   }
 
   async sendMessage(message: string, username: string): Promise<MessageIds> {
@@ -646,7 +646,8 @@ export class Channel {
   ): Promise<WebElement> {
     logger.info(`Waiting for file content for message with filename ${filename} and type ${fileType}`)
     const messageContentElements = await this.driver.wait(
-      messageElement.findElements(By.xpath(`//*[contains(@data-testid, "messagesGroupContent-")]`))
+      messageElement.findElements(By.xpath(`//*[contains(@data-testid, "messagesGroupContent-")]`)),
+      45_000
     )
     for (const element of messageContentElements) {
       logger.info(await element.getId())
@@ -655,12 +656,14 @@ export class Channel {
       switch (fileType) {
         case UploadedFileType.IMAGE:
           containerElements = await this.driver.wait(
-            element.findElements(By.xpath(`//*[@class='UploadedImagecontainer']`))
+            element.findElements(By.xpath(`//*[@class='UploadedImagecontainer']`)),
+            45_000
           )
           break
         case UploadedFileType.FILE:
           containerElements = await this.driver.wait(
-            element.findElements(By.xpath(`//*[contains(@data-testid, "-fileComponent")]`))
+            element.findElements(By.xpath(`//*[contains(@data-testid, "-fileComponent")]`)),
+            45_000
           )
           break
       }
@@ -676,12 +679,14 @@ export class Channel {
         switch (fileType) {
           case UploadedFileType.IMAGE:
             contentElement = await this.driver.wait(
-              container.findElement(By.xpath(`//img[@class='UploadedImageimage']`))
+              container.findElement(By.xpath(`//img[@class='UploadedImageimage']`)),
+              45_000
             )
             break
           case UploadedFileType.FILE:
             contentElement = await this.driver.wait(
-              container.findElement(By.xpath(`//img[@class='FileComponentactionIcon']`))
+              container.findElement(By.xpath(`//img[@class='FileComponentactionIcon']`)),
+              45_000
             )
             break
         }

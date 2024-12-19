@@ -4,3 +4,4 @@ screenshots/
 
 Quiet/Quiet**
 .env
+src/tests/resources/bigTestFile.bin

@@ -23,7 +23,7 @@ import path from 'path'
 import { type PeerId } from '@libp2p/interface'
 import waitForExpect from 'wait-for-expect'
 import { TestModule } from '../common/test.module'
-import { createFile, libp2pInstanceParams } from '../common/utils'
+import { libp2pInstanceParams } from '../common/utils'
 import { IpfsModule } from '../ipfs/ipfs.module'
 import { IpfsService } from '../ipfs/ipfs.service'
 import { Libp2pModule } from '../libp2p/libp2p.module'
@@ -38,8 +38,8 @@ import { LocalDbModule } from '../local-db/local-db.module'
 import { LocalDbService } from '../local-db/local-db.service'
 import { ORBIT_DB_DIR } from '../const'
 import { createLogger } from '../common/logger'
-import { sleep } from '../common/sleep'
 import { createUserCertificateTestHelper, createTestRootCA } from '@quiet/identity'
+import { createArbitraryFile } from '@quiet/common'
 
 const logger = createLogger('storageService:test')
 
@@ -343,7 +343,7 @@ describe('StorageService', () => {
 
     beforeEach(async () => {
       realFilePath = path.join(dirname, '/real-file.txt')
-      createFile(realFilePath, 2147483)
+      createArbitraryFile(realFilePath, 2147483)
       await storageService.init(peerId)
 
       const metadata: FileMetadata = {

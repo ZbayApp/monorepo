@@ -255,21 +255,6 @@ export const tmpQuietDirPath = (name: string): string => {
   return path.join(name, TestConfig.QUIET_DIR)
 }
 
-export function createFile(filePath: string, size: number) {
-  const stream = fs.createWriteStream(filePath)
-  const maxChunkSize = 1048576 // 1MB
-
-  let remainingSize = size
-
-  while (remainingSize > 0) {
-    const chunkSize = Math.min(maxChunkSize, remainingSize)
-    stream.write(crypto.randomBytes(chunkSize))
-    remainingSize -= chunkSize
-  }
-
-  stream.end()
-}
-
 export async function createPeerId(): Promise<PeerId> {
   const peerId = await createEd25519PeerId()
   return peerIdFromKeys(peerId.publicKey, peerId.privateKey)

@@ -15,6 +15,14 @@ import { MessageIds, UserTestData } from '../types'
 import { createLogger } from '../logger'
 import * as path from 'path'
 import { UploadedFileType } from '../enums'
+import {
+  BIG_FILE_SIZE,
+  TEST_BIG_FILE_NAME,
+  TEST_FILE_NAME,
+  TEST_IMAGE_FILE_NAME,
+  UPLOAD_FILE_DIR,
+} from '../uploadFile.const'
+import { createArbitraryFile } from '@quiet/common'
 
 const logger = createLogger('multipleClients')
 
@@ -473,38 +481,52 @@ describe('Multiple Clients', () => {
       let largeFileMessageIds: MessageIds | undefined = undefined
 
       it('Owner uploads an image', async () => {
-        const filename = 'testImage.gif'
-        const uploadFilePath = path.resolve('./src/tests/resources/', filename)
-        await generalChannelOwner.uploadFile(filename, uploadFilePath, UploadedFileType.IMAGE, users.owner.username)
+        const uploadFilePath = path.resolve(UPLOAD_FILE_DIR, TEST_IMAGE_FILE_NAME)
+        await generalChannelOwner.uploadFile(
+          TEST_IMAGE_FILE_NAME,
+          uploadFilePath,
+          UploadedFileType.IMAGE,
+          users.owner.username
+        )
       })
 
       it('Guest sees uploaded image', async () => {
         await sleep(10_000)
-        const filename = 'testImage.gif'
-        await generalChannelUser1.getMessageIdsByFile(filename, UploadedFileType.IMAGE, users.owner.username)
+        await generalChannelUser1.getMessageIdsByFile(
+          TEST_IMAGE_FILE_NAME,
+          UploadedFileType.IMAGE,
+          users.owner.username
+        )
       })
 
       it('Owner uploads a file', async () => {
-        const filename = 'testFile.pdf'
-        const uploadFilePath = path.resolve('./src/tests/resources/', filename)
-        await generalChannelOwner.uploadFile(filename, uploadFilePath, UploadedFileType.FILE, users.owner.username)
+        const uploadFilePath = path.resolve(UPLOAD_FILE_DIR, TEST_FILE_NAME)
+        await generalChannelOwner.uploadFile(
+          TEST_FILE_NAME,
+          uploadFilePath,
+          UploadedFileType.FILE,
+          users.owner.username
+        )
       })
 
       it('Guest sees uploaded file and it downloads', async () => {
-        const filename = 'testFile.pdf'
-        await generalChannelUser1.getMessageIdsByFile(filename, UploadedFileType.FILE, users.owner.username)
+        await generalChannelUser1.getMessageIdsByFile(TEST_FILE_NAME, UploadedFileType.FILE, users.owner.username)
       })
 
       it('Owner uploads a large file', async () => {
-        const filename = 'largeTestFile.bin'
-        const uploadFilePath = path.resolve('./src/tests/resources/', filename)
-        await generalChannelOwner.uploadFile(filename, uploadFilePath, UploadedFileType.FILE, users.owner.username)
+        const uploadFilePath = path.resolve(UPLOAD_FILE_DIR, TEST_BIG_FILE_NAME)
+        createArbitraryFile(uploadFilePath, BIG_FILE_SIZE)
+        await generalChannelOwner.uploadFile(
+          TEST_BIG_FILE_NAME,
+          uploadFilePath,
+          UploadedFileType.FILE,
+          users.owner.username
+        )
       })
 
       it(`Guest sees uploaded large file`, async () => {
-        const filename = 'largeTestFile.bin'
         largeFileMessageIds = await generalChannelUser1.getMessageIdsByFile(
-          filename,
+          TEST_BIG_FILE_NAME,
           UploadedFileType.FILE,
           users.owner.username
         )
