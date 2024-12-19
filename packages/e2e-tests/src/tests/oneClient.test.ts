@@ -210,14 +210,12 @@ describe('One Client', () => {
     it('Owner uploads an image', async () => {
       const filename = 'testImage.gif'
       const uploadFilePath = path.resolve('./src/tests/resources/', filename)
-      logger.info(`Upload image path`, uploadFilePath)
       await generalChannel.uploadFile(filename, uploadFilePath, UploadedFileType.IMAGE, ownerUserName)
     })
 
     it('Owner uploads a non-image file', async () => {
       const filename = 'testFile.pdf'
       const uploadFilePath = path.resolve('./src/tests/resources/', filename)
-      logger.info(`Upload file path`, uploadFilePath)
       await generalChannel.uploadFile(filename, uploadFilePath, UploadedFileType.FILE, ownerUserName)
     })
   })

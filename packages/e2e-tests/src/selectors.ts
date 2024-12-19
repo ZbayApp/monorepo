@@ -403,11 +403,15 @@ export class Channel {
     baseElement: WebElement
   ): Promise<WebElement | undefined> {
     try {
-      const filenameComponentElement = await baseElement.findElement(By.xpath(`//*[@class='FileComponentfilename']`))
+      const filenameComponentElement = await await this.driver.wait(
+        baseElement.findElement(By.xpath(`//*[@class='FileComponentfilename']`)),
+        45_000
+      )
       const parsedPath = path.parse(filename)
       // this is split because we print the message as multiple lines and contains doesn't return true when searching the full filename
-      const filenameElement = await filenameComponentElement.findElement(
-        By.xpath(`//h5[contains(text(), "${parsedPath.name}")]`)
+      const filenameElement = await this.driver.wait(
+        filenameComponentElement.findElement(By.xpath(`//h5[contains(text(), "${parsedPath.name}")]`)),
+        45_000
       )
       if ((await filenameElement.getText()) === filename) {
         return filenameElement
@@ -426,7 +430,10 @@ export class Channel {
     baseElement: WebElement
   ): Promise<WebElement | undefined> {
     try {
-      const filenameElement = await baseElement.findElement(By.xpath(`//p[text()='${filename}']`))
+      const filenameElement = await this.driver.wait(
+        baseElement.findElement(By.xpath(`//p[text()='${filename}']`)),
+        45_000
+      )
       return filenameElement
     } catch (e) {
       if (!e.message.includes('no such element')) {
@@ -450,7 +457,7 @@ export class Channel {
   }
 
   get uploadFileInput() {
-    return this.driver.wait(until.elementLocated(By.xpath('//*[@data-testid="uploadFileInput"]')))
+    return this.driver.wait(this.driver.findElement(By.xpath('//*[@data-testid="uploadFileInput"]')))
   }
 
   async sendMessage(message: string, username: string): Promise<MessageIds> {
@@ -471,8 +478,25 @@ export class Channel {
     await uploadFileInput.sendKeys(filePath)
     const sendMessageInput = await this.messageInput
     await sendMessageInput.sendKeys(Key.ENTER)
-    await sleep(10_000)
+    await sleep(5_000)
     return this.getMessageIdsByFile(filename, fileType, username)
+  }
+
+  async cancelFileDownload(messageIds: MessageIds): Promise<boolean> {
+    try {
+      const messageElement = await this.waitForMessageContentById(messageIds.messageId)
+      const downloadingElement = await this.driver.wait(
+        messageElement.findElement(By.xpath(`//p[text()='Downloading...']`)),
+        45_000
+      )
+      await downloadingElement.click()
+      await sleep(10_000)
+      await this.driver.wait(messageElement.findElement(By.xpath(`//p[text()='Download file']`)), 45_000)
+      return true
+    } catch (e) {
+      logger.error(`Error occurred while canceling download`, e)
+      return false
+    }
   }
 
   async getMessageIdsByText(message: string, username: string): Promise<MessageIds> {
