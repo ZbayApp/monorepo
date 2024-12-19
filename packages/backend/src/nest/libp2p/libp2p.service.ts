@@ -29,9 +29,10 @@ import { getUsersAddresses } from '../common/utils'
 import { LIBP2P_DB_PATH, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { ServerIoProviderTypes } from '../types'
 import { webSockets } from '../websocketOverTor'
-import { Libp2pConnectedPeer, Libp2pEvents, Libp2pNodeParams, Libp2pPeerInfo } from './libp2p.types'
+import { Libp2pConnectedPeer, Libp2pEvents, Libp2pNodeParams, Libp2pPeerInfo, QuietAuthEvents } from './libp2p.types'
 import { createLogger } from '../common/logger'
 import { Libp2pDatastore } from './libp2p.datastore'
+import { libp2pAuth } from './libp2p.auth'
 
 const KEY_LENGTH = 32
 export const LIBP2P_PSK_METADATA = '/key/swarm/psk/1.0.0/\n/base16/\n'
@@ -278,6 +279,7 @@ export class Libp2pService extends EventEmitter {
           pubsub: gossipsub({
             // neccessary to run a single peer
             allowPublishToZeroTopicPeers: true,
+            debugName: params.peerId.toString(),
             fallbackToFloodsub: true,
             emitSelf: true,
           }),
