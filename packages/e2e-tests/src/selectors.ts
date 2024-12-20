@@ -219,6 +219,12 @@ export class ChannelContextMenu {
       `Channel context menu couldn't be located within timeout`,
       500
     )
+    await this.driver.wait(
+      until.elementIsVisible(menu),
+      15_000,
+      `Channel context menu was not visibile within timeout`,
+      500
+    )
     await menu.click()
   }
 
@@ -227,6 +233,12 @@ export class ChannelContextMenu {
       until.elementLocated(By.xpath('//div[@data-testid="contextMenuItemDelete"]')),
       15_000,
       `Channel context menu channel deletion modal couldn't be located within timeout`,
+      500
+    )
+    await this.driver.wait(
+      until.elementIsVisible(tab),
+      15_000,
+      `Channel context menu channel deletion tab was not visibile within timeout`,
       500
     )
     await tab.click()
@@ -238,6 +250,12 @@ export class ChannelContextMenu {
       until.elementLocated(By.xpath('//button[@data-testid="deleteChannelButton"]')),
       20_000,
       `Channel deletion button couldn't be located within timeout`,
+      500
+    )
+    await this.driver.wait(
+      until.elementIsVisible(button),
+      15_000,
+      `Channel context menu delete channel button was not visibile within timeout`,
       500
     )
     await button.click()
