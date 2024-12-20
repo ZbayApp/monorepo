@@ -23,6 +23,7 @@ import {
   type MessagesLoadedPayload,
   SendMessagePayload,
   SocketActionTypes,
+  type PublicChannel,
 } from '@quiet/types'
 
 import { modalsActions, ModalsInitialState } from '../renderer/sagas/modals/modals.slice'
@@ -98,12 +99,10 @@ describe('Add new channel', () => {
         const payload = input[1] as CreateChannelPayload
         expect(payload.channel.owner).toEqual(alice.nickname)
         expect(payload.channel.name).toEqual(channelName.output)
-        const channels = store.getState().PublicChannels.channels.entities
+        const channelEntities = store.getState().PublicChannels.channels.entities
+        const channels = Object.values(channelEntities).filter(x => x) as PublicChannel[]
         return socket.socketClient.emit<ChannelsReplicatedPayload>(SocketActionTypes.CHANNELS_STORED, {
-          channels: {
-            ...channels,
-            [payload.channel.name]: payload.channel,
-          },
+          channels: [...channels, payload.channel],
         })
       }
       if (action === SocketActionTypes.SEND_MESSAGE) {
@@ -311,12 +310,10 @@ describe('Add new channel', () => {
         // const payload = data[0]
         expect(payload.channel.owner).toEqual(alice.nickname)
         expect(payload.channel.name).toEqual(channelName)
-        const channels = store.getState().PublicChannels.channels.entities
+        const channelEntities = store.getState().PublicChannels.channels.entities
+        const channels = Object.values(channelEntities).filter(x => x) as PublicChannel[]
         return socket.socketClient.emit<ChannelsReplicatedPayload>(SocketActionTypes.CHANNELS_STORED, {
-          channels: {
-            ...channels,
-            [payload.channel.name]: payload.channel,
-          },
+          channels: [...channels, payload.channel],
         })
       }
       if (action === SocketActionTypes.SEND_MESSAGE) {
@@ -409,13 +406,10 @@ describe('Add new channel', () => {
         const data = input[1]
         const payload = data
         expect(payload.channel.owner).toEqual(alice.nickname)
-        const channels = store.getState().PublicChannels.channels.entities
-        // expect(payload.channel.name).toEqual(channelName.output)
+        const channelEntities = store.getState().PublicChannels.channels.entities
+        const channels = Object.values(channelEntities).filter(x => x) as PublicChannel[]
         return socket.socketClient.emit<ChannelsReplicatedPayload>(SocketActionTypes.CHANNELS_STORED, {
-          channels: {
-            ...channels,
-            [payload.channel.name]: payload.channel,
-          },
+          channels: [...channels, payload.channel],
         })
       }
     }

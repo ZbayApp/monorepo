@@ -1,12 +1,10 @@
-import KeyValueStore from 'orbit-db-kvstore'
-import Store from 'orbit-db-store'
-import EventStore from 'orbit-db-eventstore'
+import { type KeyValueType, type EventsType } from '@orbitdb/core'
 import { EventEmitter } from 'events'
 import { createLogger } from '../common/logger'
 
 const logger = createLogger('store')
 
-abstract class StoreBase<V, S extends KeyValueStore<V> | EventStore<V>> extends EventEmitter {
+abstract class StoreBase<V, S extends KeyValueType<V> | EventsType<V>> extends EventEmitter {
   protected abstract store: S | undefined
 
   getStore() {
@@ -16,28 +14,28 @@ abstract class StoreBase<V, S extends KeyValueStore<V> | EventStore<V>> extends 
     return this.store
   }
 
-  getAddress(): Store['address'] {
+  getAddress(): string {
     return this.getStore().address
   }
 
   async close(): Promise<void> {
-    logger.info('Closing', this.getAddress().path)
-    await this.store?.close()
-    logger.info('Closed', this.getAddress().path)
+    logger.info('Closing', this.getAddress())
+    await this.getStore().close()
+    logger.info('Closed', this.getAddress())
   }
 
   abstract init(): Promise<void>
   abstract clean(): void
 }
 
-export abstract class KeyValueStoreBase<V> extends StoreBase<V, KeyValueStore<V>> {
-  protected store: KeyValueStore<V> | undefined
+export abstract class KeyValueStoreBase<V> extends StoreBase<V, KeyValueType<V>> {
+  protected store: KeyValueType<V> | undefined
   abstract setEntry(key: string, value: V): Promise<V>
-  abstract getEntry(key?: string): V | null
+  abstract getEntry(key?: string): Promise<V | null>
 }
 
-export abstract class EventStoreBase<V> extends StoreBase<V, EventStore<V>> {
-  protected store: EventStore<V> | undefined
+export abstract class EventStoreBase<V> extends StoreBase<V, EventsType<V>> {
+  protected store: EventsType<V> | undefined
   abstract addEntry(value: V): Promise<string>
   abstract getEntries(): Promise<V[]>
 }

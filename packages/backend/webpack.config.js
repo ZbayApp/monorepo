@@ -41,14 +41,6 @@ const webpackConfig = (env) => {
 
                 },
                 {
-                    test: /node_modules[\/\\]@achingbrain[\/\\]ssdp[\/\\]dist[\/\\]src[\/\\]default-ssdp-options.js/,
-                    loader: 'string-replace-loader',
-                    options: {
-                        search: "const pkg = req('../../package.json')",
-                        replace: "import pkg from '../../package.json'"
-                    }
-                },
-                {
                     test: /node_modules[\/\\]classic-level[\/\\]index.js/,
                     loader: 'string-replace-loader',
                     options: {

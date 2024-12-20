@@ -1,8 +1,8 @@
-import type EventStore from 'orbit-db-eventstore'
+import { type EventsType } from '@orbitdb/core'
 import { type ChannelMessage, type PublicChannel } from '@quiet/types'
 
 export interface PublicChannelsRepo {
-  db: EventStore<ChannelMessage>
+  db: EventsType<ChannelMessage>
   eventsAttached: boolean
 }
 

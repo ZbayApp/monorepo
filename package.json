@@ -7,7 +7,8 @@
     "postpublish": "node copy-changelog.js && git add . && git commit -m 'Update packages CHANGELOG.md' && git push",
     "start:desktop": "lerna run --scope @quiet/desktop start",
     "lint:all": "lerna run lint",
-    "distAndRunE2ETests:mac:local": "lerna run --scope @quiet/desktop distMac:local && lerna run --scope e2e-tests test:localBinary --",
+    "distAndRunE2ETests:mac:local": "lerna run --scope @quiet/desktop distMac:local && npm run e2e:mac:local",
+    "e2e:mac:local": "lerna run --scope e2e-tests test:localBinary --",
     "e2e:linux:build": "lerna run --scope @quiet/backend webpack:prod && lerna run --scope @quiet/desktop distUbuntu && lerna run --scope e2e-tests linux:copy",
     "e2e:linux:run": "lerna run --scope e2e-tests test --",
     "prepare": "husky",
@@ -23,7 +24,11 @@
   "devDependencies": {
     "husky": "^9.0.11",
     "lerna": "^6.6.2",
-    "typescript": "^4.9.3",
-    "pnpm": "^9.12.1"
+    "pnpm": "^9.12.1",
+    "typescript": "^4.9.3"
+  },
+  "volta": {
+    "node": "18.12.1",
+    "npm": "8.19.2"
   }
 }

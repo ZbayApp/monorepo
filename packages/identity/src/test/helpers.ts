@@ -8,7 +8,7 @@ import config from '../config'
 export const userData = {
   nickname: 'userName',
   commonName: 'nqnw4kc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion',
-  peerId: 'Qmf3ySkYqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6',
+  peerId: '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx',
   signAlg: config.signAlg,
   hashAlg: config.hashAlg,
 }

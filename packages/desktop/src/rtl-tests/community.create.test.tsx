@@ -118,15 +118,15 @@ describe('User', () => {
         })
 
         socket.socketClient.emit<ChannelsReplicatedPayload>(SocketActionTypes.CHANNELS_STORED, {
-          channels: {
-            general: {
+          channels: [
+            {
               name: 'general',
               description: 'string',
               owner: 'owner',
               timestamp: 0,
               id: generalId,
             },
-          },
+          ],
         })
 
         return { id: payload.id, ownerCertificate: 'cert' }

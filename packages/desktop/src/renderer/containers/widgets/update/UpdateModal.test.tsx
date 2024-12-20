@@ -1,5 +1,4 @@
 import React from 'react'
-import { jest } from '@jest/globals'
 import { fireEvent, screen } from '@testing-library/dom'
 import { prepareStore, renderComponent } from '../../../testUtils'
 import { StoreKeys } from '@quiet/state-manager'

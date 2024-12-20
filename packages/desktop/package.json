@@ -85,8 +85,8 @@
   "main": "dist/main/main.js",
   "scripts": {
     "version": "echo $npm_package_version",
-    "copyBinaries": "cp -R ../../3rd-party/tor/$SOURCE_PATH/ ./tor/ && chmod 775 ./tor/tor",
-    "copyBinariesDarwin": "cp -R ../../3rd-party/tor/$SOURCE_PATH/ ./tor/ && chmod 775 ./tor/arm64/tor ./tor/x64/tor",
+    "copyBinaries": "cp -R ../../3rd-party/tor/linux/ ./tor/ && chmod 775 ./tor/tor",
+    "copyBinariesDarwin": "cp -R ../../3rd-party/tor/darwin/ ./tor/ && chmod 775 ./tor/arm64/tor ./tor/x64/tor",
     "copyBinariesWin": "xcopy ..\\..\\3rd-party\\tor\\win32 .\\tor\\",
     "pullLibs": "wget -N https://zbay-binaries.s3.us-east-2.amazonaws.com/$SOURCE_PATH/libssl.so -P ./ && chmod 775 ./libssl.so",
     "distMac:local": "export DEBUG=* SOURCE_PATH=darwin TEST_MODE=true IS_LOCAL=true && npm run copyBinariesDarwin && npm run build:dev:dist && electron-builder --mac -p never -c.mac.type=development -c.mac.identity=null",
@@ -116,7 +116,7 @@
     "build:renderer:prod": "webpack --config webpack/webpack.config.renderer.prod.js",
     "postBuild": "node scripts/postBuild.js",
     "prestart": "npm run build:main",
-    "start": "cross-env DEBUG='backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,libp2p:websockets:listener:backend,libp2p:connection-manager:auto-dialler' npm run start:renderer",
+    "start": "cross-env DEBUG='backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,libp2p:connection-manager:auto-dial' npm run start:renderer",
     "start:main": "cross-env COLORIZE=true NODE_ENV=development electron .",
     "start:renderer": "cross-env COLORIZE=true NODE_ENV=development webpack-dev-server --config webpack/webpack.config.renderer.dev.js",
     "storybook": "export NODE_OPTIONS=--openssl-legacy-provider && start-storybook -p 6006",
@@ -306,5 +306,8 @@
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": "npm run lint:no-fix"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

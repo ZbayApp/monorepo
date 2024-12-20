@@ -7,12 +7,13 @@ import {
   App,
   Sidebar,
   WarningModal,
+  JoiningLoadingPanel,
 } from '../selectors'
 import { composeInvitationDeepUrl, parseInvitationLink, userJoinedMessage } from '@quiet/common'
 import { execSync } from 'child_process'
 import { type SupportedPlatformDesktop } from '@quiet/types'
 import { createLogger } from '../logger'
-import { sleep } from '../utils'
+import { SettingsModalTabName } from '../enums'
 
 const logger = createLogger('invitationLink')
 
@@ -23,7 +24,7 @@ describe('New user joins using invitation link while having app opened', () => {
   const communityName = 'testcommunity'
   const ownerUsername = 'bob'
   const joiningUserUsername = 'alice-joining'
-  let invitationCode: string
+  let invitationLink: string
   let ownerApp: App
   let guestApp: App
 
@@ -36,7 +37,7 @@ describe('New user joins using invitation link while having app opened', () => {
   })
 
   beforeEach(async () => {
-    await new Promise<void>(resolve => setTimeout(() => resolve(), 1000))
+    logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ ${expect.getState().currentTestName}`)
   })
 
   afterAll(async () => {
@@ -55,16 +56,14 @@ describe('New user joins using invitation link while having app opened', () => {
     it('JoinCommunityModal - owner switches to create community', async () => {
       logger.info('Invitation Link', 4)
       const joinModal = new JoinCommunityModal(ownerApp.driver)
-      const isJoinModal = await joinModal.element.isDisplayed()
-      expect(isJoinModal).toBeTruthy()
+      expect(await joinModal.isReady()).toBeTruthy()
       await joinModal.switchToCreateCommunity()
     })
 
     it('CreateCommunityModal - owner creates his community', async () => {
       logger.info('Invitation Link', 5)
       const createModal = new CreateCommunityModal(ownerApp.driver)
-      const isCreateModal = await createModal.element.isDisplayed()
-      expect(isCreateModal).toBeTruthy()
+      expect(await createModal.isReady()).toBeTruthy()
       await createModal.typeCommunityName(communityName)
       await createModal.submit()
     })
@@ -72,8 +71,7 @@ describe('New user joins using invitation link while having app opened', () => {
     it('RegisterUsernameModal - owner has registered', async () => {
       logger.info('Invitation Link', 6)
       const registerModal = new RegisterUsernameModal(ownerApp.driver)
-      const isRegisterModal = await registerModal.element.isDisplayed()
-      expect(isRegisterModal).toBeTruthy()
+      expect(await registerModal.isReady()).toBeTruthy()
       await registerModal.typeUsername(ownerUsername)
       await registerModal.submit()
     })
@@ -81,25 +79,20 @@ describe('New user joins using invitation link while having app opened', () => {
     it('Owner sees general channel', async () => {
       logger.info('Invitation Link', 8)
       const generalChannel = new Channel(ownerApp.driver, 'general')
-      const isGeneralChannel = await generalChannel.element.isDisplayed()
+      expect(await generalChannel.isReady())
+
       const generalChannelText = await generalChannel.element.getText()
-      expect(isGeneralChannel).toBeTruthy()
       expect(generalChannelText).toEqual('# general')
     })
 
     it('Owner opens the settings tab and gets an invitation code', async () => {
       logger.info('Invitation Link', 9)
       const settingsModal = await new Sidebar(ownerApp.driver).openSettings()
-      const isSettingsModal = await settingsModal.element.isDisplayed()
-      expect(isSettingsModal).toBeTruthy()
-      await sleep(2000)
-      const invitationCodeElement = await settingsModal.invitationCode()
-      await sleep(2000)
-      invitationCode = await invitationCodeElement.getText()
-      await sleep(2000)
-      logger.info({ invitationCode })
-      expect(invitationCode).not.toBeUndefined()
-      logger.info('Received invitation code:', invitationCode)
+      expect(await settingsModal.isReady()).toBeTruthy()
+      await settingsModal.switchTab(SettingsModalTabName.INVITE)
+      const invitationLinkElement = await settingsModal.invitationLink()
+      invitationLink = await invitationLinkElement.getText()
+      logger.info('Received invitation link:', invitationLink)
       await settingsModal.closeTabThenModal()
     })
 
@@ -133,8 +126,9 @@ describe('New user joins using invitation link while having app opened', () => {
     it.skip('Guest sees modal with warning about invalid code, closes it', async () => {
       // Fix when modals ordering is fixed (joining modal hiddes warning modal)
       const warningModal = new WarningModal(guestApp.driver)
+      expect(await warningModal.isReady()).toBeTruthy()
+
       const titleElement = await warningModal.titleElement
-      expect(titleElement.isDisplayed()).toBeTruthy()
       expect(titleElement.getText()).toEqual('Invalid link')
       await warningModal.close()
     })
@@ -143,7 +137,7 @@ describe('New user joins using invitation link while having app opened', () => {
       logger.info('Invitation Link', 14)
       // Extract code from copied invitation url
 
-      const url = new URL(invitationCode)
+      const url = new URL(invitationLink)
       const command = {
         linux: 'xdg-open',
         darwin: 'open',
@@ -159,18 +153,12 @@ describe('New user joins using invitation link while having app opened', () => {
       logger.info('Guest opened invitation link')
     })
 
-    it('Guest is redirected to UsernameModal', async () => {
-      logger.info('Invitation Link', 15)
-      logger.info('Guest sees username modal')
-      const registerModal = new RegisterUsernameModal(guestApp.driver)
-      const isRegisterModalDisplayed = await registerModal.element.isDisplayed()
-      expect(isRegisterModalDisplayed).toBeTruthy()
-    })
-
-    it('Guest submits username', async () => {
+    it('Guest is redirected to UsernameModal and submits username', async () => {
       logger.info('Invitation Link', 16)
       logger.info('Guest submits username')
       const registerModal = new RegisterUsernameModal(guestApp.driver)
+      expect(await registerModal.isReady()).toBeTruthy()
+
       await registerModal.typeUsername(joiningUserUsername)
       await registerModal.submit()
     })
@@ -186,25 +174,28 @@ describe('New user joins using invitation link while having app opened', () => {
       })
     }
 
+    it('Guest waits to join the community', async () => {
+      const joinPanel = new JoiningLoadingPanel(guestApp.driver)
+      await joinPanel.waitForJoinToComplete()
+    })
+
     it('Guest joined a community and sees general channel', async () => {
       logger.info('Invitation Link', 20)
       logger.info('guest sees general channel')
 
       const generalChannel = new Channel(guestApp.driver, 'general')
-      await generalChannel.element.isDisplayed()
+      expect(await generalChannel.isReady()).toBeTruthy()
     })
 
     it('Owner sees that guest joined community', async () => {
       logger.info('Invitation Link', 21)
       const generalChannel = new Channel(ownerApp.driver, 'general')
-      await generalChannel.element.isDisplayed()
+      expect(await generalChannel.isReady()).toBeTruthy()
 
-      const hasMessage = await generalChannel.waitForUserMessage(
-        joiningUserUsername,
-        userJoinedMessage(joiningUserUsername)
+      const messageIds = await generalChannel.getMessageIdsByText(
+        `@${joiningUserUsername} has joined and will be registered soon. 🎉 Learn more`,
+        joiningUserUsername
       )
-      const isMessageDisplayed = await hasMessage?.isDisplayed()
-      expect(isMessageDisplayed).toBeTruthy()
     })
   })
 })

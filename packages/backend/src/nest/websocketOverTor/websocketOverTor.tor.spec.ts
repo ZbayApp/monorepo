@@ -1,11 +1,12 @@
+import { jest } from '@jest/globals'
+
 import { webSockets } from './index'
 import { all } from './filters'
 import { multiaddr } from '@multiformats/multiaddr'
 import getPort from 'get-port'
 import { type DirResult } from 'tmp'
-import { jest, describe, it, expect, afterEach, beforeAll, afterAll } from '@jest/globals'
 import { torBinForPlatform, torDirForPlatform, createTmpDir, tmpQuietDirPath } from '../common/utils'
-import { type CreateListenerOptions } from '@libp2p/interface-transport'
+import { type CreateListenerOptions, type ComponentLogger } from '@libp2p/interface'
 import { createServer } from 'it-ws/server'
 import { createCertificatesTestHelper } from '../common/client-server'
 import { TestingModule, Test } from '@nestjs/testing'
@@ -138,9 +139,9 @@ describe('websocketOverTor', () => {
     const prepareListenerArg: CreateListenerOptions = {
       handler: x => x,
       upgrader: {
-        // @ts-expect-error
+        // @ts-ignore
         upgradeOutbound,
-        // @ts-expect-error
+        // @ts-ignore
         upgradeInbound,
       },
     }
@@ -151,8 +152,8 @@ describe('websocketOverTor', () => {
       removeEventListener,
     }
 
-    const peerId1 = 'Qme5NiSQ6V3cc3nyfYVtkkXDPGBSYEVUNCN5sM4DbyYc7s'
-    const peerId2 = 'QmeCWxba5Yk1ZAKogQJsaHXoAermE7PgFZqpqyKNg65cSN'
+    const peerId1 = '12D3KooWHgLdRMqkepNiYnrur21cyASUNk1f9NZ5tuGa9He8QXNa'
+    const peerId2 = '12D3KooWSZxWV6DmmTNf9sUgcTQqpN3CTuRiJFY4VthXr4yYxXxi'
 
     const websocketsOverTorData1 = {
       filter: all,
@@ -183,10 +184,10 @@ describe('websocketOverTor', () => {
 
     const remoteAddress = multiaddr(createLibp2pAddress(service2.onionAddress, peerId2))
 
-    const ws1 = webSockets(websocketsOverTorData1)()
-    const ws2 = webSockets(websocketsOverTorData2)()
+    const ws1 = webSockets(websocketsOverTorData1)({ logger: jest.fn() as unknown as ComponentLogger })
+    const ws2 = webSockets(websocketsOverTorData2)({ logger: jest.fn() as unknown as ComponentLogger })
 
-    listener = await ws1.prepareListener(prepareListenerArg)
+    listener = ws1.createListener(prepareListenerArg)
 
     await listener.listen(multiAddress)
 
@@ -199,6 +200,7 @@ describe('websocketOverTor', () => {
       try {
         await ws2.dial(multiAddress, {
           signal,
+          // @ts-ignore
           upgrader: prepareListenerArg.upgrader,
         })
       } catch (e) {
@@ -223,9 +225,9 @@ describe('websocketOverTor', () => {
     const prepareListenerArg: CreateListenerOptions = {
       handler: x => x,
       upgrader: {
-        // @ts-expect-error
+        // @ts-ignore
         upgradeOutbound,
-        // @ts-expect-error
+        // @ts-ignore
         upgradeInbound,
       },
     }
@@ -236,8 +238,8 @@ describe('websocketOverTor', () => {
       removeEventListener,
     }
 
-    const peerId1 = 'Qme5NiSQ6V3cc3nyfYVtkkXDPGBSYEVUNCN5sM4DbyYc7s'
-    const peerId2 = 'QmeCWxba5Yk1ZAKogQJsaHXoAermE7PgFZqpqyKNg65cSN'
+    const peerId1 = '12D3KooWHgLdRMqkepNiYnrur21cyASUNk1f9NZ5tuGa9He8QXNa'
+    const peerId2 = '12D3KooWSZxWV6DmmTNf9sUgcTQqpN3CTuRiJFY4VthXr4yYxXxi'
 
     const websocketsOverTorDataServer = {
       filter: all,
@@ -266,10 +268,10 @@ describe('websocketOverTor', () => {
     }
     const multiAddress = multiaddr(createLibp2pAddress(service1.onionAddress, peerId1))
 
-    const ws1 = webSockets(websocketsOverTorDataServer)()
-    const ws2 = webSockets(websocketsOverTorDataClient)()
+    const ws1 = webSockets(websocketsOverTorDataServer)({ logger: jest.fn() as unknown as ComponentLogger })
+    const ws2 = webSockets(websocketsOverTorDataClient)({ logger: jest.fn() as unknown as ComponentLogger })
 
-    listener = await ws1.prepareListener(prepareListenerArg)
+    listener = ws1.createListener(prepareListenerArg)
 
     await listener.listen(multiAddress)
 
@@ -279,6 +281,7 @@ describe('websocketOverTor', () => {
     await expect(
       ws2.dial(multiAddress, {
         signal,
+        // @ts-ignore
         upgrader: prepareListenerArg.upgrader,
       })
     ).rejects.toBeTruthy()

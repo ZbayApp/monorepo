@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals'
+
 import { Test, TestingModule } from '@nestjs/testing'
 import { TestModule } from '../common/test.module'
 import { RegistrationModule } from './registration.module'
@@ -7,15 +9,18 @@ import { type DirResult } from 'tmp'
 import { type PermsData, type SaveCertificatePayload } from '@quiet/types'
 import { Time } from 'pkijs'
 import { issueCertificate, extractPendingCsrs } from './registration.functions'
-import { jest } from '@jest/globals'
-import { createTmpDir } from '../common/utils'
+import { createPeerId, createTmpDir, libp2pInstanceParams } from '../common/utils'
 import { RegistrationEvents } from './registration.types'
 import { CertificatesStore } from '../storage/certificates/certificates.store'
 import { StorageService } from '../storage/storage.service'
 import { StorageModule } from '../storage/storage.module'
-import { OrbitDb } from '../storage/orbitDb/orbitDb.service'
-import { create } from 'ipfs-core'
-import PeerId from 'peer-id'
+import { OrbitDbService } from '../storage/orbitDb/orbitDb.service'
+import { createHelia } from 'helia'
+import { Libp2pService } from '../libp2p/libp2p.service'
+import { Libp2pModule } from '../libp2p/libp2p.module'
+import { IpfsModule } from '../ipfs/ipfs.module'
+import { IpfsService } from '../ipfs/ipfs.service'
+import { sleep } from '../common/sleep'
 
 describe('RegistrationService', () => {
   let module: TestingModule
@@ -45,7 +50,7 @@ describe('RegistrationService', () => {
     userCsr = await createUserCsr({
       nickname: 'userName',
       commonName: 'nqnw4kc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion',
-      peerId: 'Qmf3ySkYqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6',
+      peerId: '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL',
       signAlg: configCrypto.signAlg,
       hashAlg: configCrypto.hashAlg,
     })
@@ -55,6 +60,10 @@ describe('RegistrationService', () => {
   afterEach(async () => {
     tmpDir.removeCallback()
     await module.close()
+  })
+
+  afterAll(async () => {
+    await sleep(10_000)
   })
 
   it('registerUser should return cert if csr is valid and cert should pass the verification', async () => {
@@ -86,7 +95,7 @@ describe('RegistrationService', () => {
     const aliceCsr = await createUserCsr({
       nickname: 'alice',
       commonName: 'nqnw4kc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion',
-      peerId: 'Qmf3ySkYqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6',
+      peerId: '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL',
       signAlg: configCrypto.signAlg,
       hashAlg: configCrypto.hashAlg,
     })
@@ -119,7 +128,7 @@ describe('RegistrationService', () => {
     const userCsr2 = await createUserCsr({
       nickname: 'userName2',
       commonName: 'nqnw4kc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion',
-      peerId: 'Qmf3ySkYqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6',
+      peerId: '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL',
       signAlg: configCrypto.signAlg,
       hashAlg: configCrypto.hashAlg,
     })
@@ -132,14 +141,14 @@ describe('RegistrationService', () => {
     const userCsr = await createUserCsr({
       nickname: 'karol',
       commonName: 'nqnw4kc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion',
-      peerId: 'Qmf3ySkYqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6',
+      peerId: '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL',
       signAlg: configCrypto.signAlg,
       hashAlg: configCrypto.hashAlg,
     })
     const userCsr2 = await createUserCsr({
       nickname: 'karol',
       commonName: 'nnnnnnc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion',
-      peerId: 'QmffffffqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6',
+      peerId: '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx',
       signAlg: configCrypto.signAlg,
       hashAlg: configCrypto.hashAlg,
     })
@@ -150,13 +159,22 @@ describe('RegistrationService', () => {
   })
 
   it('only issues one group of certs at a time', async () => {
-    const storageModule = await Test.createTestingModule({
-      imports: [TestModule, StorageModule],
+    const module = await Test.createTestingModule({
+      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule],
     }).compile()
-    const certificatesStore = await storageModule.resolve(CertificatesStore)
-    const orbitDb = await storageModule.resolve(OrbitDb)
-    const peerId = await PeerId.create()
-    const ipfs = await create()
+    const libp2pService = await module.resolve(Libp2pService)
+    const libp2pParams = await libp2pInstanceParams()
+    await libp2pService.createInstance(libp2pParams)
+
+    const ipfsService = await module.resolve(IpfsService)
+    await ipfsService.createInstance()
+
+    const orbitDbService = await module.resolve(OrbitDbService)
+    await orbitDbService.create(libp2pParams.peerId, ipfsService.ipfsInstance!)
+
+    const certificatesStore = await module.resolve(CertificatesStore)
+    await certificatesStore.init()
+
     const loadAllCertificates = async () => {
       return await certificatesStore.getEntries()
     }
@@ -164,8 +182,6 @@ describe('RegistrationService', () => {
       await certificatesStore.addEntry(payload.certificate)
     }
 
-    await orbitDb.create(peerId, ipfs)
-    await certificatesStore.init()
     certificatesStore.updateMetadata({
       id: '39F7485441861F4A2A1A512188F1E0AA',
       rootCa:
@@ -181,7 +197,7 @@ describe('RegistrationService', () => {
     const userCsr = await createUserCsr({
       nickname: 'alice',
       commonName: 'nqnw4kc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion',
-      peerId: 'Qmf3ySkYqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6',
+      peerId: '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL',
       signAlg: configCrypto.signAlg,
       hashAlg: configCrypto.hashAlg,
     })
@@ -189,12 +205,10 @@ describe('RegistrationService', () => {
     const userCsr2 = await createUserCsr({
       nickname: 'alice',
       commonName: 'nnnnnnc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion',
-      peerId: 'QmffffffqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6',
+      peerId: '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx',
       signAlg: configCrypto.signAlg,
       hashAlg: configCrypto.hashAlg,
     })
-
-    const certificates: string[] = []
 
     registrationService.emit(RegistrationEvents.REGISTER_USER_CERTIFICATE, { csrs: [userCsr.userCsr] })
 
@@ -204,8 +218,9 @@ describe('RegistrationService', () => {
 
     expect((await certificatesStore.getEntries()).length).toEqual(1)
 
-    await orbitDb.stop()
-    await ipfs.stop()
+    await orbitDbService.stop()
+    await ipfsService.stop()
     await certificatesStore.close()
+    await libp2pService.close()
   })
 })

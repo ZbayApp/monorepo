@@ -1,0 +1,47 @@
+--- packages/backend/node_modules/@helia/block-brokers/node_modules/ipfs-bitswap/dist/src/bitswap.js	2024-10-03 13:15:45
++++ packages/backend/patch/patch.js	2024-10-03 13:13:32
+@@ -113,7 +113,7 @@
+         await Promise.all(received.map(async ({ cid, wasWanted, data }) => { await this._handleReceivedBlock(peerId, cid, data, wasWanted); }));
+     }
+     async _handleReceivedBlock(peerId, cid, data, wasWanted) {
+-        this._log('received block');
++        this._log(`received block for cid ${cid}`);
+         const has = await this.blockstore.has(cid);
+         this._updateReceiveCounters(peerId.toString(), cid, data, has);
+         if (!wasWanted) {
+\ No newline at end of file
+@@ -172,6 +172,7 @@
+      * blockstore it is returned, otherwise the block is added to the wantlist and returned once another node sends it to us.
+      */
+     async want(cid, options = {}) {
++        this._log(`Want block for cid ${cid}`)
+         const fetchFromNetwork = async (cid, options) => {
+             // add it to the want list - n.b. later we will abort the AbortSignal
+             // so no need to remove the blocks from the wantlist after we have it
+\ No newline at end of file
+@@ -182,19 +183,24 @@
+         const loadOrFetchFromNetwork = async (cid, options) => {
+             try {
+                 // have to await here as we want to handle ERR_NOT_FOUND
++                this._log(`Loading block from blockstore for cid ${cid}`)
+                 const block = await this.blockstore.get(cid, options);
++                this._log(`Got block for cid ${cid}`, block)
+                 return block;
+             }
+             catch (err) {
++                this._log.error(`Got error while loading block for cid ${cid}`, err)
+                 if (err.code !== 'ERR_NOT_FOUND') {
+                     throw err;
+                 }
+                 if (!promptedNetwork) {
++                    this._log(`Connecting to providers of cid ${cid}`)
+                     promptedNetwork = true;
+                     this.network.findAndConnect(cid, options)
+                         .catch((err) => { this._log.error(err); });
+                 }
+                 // we don't have the block locally so fetch it from the network
++                this._log(`Block for cid ${cid} wasn't stored locally, asking the network for this block`)
+                 return await fetchFromNetwork(cid, options);
+             }
+         };
+\ No newline at end of file

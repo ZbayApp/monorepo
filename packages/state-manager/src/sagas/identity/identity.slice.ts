@@ -11,6 +11,9 @@ import {
   type RegisterUsernamePayload,
   SendCsrsResponse,
 } from '@quiet/types'
+import { createLogger } from '../../utils/logger'
+
+const logger = createLogger('identity:slice')
 
 export class IdentityState {
   public identities: EntityState<Identity> = identityAdapter.getInitialState()
@@ -26,9 +29,10 @@ export const identitySlice = createSlice({
     updateIdentity: (state, action: PayloadAction<Identity>) => {
       // addOne if action.payload.id is not in state.identities
       if (!state.identities.ids.includes(action.payload.id)) {
-        console.log('Adding new identity')
+        logger.info('Adding new identity', action.payload.id, action.payload.nickname)
         identityAdapter.addOne(state.identities, action.payload)
       } else {
+        logger.info('Updating existing identity', action.payload.id, action.payload.nickname)
         identityAdapter.updateOne(state.identities, {
           id: action.payload.id,
           changes: action.payload,

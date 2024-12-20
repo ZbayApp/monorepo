@@ -52,7 +52,7 @@ describe('User', () => {
     pairs: [
       {
         onionAddress: 'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdvcbzw5vex2crsr26qd',
-        peerId: 'QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wfFJDPPLsbKSE',
+        peerId: '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx',
       },
     ],
     psk: 'BNlxfE2WBF7LrlpIX0CvECN5o1oZtA16PkAb7GYiwYw=',
@@ -142,15 +142,15 @@ describe('User', () => {
             id: payload.id,
           })
           socket.socketClient.emit<ChannelsReplicatedPayload>(SocketActionTypes.CHANNELS_STORED, {
-            channels: {
-              general: {
+            channels: [
+              {
                 name: 'general',
                 description: 'string',
                 owner: 'owner',
                 timestamp: 0,
                 id: 'general',
               },
-            },
+            ],
           })
           socket.socketClient.emit<ChannelSubscribedPayload>(SocketActionTypes.CHANNEL_SUBSCRIBED, {
             channelId: 'general',

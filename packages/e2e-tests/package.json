@@ -13,8 +13,8 @@
     "lint-staged": "lint-staged --no-stash",
     "prettier:write": "prettier --write .",
     "prettier:check": "prettier --check .",
-    "test": "cross-env TEST_MODE=true jest --runInBand --detectOpenHandles --forceExit",
-    "test:localBinary": "cross-env TEST_MODE=true IS_LOCAL=true jest --runInBand --detectOpenHandles --forceExit --verbose --",
+    "test": "cross-env TEST_MODE=true DEBUG='backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,libp2p:connection-manager:auto-dial' jest --runInBand --detectOpenHandles --forceExit",
+    "test:localBinary": "cross-env TEST_MODE=true IS_LOCAL=true DEBUG='backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,libp2p:connection-manager:auto-dial' jest --runInBand --detectOpenHandles --forceExit --verbose --",
     "test:prod": "jest --runInBand --detectOpenHandles --forceExit",
     "test:watch": "jest --watchAll",
     "linux:copy": "node scripts/copyAppImage.js"
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@quiet/eslint-config": "^2.0.2-alpha.0",
     "@types/jest": "^29.2.6",
+    "@types/luxon": "^3.4.2",
     "@types/selenium-webdriver": "^4.1.10",
     "babel-jest": "^29.3.1",
     "lint-staged": "^15.2.2",
@@ -38,6 +39,7 @@
     "electron-chromedriver": "23.3.13",
     "get-port": "^5.1.1",
     "jest": "^29.4.2",
+    "luxon": "^3.4.4",
     "path-browserify": "^1.0.1",
     "selenium-webdriver": "^4.8.0",
     "yargs": "^17.3.1"
@@ -56,5 +58,8 @@
   "license": "GPL-3.0-or-later",
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": "npm run lint:no-fix"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

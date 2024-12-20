@@ -8,6 +8,7 @@
         "@quiet/backend": ["packages/backend/src/index.ts"],
         "@quiet/logger": ["packages/logger/src/index.ts"],
         "@quiet/common": ["packages/common/src/index.ts"],
+        "helia": ["packages/helia/src/index.ts"],
         "@quiet/types": ["packages/types/src/index.ts"],
         "integration-tests": ["packages/integration-tests/src/index.ts"],
       },
@@ -20,7 +21,8 @@
       "lib": [
         "dom",
         "DOM.Iterable",
-        "ES2020"
+        "ES2020",
+        "ES2021.String"
       ]
     }
   }

@@ -1,8 +1,9 @@
+import { jest } from '@jest/globals'
+
 import { Test } from '@nestjs/testing'
 import { StorageServiceClientModule } from './storageServiceClient.module'
 import { StorageServiceClient } from './storageServiceClient.service'
 import { ServerStoredCommunityMetadata } from './storageServiceClient.types'
-import { jest } from '@jest/globals'
 import { prepareResponse } from './testUtils'
 import { createLibp2pAddress, getValidInvitationUrlTestData, validInvitationDatav1 } from '@quiet/common'
 import { Response } from 'node-fetch'

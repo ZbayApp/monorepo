@@ -176,7 +176,7 @@ static NSString *const platform = @"mobile";
 {
   [self stopTor];
 
-  NSString * message = [NSString stringWithFormat:@""];
+  NSString * message = [NSString stringWithFormat:@"app:close"];
   [self.nodeJsMobile sendMessageToNode:@"close":message];
 
   // Flush persistor before app goes idle

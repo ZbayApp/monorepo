@@ -16,7 +16,8 @@
     "lib": [
       "ES2020",
       "DOM.Iterable",
-      "dom"
+      "dom",
+      "ES2021.String"
     ]
   }
 }

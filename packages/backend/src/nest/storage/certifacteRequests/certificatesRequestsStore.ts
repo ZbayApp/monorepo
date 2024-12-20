@@ -1,49 +1,50 @@
 import { getCrypto } from 'pkijs'
+import { type LogEntry, type EventsType, IPFSAccessController } from '@orbitdb/core'
 import { NoCryptoEngineError } from '@quiet/types'
-import { loadCSR, keyFromCertificate } from '@quiet/identity'
+import { loadCSR, keyFromCertificate, CertFieldsTypes, getReqFieldValue } from '@quiet/identity'
 import { StorageEvents } from '../storage.types'
 import { validate } from 'class-validator'
 import { UserCsrData } from '../../registration/registration.functions'
 import { Injectable } from '@nestjs/common'
-import { OrbitDb } from '../orbitDb/orbitDb.service'
+import { OrbitDbService } from '../orbitDb/orbitDb.service'
 import { createLogger } from '../../common/logger'
 import { EventStoreBase } from '../base.store'
+import { EventsWithStorage } from '../orbitDb/eventsWithStorage'
 
 @Injectable()
 export class CertificatesRequestsStore extends EventStoreBase<string> {
   protected readonly logger = createLogger(CertificatesRequestsStore.name)
 
-  constructor(private readonly orbitDbService: OrbitDb) {
+  constructor(private readonly orbitDbService: OrbitDbService) {
     super()
   }
 
   public async init() {
     this.logger.info('Initializing certificates requests store')
 
-    this.store = await this.orbitDbService.orbitDb.log<string>('csrs', {
-      replicate: false,
-      accessController: {
-        write: ['*'],
-      },
-    })
-    await this.store.load()
-
-    this.store.events.on('write', async (_address, entry) => {
-      this.logger.info('Added CSR to database')
-      this.loadedCertificateRequests()
+    this.store = await this.orbitDbService.orbitDb.open<EventsType<string>>('csrs', {
+      type: 'events',
+      sync: false,
+      Database: EventsWithStorage(),
+      AccessController: IPFSAccessController({ write: ['*'] }),
     })
 
-    this.store.events.on('replicated', async () => {
-      this.logger.info('Replicated CSRs')
+    this.store.events.on('update', async (entry: LogEntry) => {
+      this.logger.info('Database update')
       this.loadedCertificateRequests()
     })
 
     this.logger.info('Initialized')
   }
 
+  public async startSync() {
+    await this.getStore().sync.start()
+  }
+
   public async loadedCertificateRequests() {
+    const csrs = await this.getEntries()
     this.emit(StorageEvents.CSRS_STORED, {
-      csrs: await this.getEntries(),
+      csrs,
     })
   }
 
@@ -52,7 +53,7 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
       throw new Error('Store is not initialized')
     }
     this.logger.info('Adding CSR to database')
-    await this.store?.add(csr)
+    await this.store.add(csr)
     return csr
   }
 
@@ -66,7 +67,7 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
       await parsedCsr.verify()
       await this.validateCsrFormat(csr)
     } catch (err) {
-      this.logger.error('Failed to validate user CSR:', csr, err?.message)
+      this.logger.error('Failed to validate user CSR:', csr, err)
       return false
     }
     return true
@@ -81,17 +82,16 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
 
   public async getEntries() {
     const filteredCsrsMap: Map<string, string> = new Map()
-    const allEntries = this.getStore()
-      .iterator({ limit: -1 })
-      .collect()
-      .map(e => {
-        return e.payload.value
-      })
+    const allEntries: string[] = []
+
+    for await (const x of this.getStore().iterator()) {
+      allEntries.push(x.value)
+    }
+
     this.logger.info('Total CSRs:', allEntries.length)
 
-    const allCsrsUnique = [...new Set(allEntries)]
     await Promise.all(
-      allCsrsUnique
+      allEntries
         .filter(async csr => {
           const validation = await this.validateUserCsr(csr)
           if (validation) return true
@@ -102,7 +102,8 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
           const pubKey = keyFromCertificate(parsedCsr)
 
           if (filteredCsrsMap.has(pubKey)) {
-            filteredCsrsMap.delete(pubKey)
+            this.logger.warn(`Skipping csr due to existing pubkey`, pubKey)
+            return
           }
           filteredCsrsMap.set(pubKey, csr)
         })

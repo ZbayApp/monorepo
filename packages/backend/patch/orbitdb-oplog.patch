@@ -1,0 +1,15 @@
+--- packages/backend/node_modules/@orbitdb/core/src/oplog/log.js	2024-10-03 11:17:39
++++ packages/backend/src/nest/storage/orbitDb/patch/log.js	2024-10-03 11:18:04
+@@ -314,6 +314,12 @@
+ 
+       /* 6. Add the new entry to heads (=union with current heads) */
+       await _heads.add(entry)
++
++      /* 
++        #PATCH - https://github.com/orbitdb/orbitdb/issues/1163
++        7. Add the new entry to entry storage (=to IPFS storage) 
++      */
++      await _entries.put(entry.hash, entry.bytes)
+ 
+       return true
+     }

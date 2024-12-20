@@ -1,14 +1,18 @@
-import fs from 'fs'
 import { jest } from '@jest/globals'
-import { create, IPFS } from 'ipfs-core'
+
+import fs from 'fs'
 import { TestConfig } from '../../const'
 import { Test, TestingModule } from '@nestjs/testing'
 import { TestModule } from '../../common/test.module'
 import { StorageModule } from '../storage.module'
-import { OrbitDb } from '../orbitDb/orbitDb.service'
-import PeerId from 'peer-id'
+import { OrbitDbService } from '../orbitDb/orbitDb.service'
 import { CertificatesStore } from './certificates.store'
 import { CommunityMetadata } from '@quiet/types'
+import { libp2pInstanceParams } from '../../common/utils'
+import { Libp2pModule } from '../../libp2p/libp2p.module'
+import { IpfsModule } from '../../ipfs/ipfs.module'
+import { Libp2pService } from '../../libp2p/libp2p.service'
+import { IpfsService } from '../../ipfs/ipfs.service'
 
 const communityMetadata: CommunityMetadata = {
   id: '39F7485441861F4A2A1A512188F1E0AA',
@@ -45,30 +49,36 @@ const foreignCertificate =
 describe('CertificatesStore', () => {
   let module: TestingModule
   let certificatesStore: CertificatesStore
-  let orbitDb: OrbitDb
-  let ipfs: IPFS
+  let orbitDb: OrbitDbService
+  let libp2pService: Libp2pService
+  let ipfsService: IpfsService
 
   beforeEach(async () => {
     jest.clearAllMocks()
 
     module = await Test.createTestingModule({
-      imports: [TestModule, StorageModule],
+      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule],
     }).compile()
 
+    libp2pService = await module.resolve(Libp2pService)
+    const libp2pParams = await libp2pInstanceParams()
+    await libp2pService.createInstance(libp2pParams)
+
+    ipfsService = await module.resolve(IpfsService)
+    await ipfsService.createInstance()
+
+    orbitDb = await module.resolve(OrbitDbService)
+    await orbitDb.create(libp2pParams.peerId, ipfsService.ipfsInstance!)
+
     certificatesStore = await module.resolve(CertificatesStore)
-
-    orbitDb = await module.resolve(OrbitDb)
-    const peerId = await PeerId.create()
-    ipfs = await create()
-    await orbitDb.create(peerId, ipfs)
-
     await certificatesStore.init()
   })
 
   afterEach(async () => {
     await orbitDb.stop()
-    await ipfs.stop()
+    await ipfsService.stop()
     await certificatesStore.close()
+    await libp2pService.close()
     if (fs.existsSync(TestConfig.ORBIT_DB_DIR)) {
       fs.rmSync(TestConfig.ORBIT_DB_DIR, { recursive: true })
     }

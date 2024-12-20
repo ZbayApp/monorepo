@@ -1,8 +1,8 @@
-import PeerId from 'peer-id'
+import { jest } from '@jest/globals'
+
 import { type DirResult } from 'tmp'
 import crypto from 'crypto'
-import { CustomEvent } from '@libp2p/interfaces/events'
-import { jest, beforeEach, describe, it, expect, afterEach } from '@jest/globals'
+import { type PeerId, isPeerId } from '@libp2p/interface'
 import { communities, getFactory, identity, prepareStore, Store } from '@quiet/state-manager'
 import {
   createPeerId,
@@ -13,7 +13,6 @@ import {
   generateRandomOnionAddress,
 } from '../common/utils'
 import { NetworkStats, type Community, type Identity } from '@quiet/types'
-import { LazyModuleLoader } from '@nestjs/core'
 import { TestingModule, Test } from '@nestjs/testing'
 import { FactoryGirl } from 'factory-girl'
 import { TestModule } from '../common/test.module'
@@ -36,14 +35,16 @@ import { DateTime } from 'luxon'
 import waitForExpect from 'wait-for-expect'
 import { Libp2pEvents } from '../libp2p/libp2p.types'
 import { sleep } from '../common/sleep'
+import { createFromJSON } from '@libp2p/peer-id-factory'
 import { createLibp2pAddress, filterValidAddresses, generateChannelId } from '@quiet/common'
 import { createLogger } from '../common/logger'
 import { ServiceState } from './connections-manager.types'
+import { SocketService } from '../socket/socket.service'
 
 const logger = createLogger('connectionsManager:test')
 
 const MANY_PEERS_COUNT = 7
-const MANY_PEERS_DIALS = MANY_PEERS_COUNT * 2
+const MANY_PEERS_DIALS = MANY_PEERS_COUNT // keeping this separate because we may change this behavior again in the future and it reduces test rewriting
 
 jest.setTimeout(100_000)
 
@@ -56,7 +57,6 @@ let tor: Tor
 let localDbService: LocalDbService
 let registrationService: RegistrationService
 let libp2pService: Libp2pService
-let lazyModuleLoader: LazyModuleLoader
 let quietDir: string
 let store: Store
 let factory: FactoryGirl
@@ -98,32 +98,23 @@ beforeEach(async () => {
       torHashedPassword: '16:FCFFE21F3D9138906021FAADD9E49703CC41848A95F829E0F6E1BDBE63',
     })
     .compile()
-  quietDir = await module.resolve(QUIET_DIR)
   connectionsManagerService = await module.resolve(ConnectionsManagerService)
   localDbService = await module.resolve(LocalDbService)
   registrationService = await module.resolve(RegistrationService)
+  libp2pService = connectionsManagerService.libp2pService
+  peerId = await createPeerId()
   tor = await module.resolve(Tor)
   await tor.init()
 
   const torPassword = crypto.randomBytes(16).toString('hex')
   torControl = await module.resolve(TorControl)
   torControl.authString = 'AUTHENTICATE ' + torPassword + '\r\n'
-
-  lazyModuleLoader = await module.resolve(LazyModuleLoader)
-  const { Libp2pModule: Module } = await import('../libp2p/libp2p.module')
-  const moduleRef = await lazyModuleLoader.load(() => Module)
-  const { Libp2pService } = await import('../libp2p/libp2p.service')
-  libp2pService = moduleRef.get(Libp2pService)
-  const params = await libp2pInstanceParams()
-  peerId = params.peerId
-
-  connectionsManagerService.libp2pService = libp2pService
+  quietDir = await module.resolve(QUIET_DIR)
 
   const pskBase64 = Libp2pService.generateLibp2pPSK().psk
   await localDbService.put(LocalDBKeys.PSK, pskBase64)
   await localDbService.put(LocalDBKeys.CURRENT_COMMUNITY_ID, community.id)
   await localDbService.setCommunity(community)
-  await localDbService.setIdentity(userIdentity)
 })
 
 afterEach(async () => {
@@ -135,23 +126,8 @@ afterEach(async () => {
 
 describe('Connections manager', () => {
   it('saves peer stats when peer has been disconnected', async () => {
-    logger.info('saves peer stats when peer has been disconnected')
-    // @ts-expect-error
-    libp2pService.processInChunksService.init = jest.fn()
-    // @ts-expect-error
-    libp2pService.processInChunksService.process = jest.fn()
-    class RemotePeerEventDetail {
-      peerId: string
-
-      constructor(peerId: string) {
-        this.peerId = peerId
-      }
-
-      toString = () => {
-        return this.peerId
-      }
-    }
     const emitSpy = jest.spyOn(libp2pService, 'emit')
+    await localDbService.setIdentity(userIdentity)
 
     // Peer connected
     await connectionsManagerService.init()
@@ -161,17 +137,11 @@ describe('Connections manager', () => {
     })
 
     // Peer disconnected
-    const remoteAddr = `${peerId.toString()}`
-    const peerDisconectEventDetail = {
-      remotePeer: new RemotePeerEventDetail(peerId.toString()),
-      remoteAddr: new RemotePeerEventDetail(remoteAddr),
-    }
+    const remotePeer = peerId.toString()
     await waitForExpect(async () => {
       expect(libp2pService.libp2pInstance).not.toBeUndefined()
     }, 2_000)
-    libp2pService.libp2pInstance?.dispatchEvent(
-      new CustomEvent('peer:disconnect', { detail: peerDisconectEventDetail })
-    )
+    libp2pService.libp2pInstance?.dispatchEvent(new CustomEvent('peer:disconnect', { detail: remotePeer }))
     await waitForExpect(async () => {
       expect(libp2pService.connectedPeers.size).toEqual(0)
     }, 2000)
@@ -180,11 +150,11 @@ describe('Connections manager', () => {
       expect(await localDbService.get(LocalDBKeys.PEERS)).not.toBeNull()
     }, 2000)
     const peerStats: Record<string, NetworkStats> = await localDbService.get(LocalDBKeys.PEERS)
-    expect(Object.keys(peerStats)[0]).toEqual(remoteAddr)
+    expect(Object.keys(peerStats)[0]).toEqual(remotePeer)
     expect(emitSpy).toHaveBeenCalledWith(Libp2pEvents.PEER_DISCONNECTED, {
-      peer: peerStats[remoteAddr].peerId,
-      connectionDuration: peerStats[remoteAddr].connectionTime,
-      lastSeen: peerStats[remoteAddr].lastSeen,
+      peer: peerStats[remotePeer].peerId,
+      connectionDuration: peerStats[remotePeer].connectionTime,
+      lastSeen: peerStats[remotePeer].lastSeen,
     })
   })
 
@@ -195,8 +165,8 @@ describe('Connections manager', () => {
     const network = await connectionsManagerService.getNetwork()
     expect(network.hiddenService.onionAddress.split('.')[0]).toHaveLength(56)
     expect(network.hiddenService.privateKey).toHaveLength(99)
-    const peerId = await PeerId.createFromJSON(network.peerId)
-    expect(PeerId.isPeerId(peerId)).toBeTruthy()
+    const peerId = await createFromJSON(network.peerId)
+    expect(isPeerId(peerId)).toBeTruthy()
     expect(await spyOnDestroyHiddenService.mock.results[0].value).toBeTruthy()
   })
 
@@ -210,8 +180,10 @@ describe('Connections manager', () => {
 
     let peerAddress: string
     const peerList: string[] = []
+    const localAddress = createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id)
     // add local peer to the list
-    peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id))
+    peerList.push(localAddress)
+    logger.info(localAddress)
 
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
@@ -234,10 +206,14 @@ describe('Connections manager', () => {
     await sleep(5000)
 
     expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
-    // expect to dial all peers except self
-    expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
-    // Temporary fix for hanging test - websocketOverTor doesn't have abortController
-    await sleep(5000)
+
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
+    }, 2_000)
   })
 
   it('dials same number of peers on start when launched from storage', async () => {
@@ -264,13 +240,15 @@ describe('Connections manager', () => {
     expect(connectionsManagerService.communityState).toBe(undefined)
     // community will launch from storage
     await connectionsManagerService.init()
-    await sleep(5000)
-
     expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
-    // expect to dial all peers except self
-    expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
-    // Temporary fix for hanging test - websocketOverTor doesn't have abortController
-    await sleep(5000)
+
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
+    }, 2_000)
   })
 
   it('dials only valid peers on start when launched from storage', async () => {
@@ -299,14 +277,18 @@ describe('Connections manager', () => {
     expect(connectionsManagerService.communityState).toBe(undefined)
     // community will launch from storage
     await connectionsManagerService.init()
-    await sleep(5000)
 
     expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
-    // expect to dial all peers except self
-    expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
-    // Temporary fix for hanging test - websocketOverTor doesn't have abortController
-    await sleep(5000)
+
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
+    }, 2_000)
   })
+
   it('dials only valid peers on start when provided peer list', async () => {
     logger.info('dials only valid peers on start when provided peer list')
     const store = prepareStore().store
@@ -336,14 +318,16 @@ describe('Connections manager', () => {
     localDbService.setCommunity({ ...community, peerList: peerList })
     localDbService.setCurrentCommunityId(community.id)
     await connectionsManagerService.init()
-    await sleep(5000)
 
-    expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
-    // expect to dial all peers except self
-    expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
-    // Temporary fix for hanging test - websocketOverTor doesn't have abortController
-    await sleep(5000)
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
+    }, 2_000)
   })
+
   it.skip('Bug reproduction - iOS app crashing because lack of data server', async () => {
     await connectionsManagerService.init()
     const spyOnDial = jest.spyOn(WebSockets.prototype, 'dial')
@@ -355,9 +339,17 @@ describe('Connections manager', () => {
     }
 
     await connectionsManagerService.launchCommunity({ ...community, peerList: peerList })
-    expect(spyOnDial).toHaveBeenCalledTimes(peersCount)
+
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(peersCount)
+    }, 15_000)
+    await waitForExpect(async () => {
+      // expect to dial all peers except self
+      expect(spyOnDial).toHaveBeenCalledTimes(peersCount)
+    }, 2_000)
+
     await connectionsManagerService.closeAllServices()
-    await sleep(5000)
+    await sleep(2000)
 
     const launchSpy = jest.spyOn(connectionsManagerService, 'launch')
     await connectionsManagerService.init()

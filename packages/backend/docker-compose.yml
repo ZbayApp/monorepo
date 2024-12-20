@@ -2,11 +2,11 @@ version: "3.9"
 # Creates local network of peers
 
 x-with-tor: &with-tor
-    BOOTSTRAP_ADDRS: /dns4/ix2oumqrtjaupt53l6cqpk6ct6iaa5guconwgtvgdk2v3i5wjiyehryd.onion/tcp/7788/ws/p2p/QmRbkBkhTt2DbLMF8kAaf1oxpfKQuEfLKFzVCDzQhabwkw
+    BOOTSTRAP_ADDRS: /dns4/ix2oumqrtjaupt53l6cqpk6ct6iaa5guconwgtvgdk2v3i5wjiyehryd.onion/tcp/7788/ws/p2p/12D3KooWPYjyHnYYwe3kzEESMVbpAUHkQyEQpRHehH8QYtGRntVn
     USE_TOR: "true"
 
 x-without-tor: &without-tor
-    BOOTSTRAP_ADDRS: /dns4/0.0.0.0/tcp/7788/ws/p2p/QmRbkBkhTt2DbLMF8kAaf1oxpfKQuEfLKFzVCDzQhabwkw
+    BOOTSTRAP_ADDRS: /dns4/0.0.0.0/tcp/7788/ws/p2p/12D3KooWPYjyHnYYwe3kzEESMVbpAUHkQyEQpRHehH8QYtGRntVn
     USE_TOR: "false"
 
 x-common: &common

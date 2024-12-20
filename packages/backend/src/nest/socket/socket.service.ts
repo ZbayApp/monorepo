@@ -225,7 +225,10 @@ export class SocketService extends EventEmitter implements OnModuleInit {
   public getConnections = (): Promise<number> => {
     return new Promise(resolve => {
       this.serverIoProvider.server.getConnections((err, count) => {
-        if (err) throw new Error(err.message)
+        if (err) {
+          this.logger.error(`Error occurred while getting connection`, err)
+          throw new Error(`Error occurred while getting connection: ${err.message}`)
+        }
         resolve(count)
       })
     })
@@ -240,6 +243,7 @@ export class SocketService extends EventEmitter implements OnModuleInit {
     this.logger.info('Disconnecting sockets')
     this.serverIoProvider.io.disconnectSockets(true)
     this.sockets.forEach(s => s.destroy())
+    this.serverIoProvider.io.close()
   }
 
   public listen = async (): Promise<void> => {
@@ -276,7 +280,12 @@ export class SocketService extends EventEmitter implements OnModuleInit {
       }
 
       this.serverIoProvider.io.close(err => {
-        if (err) throw new Error(err.message)
+        if (err) {
+          this.logger.error(`Error occurred while closing data server on port ${this.configOptions.socketIOPort}`, err)
+          throw new Error(
+            `Error occurred while closing data server on port ${this.configOptions.socketIOPort}: ${err.message}`
+          )
+        }
         this.logger.info('Data server closed')
         resolve()
       })

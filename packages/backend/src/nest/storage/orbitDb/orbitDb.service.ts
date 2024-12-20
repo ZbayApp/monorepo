@@ -1,18 +1,30 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { ORBIT_DB_DIR } from '../../const'
 import { createLogger } from '../../common/logger'
-import PeerId from 'peer-id'
-import AccessControllers from 'orbit-db-access-controllers'
+import { posixJoin } from './util'
+import { type PeerId } from '@libp2p/interface'
 import { MessagesAccessController } from './MessagesAccessController'
-import { createChannelAccessController } from './ChannelsAccessController'
-import OrbitDB from 'orbit-db'
-import { IPFS } from 'ipfs-core'
+import {
+  createOrbitDB,
+  type OrbitDBType,
+  type IdentitiesType,
+  useAccessController as orbitDbUseAccessController, // this is to fix a linting issue about react hooks
+  Identities,
+  ComposedStorage,
+  LRUStorage,
+  IPFSBlockStorage,
+  LevelStorage,
+} from '@orbitdb/core'
+import { HeliaLibp2p, type Helia } from 'helia'
+import { OrbitDbStorage } from '../../types'
+import { IdentitiesWithStorage } from './identitiesWithStorage'
 
 @Injectable()
-export class OrbitDb {
-  private orbitDbInstance: OrbitDB | null = null
+export class OrbitDbService {
+  private orbitDbInstance: OrbitDBType | null = null
+  public identities: IdentitiesType
 
-  private readonly logger = createLogger(OrbitDb.name)
+  private readonly logger = createLogger(OrbitDbService.name)
 
   constructor(@Inject(ORBIT_DB_DIR) public readonly orbitDbDir: string) {}
 
@@ -24,21 +36,19 @@ export class OrbitDb {
     return this.orbitDbInstance
   }
 
-  public async create(peerId: PeerId, ipfs: IPFS) {
-    this.logger.info('[create]:started')
+  public async create(peerId: PeerId, ipfs: Helia) {
+    this.logger.info('Creating OrbitDB')
     if (this.orbitDbInstance) return
 
-    const channelsAccessController = createChannelAccessController(peerId, this.orbitDbDir)
-    AccessControllers.addAccessController({ AccessController: MessagesAccessController })
-    AccessControllers.addAccessController({ AccessController: channelsAccessController })
-    // @ts-ignore
-    const orbitDb = await OrbitDB.createInstance(ipfs, {
-      // @ts-ignore
-      start: false,
+    orbitDbUseAccessController(MessagesAccessController)
+
+    this.identities = await IdentitiesWithStorage(this.orbitDbDir, ipfs)
+
+    const orbitDb = await createOrbitDB({
+      ipfs,
       id: peerId.toString(),
       directory: this.orbitDbDir,
-      // @ts-ignore
-      AccessControllers,
+      identities: this.identities,
     })
 
     this.orbitDbInstance = orbitDb
@@ -55,5 +65,39 @@ export class OrbitDb {
     }
 
     this.orbitDbInstance = null
+  }
+
+  public static async createDefaultStorage(
+    baseDirectory: string,
+    address: string,
+    ipfs: Helia | HeliaLibp2p,
+    pinIpfs: boolean = true
+  ): Promise<OrbitDbStorage> {
+    const entryStorage = await ComposedStorage(
+      await LRUStorage({ size: 1000 }),
+      await IPFSBlockStorage({ ipfs, pin: pinIpfs })
+    )
+
+    const headsStorage = await ComposedStorage(
+      await LRUStorage({ size: 1000 }),
+      await LevelStorage({
+        path: posixJoin(baseDirectory || './orbitdb', `./${address}/log/_heads/`),
+        valueEncoding: 'buffer',
+      })
+    )
+
+    const indexStorage = await ComposedStorage(
+      await LRUStorage({ size: 1000 }),
+      await LevelStorage({
+        path: posixJoin(baseDirectory || './orbitdb', `./${address}/log/_index/`),
+        valueEncoding: 'buffer',
+      })
+    )
+
+    return {
+      entryStorage,
+      headsStorage,
+      indexStorage,
+    }
   }
 }

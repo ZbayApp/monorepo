@@ -8,7 +8,7 @@ export const createUsersCerts = async (
   const userData = {
     nickname: 'dev99damian1',
     commonName: onion,
-    peerId: 'Qmf3ySkYqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLert',
+    peerId: '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx',
     signAlg: configCrypto.signAlg,
     hashAlg: configCrypto.hashAlg,
   }

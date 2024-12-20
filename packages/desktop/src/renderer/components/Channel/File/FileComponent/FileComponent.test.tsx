@@ -15,7 +15,7 @@ describe('FileComponent', () => {
           isRegistered: true,
           pubKey: 'string',
           media: {
-            cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+            cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
             message: {
               channelId: 'general',
               id: 'wgtlstx3u7',
@@ -34,7 +34,7 @@ describe('FileComponent', () => {
         }}
         downloadStatus={{
           mid: '32',
-          cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+          cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
           downloadState: DownloadState.Ready,
           downloadProgress: undefined,
         }}
@@ -45,7 +45,7 @@ describe('FileComponent', () => {
         <div>
           <div
             class="css-7vq9um"
-            data-testid="QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs-fileComponent"
+            data-testid="12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY-fileComponent"
           >
             <span>
               <div

@@ -38,7 +38,7 @@ export class TorControl {
 
       this.connection.once('error', err => {
         this.disconnect()
-        reject(new Error(`Connection via Tor control failed: ${err.message}`))
+        reject(new Error(`Connection via Tor control failed: ${err}`))
       })
 
       this.connection.once('data', (data: any) => {

@@ -26,7 +26,7 @@ export const Completed = Template.bind({})
 export const Malicious = Template.bind({})
 
 const mid = '32'
-const cid = 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs'
+const cid = '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY'
 
 const args: FileComponentProps = {
   message: {

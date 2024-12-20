@@ -108,7 +108,7 @@ ImagePlaceholder.args = {
     id: '32',
     type: 2,
     media: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       message: {
         channelId: 'general',
         id: 'wgtlstx3u7',
@@ -130,7 +130,7 @@ ImagePlaceholder.args = {
   downloadStatuses: {
     32: {
       mid: '',
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       downloadState: DownloadState.None,
       downloadProgress: undefined,
     },
@@ -142,7 +142,7 @@ SentImage.args = {
     id: '32',
     type: 2,
     media: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       message: {
         channelId: 'general',
         id: 'wgtlstx3u7',
@@ -164,7 +164,7 @@ SentImage.args = {
   downloadStatuses: {
     32: {
       mid: '',
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       downloadState: DownloadState.Completed,
       downloadProgress: undefined,
     },
@@ -248,7 +248,7 @@ HostedFile.args = {
     id: '32',
     type: 4,
     media: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       message: {
         channelId: 'general',
         id: 'wgtlstx3u7',
@@ -270,7 +270,7 @@ HostedFile.args = {
   }),
   downloadStatuses: {
     32: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       mid: 'mid',
       downloadState: DownloadState.Hosted,
       downloadProgress: undefined,
@@ -283,7 +283,7 @@ ReadyDownload.args = {
     id: '32',
     type: 4,
     media: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       message: {
         channelId: 'general',
         id: 'wgtlstx3u7',
@@ -305,7 +305,7 @@ ReadyDownload.args = {
   }),
   downloadStatuses: {
     32: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       mid: 'mid',
       downloadState: DownloadState.Ready,
       downloadProgress: undefined,
@@ -318,7 +318,7 @@ Downloading.args = {
     id: '32',
     type: 4,
     media: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       message: {
         channelId: 'general',
         id: 'wgtlstx3u7',
@@ -340,7 +340,7 @@ Downloading.args = {
   }),
   downloadStatuses: {
     32: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       mid: 'mid',
       downloadState: DownloadState.Downloading,
       downloadProgress: {
@@ -357,7 +357,7 @@ CompletedDownload.args = {
     id: '32',
     type: 4,
     media: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       message: {
         channelId: 'general',
         id: 'wgtlstx3u7',
@@ -379,7 +379,7 @@ CompletedDownload.args = {
   }),
   downloadStatuses: {
     32: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       mid: 'mid',
       downloadState: DownloadState.Completed,
       downloadProgress: {
@@ -396,7 +396,7 @@ CancelingDownload.args = {
     id: '32',
     type: 4,
     media: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       message: {
         channelId: 'general',
         id: 'wgtlstx3u7',
@@ -418,7 +418,7 @@ CancelingDownload.args = {
   }),
   downloadStatuses: {
     32: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       mid: 'mid',
       downloadState: DownloadState.Canceling,
       downloadProgress: {
@@ -435,7 +435,7 @@ CanceledDownload.args = {
     id: '32',
     type: 4,
     media: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       message: {
         channelId: 'general',
         id: 'wgtlstx3u7',
@@ -458,7 +458,7 @@ CanceledDownload.args = {
   downloadStatuses: {
     32: {
       mid: 'mid',
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       downloadState: DownloadState.Canceled,
       downloadProgress: undefined,
     },
@@ -470,7 +470,7 @@ MaliciousDownload.args = {
     id: '32',
     type: 4,
     media: {
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       message: {
         channelId: 'general',
         id: 'wgtlstx3u7',
@@ -493,7 +493,7 @@ MaliciousDownload.args = {
   downloadStatuses: {
     32: {
       mid: 'mid',
-      cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+      cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
       downloadState: DownloadState.Malicious,
       downloadProgress: undefined,
     },

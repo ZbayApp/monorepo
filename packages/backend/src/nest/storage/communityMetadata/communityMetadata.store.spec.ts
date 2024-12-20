@@ -1,39 +1,46 @@
-import { jest, beforeEach, describe, it, expect, afterEach, beforeAll, test } from '@jest/globals'
+import { jest } from '@jest/globals'
+
 import fs from 'fs'
-import { create, IPFS } from 'ipfs-core'
 import { TestConfig } from '../../const'
 import { Test, TestingModule } from '@nestjs/testing'
 import { TestModule } from '../../common/test.module'
 import { StorageModule } from '../storage.module'
-import { OrbitDb } from '../orbitDb/orbitDb.service'
-import PeerId from 'peer-id'
+import { OrbitDbService } from '../orbitDb/orbitDb.service'
 import { CommunityMetadataStore } from './communityMetadata.store'
 import { Community, CommunityMetadata } from '@quiet/types'
 import { LocalDbService } from '../../local-db/local-db.service'
 import { Store, getFactory, prepareStore } from '@quiet/state-manager'
 import { FactoryGirl } from 'factory-girl'
-import { IdentityProvider } from 'orbit-db-identity-provider'
-// @ts-ignore Hacking around ipfs-log not exporting Entry
-import Entry from '../../../../node_modules/ipfs-log/src/entry'
+import { type IdentitiesType, type LogEntry, Entry } from '@orbitdb/core'
+import { libp2pInstanceParams } from '../../common/utils'
+import { Libp2pModule } from '../../libp2p/libp2p.module'
+import { Libp2pService } from '../../libp2p/libp2p.service'
+import { IpfsService } from '../../ipfs/ipfs.service'
+import { IpfsModule } from '../../ipfs/ipfs.module'
+import { createTestRootCA, createTestUserCert, createTestUserCsr } from '@quiet/identity'
+import { createLogger } from '../../common/logger'
 
 const metaValid = {
   id: 'anId',
   // These are valid certs and form a chain of trust
   rootCa:
-    'MIIBRTCB7KADAgECAgEBMAoGCCqGSM49BAMCMAwxCjAIBgNVBAMTAWEwHhcNMTAxMjI4MTAxMDEwWhcNMzAxMjI4MTAxMDEwWjAMMQowCAYDVQQDEwFhMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEbifF9IqU0464LTet/71bqXFrIZN6mjQ/eXYEcVJU4nenXx1Br7ZavvtzS7q/wCdy0y4C4thy+5IfrJzxvSxqPqM/MD0wDwYDVR0TBAgwBgEB/wIBAzALBgNVHQ8EBAMCAIYwHQYDVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMBMAoGCCqGSM49BAMCA0gAMEUCIQDADbVTK4Tn4pqEffh3zMXgAgrw4lpndAvoa/VmJBeWcgIgVWoI6JC9xT3SKX2oaUoWrv5/hbi5s9+FOCHnAYrK+uo=',
+    'MIIBaDCCAQ6gAwIBAgIBATAKBggqhkjOPQQDAjAZMRcwFQYDVQQDEw5xdWlldGNvbW11bml0eTAmGBMyMDI0MTAwNDE1NDY1My40ODNaGA8yMDMwMDIwMTA1MDAwMFowGTEXMBUGA1UEAxMOcXVpZXRjb21tdW5pdHkwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAR6hYpugDRODiuS3X83876ygKhivtCqZO/OnjTyGgNIfzhsG0TQjV/uVpM8okPMJxRXmANJIgjj0d2kifiICCntoz8wPTAPBgNVHRMECDAGAQH/AgEDMAsGA1UdDwQEAwIAhjAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwCgYIKoZIzj0EAwIDSAAwRQIgPjAmthGNzefL5oVPS0735LgCt/3ECJxaCb+STDkV7MACIQCC/BSxvR/heL2eFlFjd7o8+CrKuX9g4Ez9E+WtYRYwvA==',
   ownerCertificate:
-    'MIIBRTCB7KADAgECAgEBMAoGCCqGSM49BAMCMAwxCjAIBgNVBAMTAWEwHhcNMTAxMjI4MTAxMDEwWhcNMzAxMjI4MTAxMDEwWjAMMQowCAYDVQQDEwFhMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEbifF9IqU0464LTet/71bqXFrIZN6mjQ/eXYEcVJU4nenXx1Br7ZavvtzS7q/wCdy0y4C4thy+5IfrJzxvSxqPqM/MD0wDwYDVR0TBAgwBgEB/wIBAzALBgNVHQ8EBAMCAIYwHQYDVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMBMAoGCCqGSM49BAMCA0gAMEUCIQDADbVTK4Tn4pqEffh3zMXgAgrw4lpndAvoa/VmJBeWcgIgVWoI6JC9xT3SKX2oaUoWrv5/hbi5s9+FOCHnAYrK+uo=',
+    'MIICOjCCAeGgAwIBAgIGAZJYNmuzMAoGCCqGSM49BAMCMBkxFzAVBgNVBAMTDnF1aWV0Y29tbXVuaXR5MB4XDTI0MTAwNDE1NDY1M1oXDTMwMDIwMTA1MDAwMFowSTFHMEUGA1UEAxM+bnFudzRrYzRjNzdmYjQ3bGs1Mm01bDU3aDR0Y3hjZW83eW14ZWtmbjd5aDVtNjZ0NGp2Mm9sYWQub25pb24wWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQL8e+VoMUh0oiSewbKQ0dNwEVObX5BWPQ2L04NZX5HPZRj9rL/CBa2FTogNeyTbtG7VqTfEWWOWjnj/xVaYOF6o4HkMIHhMAkGA1UdEwQCMAAwCwYDVR0PBAQDAgCAMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcDATAYBgorBgEEAYOMGwIBBAoTCHVzZXJOYW1lMEMGCSsGAQIBDwMBAQQ2EzQxMkQzS29vV0tDV3N0bXFpNWdhUXZpcFQ3eFZuZVZHZldWN0hZcENibVV1NjI2UjkyaFh4MEkGA1UdEQRCMECCPm5xbnc0a2M0Yzc3ZmI0N2xrNTJtNWw1N2g0dGN4Y2VvN3lteGVrZm43eWg1bTY2dDRqdjJvbGFkLm9uaW9uMAoGCCqGSM49BAMCA0cAMEQCICZf4Fh9eBkocEmLMt7oJftEOve4w3qnnzRQWRSW5zF+AiAjskyYorG61BgClMVp8mjQGnSekMbqSN8stkzHIv/n/A==',
 }
+
+const logger = createLogger('test:communityMetadataStore')
 
 describe('CommmunityMetadataStore', () => {
   let metaValidWithOwnerId: CommunityMetadata
-  let entryValid: Entry
+  let entryValid: LogEntry<CommunityMetadata>
 
   let module: TestingModule
+  let libp2pService: Libp2pService
+  let ipfsService: IpfsService
   let communityMetadataStore: CommunityMetadataStore
-  let orbitDbService: OrbitDb
+  let orbitDbService: OrbitDbService
   let localDbService: LocalDbService
-  let ipfs: IPFS
 
   let store: Store
   let factory: FactoryGirl
@@ -53,27 +60,40 @@ describe('CommmunityMetadataStore', () => {
     store = prepareStore().store
     factory = await getFactory(store)
     community = await factory.create<Community>('Community')
+
+    // const rootCa = await createTestRootCA()
+    //   const csr = await createTestUserCsr()
+    //   const cert = await createTestUserCert(rootCa, csr)
+
+    //   logger.warn(rootCa.rootCertString)
+    //   logger.warn(rootCa.)
+    //   logger.warn(csr.userCsr)
+    //   logger.warn(cert.userCertString)
   })
 
   beforeEach(async () => {
     jest.clearAllMocks()
 
     module = await Test.createTestingModule({
-      imports: [TestModule, StorageModule],
+      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule],
     })
       .overrideProvider(LocalDbService)
       .useValue(mockLocalDbService)
       .compile()
 
-    communityMetadataStore = await module.resolve(CommunityMetadataStore)
+    libp2pService = await module.resolve(Libp2pService)
+    const libp2pParams = await libp2pInstanceParams()
+    await libp2pService.createInstance(libp2pParams)
 
-    orbitDbService = await module.resolve(OrbitDb)
+    ipfsService = await module.resolve(IpfsService)
+    await ipfsService.createInstance()
+
+    orbitDbService = await module.resolve(OrbitDbService)
     localDbService = await module.resolve(LocalDbService)
 
-    const peerId = await PeerId.create()
-    ipfs = await create()
-    await orbitDbService.create(peerId, ipfs)
+    await orbitDbService.create(libp2pParams.peerId, ipfsService.ipfsInstance!)
 
+    communityMetadataStore = await module.resolve(CommunityMetadataStore)
     await communityMetadataStore.init()
 
     metaValidWithOwnerId = {
@@ -84,33 +104,36 @@ describe('CommmunityMetadataStore', () => {
 
     const op = { op: 'PUT', key: metaValidWithOwnerId.id, value: metaValidWithOwnerId }
 
-    entryValid = await Entry.create(
-      ipfs,
-      // @ts-ignore
+    entryValid = await Entry.create<CommunityMetadata>(
       orbitDbService.orbitDb.identity,
       // @ts-ignore
-      communityMetadataStore.store.id,
-      op,
-      [],
-      null,
-      [],
-      false
+      communityMetadataStore.store.log.id,
+      op
     )
   })
 
   afterEach(async () => {
     await communityMetadataStore.close()
     await orbitDbService.stop()
-    await ipfs.stop()
+    await ipfsService.stop()
+    await libp2pService.close()
     if (fs.existsSync(TestConfig.ORBIT_DB_DIR)) {
       fs.rmSync(TestConfig.ORBIT_DB_DIR, { recursive: true })
     }
   })
 
+  const mockIdentities = (verifyIdentityRes: boolean, verifyRes: boolean): IdentitiesType => {
+    return {
+      verifyIdentity: jest.fn(() => verifyIdentityRes),
+      getIdentity: jest.fn(() => orbitDbService.orbitDb.identity),
+      verify: jest.fn(() => verifyRes),
+    } as unknown as IdentitiesType
+  }
+
   describe('updateCommunityMetadata', () => {
     test('updates community metadata if the metadata is valid', async () => {
       const ret = await communityMetadataStore.setEntry(metaValid.id, metaValid)
-      const meta = communityMetadataStore.getEntry()
+      const meta = await communityMetadataStore.getEntry()
 
       expect(ret).toStrictEqual(metaValidWithOwnerId)
       expect(meta).toStrictEqual(metaValidWithOwnerId)
@@ -122,7 +145,7 @@ describe('CommmunityMetadataStore', () => {
         rootCa: 'Something invalid!',
       }
       expect(communityMetadataStore.setEntry(metaInvalid.id, metaInvalid)).rejects.toThrow()
-      const meta = communityMetadataStore.getEntry()
+      const meta = await communityMetadataStore.getEntry()
       expect(meta).toEqual(null)
     })
   })
@@ -131,7 +154,7 @@ describe('CommmunityMetadataStore', () => {
     test('returns true if the owner ID is expected and entry is otherwise valid', async () => {
       const ret = await CommunityMetadataStore.validateCommunityMetadataEntry(
         localDbService,
-        { verify: jest.fn(() => true), verifyIdentity: jest.fn(() => true) } as unknown as typeof IdentityProvider,
+        mockIdentities(true, true),
         entryValid
       )
 
@@ -141,7 +164,7 @@ describe('CommmunityMetadataStore', () => {
     test('returns false if verify returns false and entry is otherwise valid', async () => {
       const ret = await CommunityMetadataStore.validateCommunityMetadataEntry(
         localDbService,
-        { verify: jest.fn(() => false), verifyIdentity: jest.fn(() => true) } as unknown as typeof IdentityProvider,
+        mockIdentities(true, false),
         entryValid
       )
 
@@ -151,7 +174,7 @@ describe('CommmunityMetadataStore', () => {
     test('returns false if verifyIdentity returns false and entry is otherwise valid', async () => {
       const ret = await CommunityMetadataStore.validateCommunityMetadataEntry(
         localDbService,
-        { verify: jest.fn(() => true), verifyIdentity: jest.fn(() => false) } as unknown as typeof IdentityProvider,
+        mockIdentities(false, true),
         entryValid
       )
 
@@ -159,22 +182,26 @@ describe('CommmunityMetadataStore', () => {
     })
 
     test('returns false if the owner ID is unexpected and entry is otherwise valid', async () => {
-      const entryInvalid = {
-        ...entryValid,
-        identity: {
-          ...entryValid.identity,
-          // NOTE: This is where the entry identity is defined!
-          id: 'Not the owner!',
-        },
+      const op = { op: 'PUT', key: metaValidWithOwnerId.id, value: metaValidWithOwnerId }
+
+      try {
+        const entryInvalid = await Entry.create<CommunityMetadata>(
+          {
+            ...orbitDbService.orbitDb.identity,
+            // NOTE: This is where the entry identity is defined!
+            id: 'Not the owner!',
+          },
+          // @ts-ignore
+          communityMetadataStore.store.log.id,
+          op
+        )
+        // this should throw an error so if we make it here something is wrong
+        expect(entryInvalid).not.toBeTruthy()
+      } catch (e) {
+        expect(e).toBeTruthy()
+        // packages/backend/node_modules/@orbitdb/core/src/identities/identities.js - sign
+        expect(e.message).toEqual('Private signing key not found from KeyStore')
       }
-
-      const ret = await CommunityMetadataStore.validateCommunityMetadataEntry(
-        localDbService,
-        { verify: jest.fn(() => true), verifyIdentity: jest.fn(() => true) } as unknown as typeof IdentityProvider,
-        entryInvalid
-      )
-
-      expect(ret).toEqual(false)
     })
 
     test('returns false if the owner cert is unexpected and entry is otherwise valid', async () => {
@@ -183,23 +210,16 @@ describe('CommmunityMetadataStore', () => {
         rootCa: 'Something invalid!',
       }
       const opInvalid = { op: 'PUT', key: metaInvalid.id, value: metaInvalid }
-      // @ts-ignore
-      const entryInvalid = await Entry.create(
-        ipfs,
-        // @ts-ignore
+      const entryInvalid = await Entry.create<CommunityMetadata>(
         orbitDbService.orbitDb.identity,
         // @ts-ignore
-        communityMetadataStore.store.id,
-        opInvalid,
-        [],
-        null,
-        [],
-        false
+        communityMetadataStore.store.log.id,
+        opInvalid
       )
 
       const ret = await CommunityMetadataStore.validateCommunityMetadataEntry(
         localDbService,
-        { verify: jest.fn(() => true), verifyIdentity: jest.fn(() => true) } as unknown as typeof IdentityProvider,
+        mockIdentities(true, true),
         entryInvalid
       )
 

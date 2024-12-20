@@ -3,17 +3,18 @@ import getPort from 'get-port'
 import path from 'path'
 import { Server } from 'socket.io'
 import { UserData } from '@quiet/types'
-import createHttpsProxyAgent from 'https-proxy-agent'
-import PeerId from 'peer-id'
+import { HttpsProxyAgent } from 'https-proxy-agent'
+import { createEd25519PeerId } from '@libp2p/peer-id-factory'
+import { peerIdFromKeys } from '@libp2p/peer-id'
+import { type PeerId } from '@libp2p/interface'
 import tmp from 'tmp'
-import crypto, { sign } from 'crypto'
+import crypto from 'crypto'
 import { type PermsData } from '@quiet/types'
 import { TestConfig } from '../const'
 import { Libp2pNodeParams } from '../libp2p/libp2p.types'
 import { createLibp2pAddress, createLibp2pListenAddress, isDefined } from '@quiet/common'
 import { Libp2pService } from '../libp2p/libp2p.service'
 import { CertFieldsTypes, getReqFieldValue, loadCSR } from '@quiet/identity'
-import { execFile } from 'child_process'
 import { createLogger } from './logger'
 
 const logger = createLogger('utils')
@@ -176,18 +177,18 @@ export const getUsersAddresses = async (users: UserData[]): Promise<string[]> =>
   return await Promise.all(peers)
 }
 
-export const getLibp2pAddressesFromCsrs = async (csrs: string[]): Promise<string[]> => {
-  const addresses = await Promise.all(
+export const getUsersFromCsrs = async (csrs: string[]): Promise<UserData[]> => {
+  const users = await Promise.all(
     csrs.map(async csr => {
       const parsedCsr = await loadCSR(csr)
+      const username = getReqFieldValue(parsedCsr, CertFieldsTypes.nickName)
       const peerId = getReqFieldValue(parsedCsr, CertFieldsTypes.peerId)
       const onionAddress = getReqFieldValue(parsedCsr, CertFieldsTypes.commonName)
-      if (!peerId || !onionAddress) return
 
-      return createLibp2pAddress(onionAddress, peerId)
+      return username && peerId && onionAddress ? { username, onionAddress, peerId } : undefined
     })
   )
-  return addresses.filter(isDefined)
+  return users.filter(isDefined)
 }
 
 /**
@@ -195,11 +196,17 @@ export const getLibp2pAddressesFromCsrs = async (csrs: string[]): Promise<string
  *
  * @param tolerance In percentage (0.0 - 1.0)
  */
-export const compare = (given: number, base: number, tolerance = 0) => {
-  const margin = base * tolerance
-  const min = base - margin
-  const max = base + margin
-  return given >= min && given <= max
+export const compare = (given: number | bigint, base: number | bigint, tolerance: number = 0) => {
+  // convert all of our values to bigint for consistency
+  const biBase: bigint = typeof base === 'bigint' ? base : BigInt(base)
+  const biGiven: bigint = typeof given === 'bigint' ? given : BigInt(given)
+  const biTolerance: bigint = typeof tolerance === 'bigint' ? tolerance : BigInt(tolerance * 100)
+
+  // perform the comparison
+  const margin = (biBase * biTolerance) / BigInt(100)
+  const min = biBase - margin
+  const max = biBase + margin
+  return biGiven >= min && biGiven <= max
 }
 
 export const getCors = () => {
@@ -223,23 +230,19 @@ export const rootPermsData: PermsData = {
 tmp.setGracefulCleanup()
 
 export const testBootstrapMultiaddrs = [
-  createLibp2pAddress(generateRandomOnionAddress(56), 'QmfLUJcDSLVYnNqSPSRK4mKG8MGw51m9K2v59k3yq1C8s4'),
+  createLibp2pAddress(generateRandomOnionAddress(56), '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx'),
 ]
 
 export const libp2pInstanceParams = async (): Promise<Libp2pNodeParams> => {
   const port = await getPort()
   const peerId = await createPeerId()
-  const address = '0.0.0.0'
-  const peerIdRemote = await createPeerId()
-  const remoteAddress = createLibp2pAddress(address, peerIdRemote.toString())
   const libp2pKey = Libp2pService.generateLibp2pPSK().fullKey
   return {
     peerId,
     listenAddresses: [createLibp2pListenAddress('localhost')],
-    agent: createHttpsProxyAgent({ port: 1234, host: 'localhost' }),
+    agent: new HttpsProxyAgent('http://localhost:1234'),
     localAddress: createLibp2pAddress('localhost', peerId.toString()),
     targetPort: port,
-    peers: [remoteAddress],
     psk: libp2pKey,
   }
 }
@@ -247,27 +250,12 @@ export const libp2pInstanceParams = async (): Promise<Libp2pNodeParams> => {
 export const createTmpDir = (prefix = 'quietTestTmp_'): tmp.DirResult => {
   return tmp.dirSync({ mode: 0o750, prefix, unsafeCleanup: true })
 }
+
 export const tmpQuietDirPath = (name: string): string => {
   return path.join(name, TestConfig.QUIET_DIR)
 }
 
-export function createFile(filePath: string, size: number) {
-  const stream = fs.createWriteStream(filePath)
-  const maxChunkSize = 1048576 // 1MB
-  if (size < maxChunkSize) {
-    stream.write(crypto.randomBytes(size))
-  } else {
-    const chunks = Math.floor(size / maxChunkSize)
-    for (let i = 0; i < chunks; i++) {
-      stream.write(crypto.randomBytes(Math.min(size, maxChunkSize)))
-      size -= maxChunkSize
-    }
-  }
-  stream.end()
-}
-
 export async function createPeerId(): Promise<PeerId> {
-  const { peerIdFromKeys } = await eval("import('@libp2p/peer-id')")
-  const peerId = await PeerId.create()
-  return peerIdFromKeys(peerId.marshalPubKey(), peerId.marshalPrivKey())
+  const peerId = await createEd25519PeerId()
+  return peerIdFromKeys(peerId.publicKey, peerId.privateKey)
 }
