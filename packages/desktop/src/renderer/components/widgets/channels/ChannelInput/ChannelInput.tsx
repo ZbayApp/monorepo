@@ -389,6 +389,7 @@ export const ChannelInputComponent: React.FC<ChannelInputProps> = ({
                       }}
                     />
                     <input
+                      data-testid='uploadFileInput'
                       ref={fileInput}
                       type='file'
                       onChange={handleFileInput}

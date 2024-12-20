@@ -59,6 +59,7 @@ describe('ChannelInput', () => {
                         />
                         <input
                           accept="*"
+                          data-testid="uploadFileInput"
                           hidden=""
                           multiple=""
                           type="file"
@@ -146,6 +147,7 @@ describe('ChannelInput', () => {
                         />
                         <input
                           accept="*"
+                          data-testid="uploadFileInput"
                           hidden=""
                           multiple=""
                           type="file"

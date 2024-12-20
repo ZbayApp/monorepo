@@ -5,14 +5,14 @@ import {
   Channel,
   CreateCommunityModal,
   JoinCommunityModal,
+  JoiningLoadingPanel,
   RegisterUsernameModal,
   Sidebar,
   UserProfileContextMenu,
 } from '../selectors'
 import { createLogger } from '../logger'
 import { EXPECTED_IMG_SRC_GIF, EXPECTED_IMG_SRC_JPEG, EXPECTED_IMG_SRC_PNG } from '../profilePhoto.const'
-import { sleep } from '../utils'
-import { X_DATA_TESTID } from '../enums'
+import { PhotoExt, SettingsModalTabName, X_DATA_TESTID } from '../enums'
 import { UserTestData } from '../types'
 
 const logger = createLogger('userProfile')
@@ -51,7 +51,6 @@ describe('User Profile Feature', () => {
 
   beforeEach(async () => {
     logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ ${expect.getState().currentTestName}`)
-    await sleep(1_000)
   })
 
   it('Owner opens the app', async () => {
@@ -60,38 +59,34 @@ describe('User Profile Feature', () => {
 
   it('Owner sees "join community" modal and switches to "create community" modal', async () => {
     const joinModal = new JoinCommunityModal(users.owner.app.driver)
-    const isJoinModal = await joinModal.element.isDisplayed()
-    expect(isJoinModal).toBeTruthy()
+    expect(await joinModal.isReady()).toBeTruthy()
     await joinModal.switchToCreateCommunity()
   })
 
   it('Owner submits valid community name', async () => {
     const createModal = new CreateCommunityModal(users.owner.app.driver)
-    const isCreateModal = await createModal.element.isDisplayed()
-    expect(isCreateModal).toBeTruthy()
+    expect(await createModal.isReady()).toBeTruthy()
     await createModal.typeCommunityName(communityName)
     await createModal.submit()
   })
 
   it('Owner sees "register username" modal and submits valid username', async () => {
     const registerModal = new RegisterUsernameModal(users.owner.app.driver)
-    const isRegisterModal = await registerModal.element.isDisplayed()
-    expect(isRegisterModal).toBeTruthy()
+    expect(await registerModal.isReady()).toBeTruthy()
     await registerModal.typeUsername(users.owner.username)
     await registerModal.submit()
   })
 
   it('Owner registers successfully and sees general channel', async () => {
     generalChannelOwner = new Channel(users.owner.app.driver, 'general')
-    const isGeneralChannel = await generalChannelOwner.element.isDisplayed()
+    expect(await generalChannelOwner.isReady())
+
     const generalChannelText = await generalChannelOwner.element.getText()
-    expect(isGeneralChannel).toBeTruthy()
     expect(generalChannelText).toEqual('# general')
   })
 
   it('Owner sends a message', async () => {
-    const isMessageInput = await generalChannelOwner.messageInput.isDisplayed()
-    expect(isMessageInput).toBeTruthy()
+    expect(await generalChannelOwner.isMessageInputReady()).toBeTruthy()
     await generalChannelOwner.sendMessage(users.owner.messages[0], users.owner.username)
   })
 
@@ -103,11 +98,13 @@ describe('User Profile Feature', () => {
       await menu.openEditProfileMenu()
       await menu.uploadJPEGPhoto()
 
-      const imgSrc = await menu.getProfilePhotoSrc()
+      const imgSrc = await menu.getProfilePhotoSrc(PhotoExt.JPEG)
       expect(imgSrc).toEqual(EXPECTED_IMG_SRC_JPEG)
 
       await menu.back(X_DATA_TESTID.EDIT_PROFILE)
+      await menu.isMenuReady()
       await menu.back(X_DATA_TESTID.PROFILE)
+      await generalChannelOwner.isMessageInputReady()
     } catch (e) {
       logger.error('Failed to set JPEG profile photo', e)
       throw e
@@ -122,11 +119,13 @@ describe('User Profile Feature', () => {
       await menu.openEditProfileMenu()
       await menu.uploadGIFPhoto()
 
-      const imgSrc = await menu.getProfilePhotoSrc()
+      const imgSrc = await menu.getProfilePhotoSrc(PhotoExt.GIF)
       expect(imgSrc).toEqual(EXPECTED_IMG_SRC_GIF)
 
       await menu.back(X_DATA_TESTID.EDIT_PROFILE)
+      await menu.isMenuReady()
       await menu.back(X_DATA_TESTID.PROFILE)
+      await generalChannelOwner.isMessageInputReady()
     } catch (e) {
       logger.error('Failed to set GIF profile photo', e)
       throw e
@@ -141,11 +140,13 @@ describe('User Profile Feature', () => {
       await menu.openEditProfileMenu()
       await menu.uploadPNGPhoto()
 
-      const imgSrc = await menu.getProfilePhotoSrc()
+      const imgSrc = await menu.getProfilePhotoSrc(PhotoExt.PNG)
       expect(imgSrc).toEqual(EXPECTED_IMG_SRC_PNG)
 
       await menu.back(X_DATA_TESTID.EDIT_PROFILE)
+      await menu.isMenuReady()
       await menu.back(X_DATA_TESTID.PROFILE)
+      await generalChannelOwner.isMessageInputReady()
     } catch (e) {
       logger.error('Failed to set PNG profile photo', e)
       throw e
@@ -154,14 +155,10 @@ describe('User Profile Feature', () => {
 
   it('Owner opens the settings tab and gets an invitation link', async () => {
     const settingsModal = await new Sidebar(users.owner.app.driver).openSettings()
-    const isSettingsModal = await settingsModal.element.isDisplayed()
-    expect(isSettingsModal).toBeTruthy()
-    await sleep(2000)
-    await settingsModal.switchTab('invite')
-    await sleep(2000)
+    expect(await settingsModal.isReady()).toBeTruthy()
+    await settingsModal.switchTab(SettingsModalTabName.INVITE)
     const invitationLinkElement = await settingsModal.invitationLink()
     invitationLink = await invitationLinkElement.getText()
-    await sleep(2000)
     expect(invitationLink).not.toBeUndefined()
     logger.info('Received invitation link:', invitationLink)
     await settingsModal.closeTabThenModal()
@@ -173,26 +170,28 @@ describe('User Profile Feature', () => {
 
   it('First user submits invitation link received from owner', async () => {
     const joinCommunityModal = new JoinCommunityModal(users.user1.app.driver)
-    const isJoinCommunityModal = await joinCommunityModal.element.isDisplayed()
-    expect(isJoinCommunityModal).toBeTruthy()
+    expect(await joinCommunityModal.isReady()).toBeTruthy()
     await joinCommunityModal.typeCommunityInviteLink(invitationLink)
     await joinCommunityModal.submit()
   })
 
   it('First user submits valid username', async () => {
     const registerModal = new RegisterUsernameModal(users.user1.app.driver)
-    const isRegisterModal = await registerModal.element.isDisplayed()
-    expect(isRegisterModal).toBeTruthy()
+    expect(await registerModal.isReady()).toBeTruthy()
     await registerModal.clearInput()
     await registerModal.typeUsername(users.user1.username)
     await registerModal.submit()
   })
 
+  it('First user waits to join the community', async () => {
+    const joinPanel = new JoiningLoadingPanel(users.user1.app.driver)
+    await joinPanel.waitForJoinToComplete()
+  })
+
   it('First user joins successfully sees general channel', async () => {
     generalChannelUser1 = new Channel(users.user1.app.driver, 'general')
-    await generalChannelUser1.element.isDisplayed()
-    const isMessageInput2 = await generalChannelUser1.messageInput.isDisplayed()
-    expect(isMessageInput2).toBeTruthy()
+    expect(await generalChannelUser1.isReady()).toBeTruthy()
+    expect(await generalChannelUser1.isMessageInputReady()).toBeTruthy()
   })
 
   it("First user sees owner's message with profile photo", async () => {
@@ -201,13 +200,13 @@ describe('User Profile Feature', () => {
     if (!elem) {
       fail('Failed to find at least 2 messages')
     }
-    await users.user1.app.driver.wait(until.elementIsVisible(elem))
+    await users.user1.app.driver.wait(until.elementIsVisible(elem), 10_000)
     const text = await elem.getText()
     expect(text).toEqual(users.owner.messages[0])
 
     const fullMessages = await generalChannelUser1.getUserMessagesFull(users.owner.username)
     const img = await fullMessages[1].findElement(By.tagName('img'))
-    await users.user1.app.driver.wait(until.elementIsVisible(img))
+    await users.user1.app.driver.wait(until.elementIsVisible(img), 10_000)
     const imgSrc = await img.getAttribute('src')
     expect(imgSrc).toEqual(EXPECTED_IMG_SRC_PNG)
   })
