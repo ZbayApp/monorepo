@@ -370,6 +370,11 @@ export class Timeout {
   }
 
   public clear(): void {
+    if (this.id == null) {
+      logger.warn(`Timeout already cleared!`)
+      return
+    }
+
     clearTimeout(this.id as NodeJS.Timeout)
     this.id = undefined
   }
@@ -384,6 +389,7 @@ export const promiseWithTimeout = async <T>(
   const timeout = new Timeout()
   try {
     const result: T = await timeout.wrap(promise, timeoutMs, reason)
+    timeout.clear()
     return result
   } catch (e) {
     if (e.message === reason) {

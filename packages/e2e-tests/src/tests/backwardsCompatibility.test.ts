@@ -5,11 +5,12 @@ import {
   CreateCommunityModal,
   DebugModeModal,
   JoinCommunityModal,
+  JoiningLoadingPanel,
   RegisterUsernameModal,
   Sidebar,
 } from '../selectors'
 import { MessageIds } from '../types'
-import { BACKWARD_COMPATIBILITY_BASE_VERSION, BuildSetup, copyInstallerFile, downloadInstaller, sleep } from '../utils'
+import { BACKWARD_COMPATIBILITY_BASE_VERSION, BuildSetup, copyInstallerFile, downloadInstaller } from '../utils'
 import { createLogger } from '../logger'
 
 const logger = createLogger('backwardsCompatibility')
@@ -46,11 +47,9 @@ describe('Backwards Compatibility', () => {
 
   beforeEach(async () => {
     logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ ${expect.getState().currentTestName}`)
-    await sleep(1_000)
   })
 
   afterAll(async () => {
-    await sleep(5_000)
     await ownerAppNewVersion?.close()
     await ownerAppNewVersion?.cleanup()
     await ownerAppOldVersion?.close()
@@ -77,48 +76,48 @@ describe('Backwards Compatibility', () => {
       'Owner sees "join community" modal and switches to "create community" modal',
       async () => {
         const joinModal = new JoinCommunityModal(ownerAppOldVersion.driver)
-        const isJoinModal = await joinModal.element.isDisplayed()
-        expect(isJoinModal).toBeTruthy()
+        expect(await joinModal.isReady()).toBeTruthy()
         await joinModal.switchToCreateCommunity()
       }
     )
 
     itif(process.platform == 'linux')('Owner submits valid community name', async () => {
       const createModal = new CreateCommunityModal(ownerAppOldVersion.driver)
-      const isCreateModal = await createModal.element.isDisplayed()
-      expect(isCreateModal).toBeTruthy()
+      expect(await createModal.isReady()).toBeTruthy()
       await createModal.typeCommunityName(communityName)
       await createModal.submit()
     })
 
     itif(process.platform == 'linux')('Owner sees "register username" modal and submits valid username', async () => {
       const registerModal = new RegisterUsernameModal(ownerAppOldVersion.driver)
-      const isRegisterModal = await registerModal.element.isDisplayed()
-      expect(isRegisterModal).toBeTruthy()
+      expect(await registerModal.isReady()).toBeTruthy()
       await registerModal.typeUsername(ownerUsername)
       await registerModal.submit()
     })
 
+    itif(process.platform == 'linux')('Owner waits for join to complete', async () => {
+      const joinPanel = new JoiningLoadingPanel(ownerAppOldVersion.driver)
+      await joinPanel.waitForJoinToComplete()
+    })
+
     itif(process.platform == 'linux')('Owner registers successfully and sees general channel', async () => {
       generalChannel = new Channel(ownerAppOldVersion.driver, 'general')
-      const isGeneralChannel = await generalChannel.element.isDisplayed()
+      expect(await generalChannel.isReady()).toBeTruthy()
+
       const generalChannelText = await generalChannel.element.getText()
-      expect(isGeneralChannel).toBeTruthy()
       expect(generalChannelText).toEqual('# general')
     })
 
     itif(process.platform == 'linux')(`Verify version - ${BACKWARD_COMPATIBILITY_BASE_VERSION}`, async () => {
       const settingsModal = await new Sidebar(ownerAppOldVersion.driver).openSettings()
-      const isSettingsModal = await settingsModal.element.isDisplayed()
-      expect(isSettingsModal).toBeTruthy()
+      expect(await settingsModal.isReady()).toBeTruthy()
       const settingVersion = await settingsModal.getVersion()
       expect(settingVersion).toEqual(BACKWARD_COMPATIBILITY_BASE_VERSION)
       await settingsModal.close()
     })
 
     itif(process.platform == 'linux')('Owner sends a message in the general channel', async () => {
-      const isMessageInput = await generalChannel.messageInput.isDisplayed()
-      expect(isMessageInput).toBeTruthy()
+      expect(await generalChannel.isMessageInputReady()).toBeTruthy()
       generalChannelMessageIds = await generalChannel.sendMessage(ownerMessages[0], ownerUsername)
     })
 
@@ -138,8 +137,7 @@ describe('Backwards Compatibility', () => {
 
     itif(process.platform == 'linux')('Owner sends a message in second channel', async () => {
       secondChannel = new Channel(ownerAppOldVersion.driver, newChannelName)
-      const isMessageInput = await secondChannel.messageInput.isDisplayed()
-      expect(isMessageInput).toBeTruthy()
+      expect(await secondChannel.isMessageInputReady()).toBeTruthy()
       secondChannelMessageIds = await secondChannel.sendMessage(ownerMessages[1], ownerUsername)
     })
 
@@ -161,7 +159,6 @@ describe('Backwards Compatibility', () => {
     )
     itif(process.platform == 'linux')('User closes the old app', async () => {
       await ownerAppOldVersion.close()
-      await sleep(5_000)
     })
 
     // ________________________________
@@ -183,18 +180,16 @@ describe('Backwards Compatibility', () => {
     itif(process.platform == 'linux')('Owener sees general channel', async () => {
       logger.info('New version', 3)
       generalChannel = new Channel(ownerAppNewVersion.driver, 'general')
-      const isGeneralChannel = await generalChannel.element.isDisplayed()
+      expect(await generalChannel.isReady()).toBeTruthy()
+
       const generalChannelText = await generalChannel.element.getText()
-      expect(isGeneralChannel).toBeTruthy()
       expect(generalChannelText).toEqual('# general')
     })
 
     itif(process.platform == 'linux')('Confirm that the opened app is the latest version', async () => {
       logger.info('New version', 4)
-      await sleep(10_000)
       const settingsModal = await new Sidebar(ownerAppNewVersion.driver).openSettings()
-      const isSettingsModal = await settingsModal.element.isDisplayed()
-      expect(isSettingsModal).toBeTruthy()
+      expect(await settingsModal.isReady()).toBeTruthy()
       const settingVersion = await settingsModal.getVersion()
       const envVersion = ownerAppNewVersion.buildSetup.getVersionFromEnv()
       expect(settingVersion).toEqual(envVersion)
@@ -203,11 +198,11 @@ describe('Backwards Compatibility', () => {
 
     itif(process.platform == 'linux')('Check number of messages on second channel', async () => {
       logger.info('New version', 5)
-      await sleep(2_000)
       sidebar = new Sidebar(ownerAppNewVersion.driver)
       await sidebar.switchChannel(newChannelName)
-      await sleep(5_000)
       secondChannel = new Channel(ownerAppNewVersion.driver, newChannelName)
+      expect(await secondChannel.isReady()).toBeTruthy()
+
       const currentMessages = await secondChannel.getUserMessages(ownerUsername)
       expect(currentMessages.length).toEqual(messagesToCompare.length)
     })

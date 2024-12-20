@@ -12,9 +12,8 @@ import getPort from 'get-port'
 import { fork } from 'child_process'
 import path from 'path'
 import { createLogger } from '../logger'
-import { sleep } from '../utils'
-import { UploadedFileType } from '../enums'
-import { TEST_IMAGE_FILE_NAME, UPLOAD_FILE_DIR } from '../uploadFile.const'
+import { SettingsModalTabName, UploadedFileType } from '../enums'
+import { TEST_FILE_NAME, TEST_IMAGE_FILE_NAME, UPLOAD_FILE_DIR } from '../uploadFile.const'
 
 const logger = createLogger('oneClient')
 
@@ -28,6 +27,9 @@ describe('One Client', () => {
   const generalChannelName = 'general'
   const ownerUserName = 'testuser'
 
+  const firstCommunityName = 'testcommunity'
+  const secondCommunityName = 'testcommunity-redux'
+
   beforeAll(async () => {
     app = new App()
     await app.open()
@@ -40,7 +42,6 @@ describe('One Client', () => {
 
   beforeEach(async () => {
     logger.info(`░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ ${expect.getState().currentTestName}`)
-    await sleep(200)
   })
 
   describe('User opens app for the first time', () => {
@@ -51,57 +52,49 @@ describe('One Client', () => {
     })
 
     it('User sees "join community" page and switches to "create community" view by clicking on the link', async () => {
+      const debugModal = new DebugModeModal(app.driver)
+      await debugModal.close()
+
       const joinModal = new JoinCommunityModal(app.driver)
-      const isJoinModal = await joinModal.element.isDisplayed()
-      expect(isJoinModal).toBeTruthy()
+      expect(await joinModal.isReady()).toBeTruthy()
 
-      if (!isJoinModal) {
-        const generalChannel = new Channel(app.driver, generalChannelName)
-        const isGeneralChannel = await generalChannel.element.isDisplayed()
-
-        expect(isGeneralChannel).toBeTruthy()
-      } else {
-        await joinModal.switchToCreateCommunity()
-      }
+      await joinModal.switchToCreateCommunity()
     })
 
     it('User is on "Create community" page, enters valid community name and presses the button', async () => {
       const createModal = new CreateCommunityModal(app.driver)
-      const isCreateModal = await createModal.element.isDisplayed()
-      expect(isCreateModal).toBeTruthy()
-      await createModal.typeCommunityName('testcommunity')
+      expect(await createModal.isReady()).toBeTruthy()
+
+      await createModal.typeCommunityName(firstCommunityName)
       await createModal.submit()
     })
 
     it('User sees "register username" page, enters the valid name and submits by clicking on the button', async () => {
       const registerModal = new RegisterUsernameModal(app.driver)
-      const isRegisterModal = await registerModal.element.isDisplayed()
+      expect(await registerModal.isReady()).toBeTruthy()
 
-      expect(isRegisterModal).toBeTruthy()
-      logger.info('Registration - vefore typeUsername')
+      logger.info('Registration - before typeUsername')
       await registerModal.typeUsername(ownerUserName)
       logger.info('Registration - before submit')
       await registerModal.submit()
       logger.info('Registration - after submit')
     })
 
-    it.skip('User waits for the modal JoiningLoadingPanel to disappear', async () => {
+    it('User waits for the modal JoiningLoadingPanel to disappear', async () => {
       const loadingPanelCommunity = new JoiningLoadingPanel(app.driver)
-      const isLoadingPanelCommunity = await loadingPanelCommunity.element.isDisplayed()
-      expect(isLoadingPanelCommunity).toBeTruthy()
+      await loadingPanelCommunity.waitForJoinToComplete()
     })
 
     it('User sees general channel', async () => {
       generalChannel = new Channel(app.driver, generalChannelName)
-      const isGeneralChannel = await generalChannel.element.isDisplayed()
+      expect(await generalChannel.isReady()).toBeTruthy()
+
       const generalChannelText = await generalChannel.element.getText()
-      expect(isGeneralChannel).toBeTruthy()
       expect(generalChannelText).toEqual(`# ${generalChannelName}`)
     })
 
     it('User sends a message', async () => {
-      const isMessageInput = await generalChannel.messageInput.isDisplayed()
-      expect(isMessageInput).toBeTruthy()
+      expect(await generalChannel.isMessageInputReady()).toBeTruthy()
       await generalChannel.sendMessage('this shows up as sent', ownerUserName)
     })
   })
@@ -132,8 +125,7 @@ describe('One Client', () => {
 
       it('User sees "general channel" page', async () => {
         const generalChannel = new Channel(app.driver, 'general')
-        const isGeneralChannel = await generalChannel.element.isDisplayed()
-        expect(isGeneralChannel).toBeTruthy()
+        expect(await generalChannel.isReady()).toBeTruthy()
       })
     })
   }
@@ -141,10 +133,9 @@ describe('One Client', () => {
   describe('User leaves community and recreates it', () => {
     it('Leave community', async () => {
       const settingsModal = await new Sidebar(app.driver).openSettings()
-      const isSettingsModal = await settingsModal.element.isDisplayed()
-      expect(isSettingsModal).toBeTruthy()
-      await settingsModal.switchTab('leave-community')
-      await sleep(2000)
+      expect(await settingsModal.isReady()).toBeTruthy()
+
+      await settingsModal.switchTab(SettingsModalTabName.LEAVE_COMMUNITY)
       await settingsModal.leaveCommunityButton()
     })
 
@@ -153,56 +144,44 @@ describe('One Client', () => {
       await debugModal.close()
 
       const joinModal = new JoinCommunityModal(app.driver)
-      const isJoinModal = await joinModal.element.isDisplayed()
-      expect(isJoinModal).toBeTruthy()
+      expect(await joinModal.isReady()).toBeTruthy()
 
-      if (!isJoinModal) {
-        const generalChannel = new Channel(app.driver, generalChannelName)
-        const isGeneralChannel = await generalChannel.element.isDisplayed()
-
-        expect(isGeneralChannel).toBeTruthy()
-      } else {
-        await joinModal.switchToCreateCommunity()
-      }
+      await joinModal.switchToCreateCommunity()
     })
 
     it('User is on "Create community" page, enters new valid community name and presses the button', async () => {
       const createModal = new CreateCommunityModal(app.driver)
-      const isCreateModal = await createModal.element.isDisplayed()
-      expect(isCreateModal).toBeTruthy()
-      await createModal.typeCommunityName('testcommunity1')
+      expect(await createModal.isReady()).toBeTruthy()
+      await createModal.typeCommunityName(secondCommunityName)
       await createModal.submit()
     })
 
     it('User sees "register username" page, enters the valid name and submits by clicking on the button', async () => {
       const registerModal = new RegisterUsernameModal(app.driver)
-      const isRegisterModal = await registerModal.element.isDisplayed()
 
-      expect(isRegisterModal).toBeTruthy()
-      logger.info('Registration - vefore typeUsername')
+      expect(await registerModal.isReady()).toBeTruthy()
+      logger.info('Registration - before typeUsername')
       await registerModal.typeUsername(ownerUserName)
       logger.info('Registration - before submit')
       await registerModal.submit()
       logger.info('Registration - after submit')
     })
 
-    it.skip('User waits for the modal JoiningLoadingPanel to disappear', async () => {
+    it('User waits for the modal JoiningLoadingPanel to disappear', async () => {
       const loadingPanelCommunity = new JoiningLoadingPanel(app.driver)
-      const isLoadingPanelCommunity = await loadingPanelCommunity.element.isDisplayed()
-      expect(isLoadingPanelCommunity).toBeTruthy()
+      await loadingPanelCommunity.waitForJoinToComplete()
     })
 
     it('User sees general channel', async () => {
       generalChannel = new Channel(app.driver, generalChannelName)
-      const isGeneralChannel = await generalChannel.element.isDisplayed()
+      expect(await generalChannel.isReady())
+
       const generalChannelText = await generalChannel.element.getText()
-      expect(isGeneralChannel).toBeTruthy()
       expect(generalChannelText).toEqual(`# ${generalChannelName}`)
     })
 
     it('User sends a message', async () => {
-      const isMessageInput = await generalChannel.messageInput.isDisplayed()
-      expect(isMessageInput).toBeTruthy()
+      expect(await generalChannel.isMessageInputReady()).toBeTruthy()
       await generalChannel.sendMessage('this shows up as sent again', ownerUserName)
     })
   })
@@ -214,8 +193,8 @@ describe('One Client', () => {
     })
 
     it('Owner uploads a non-image file', async () => {
-      const uploadFilePath = path.resolve(UPLOAD_FILE_DIR, TEST_IMAGE_FILE_NAME)
-      await generalChannel.uploadFile(TEST_IMAGE_FILE_NAME, uploadFilePath, UploadedFileType.FILE, ownerUserName)
+      const uploadFilePath = path.resolve(UPLOAD_FILE_DIR, TEST_FILE_NAME)
+      await generalChannel.uploadFile(TEST_FILE_NAME, uploadFilePath, UploadedFileType.FILE, ownerUserName)
     })
   })
 })
