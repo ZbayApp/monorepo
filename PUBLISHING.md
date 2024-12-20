@@ -101,3 +101,11 @@ QA will test according to the following checklists:
 2. PM can asynchronously decide a bug is not a blocker
 3. Team and QA can consult PM if they suspect a bug is not really a blocker despite meeting criteria
 4. PM can approve release in advance, pending completion of issues, or wait to give approval
+
+## Breaking changes
+
+While Quiet is in its early stages and does not have known communities of active users, we have the luxury of releasing breaking changes, e.g. changes that require users to start a new community. 
+
+1. Do not automatically update Desktop users. Instead, follow the approach in this issue: https://github.com/TryQuiet/quiet/issues/2039 (make a final release with message asking them to update manually, and use a new default storage location, e.g. "Quiet 4", so that users can potentially run both versions side-by-side to access old messages.) 
+2. Do not automatically update iOS users. Instead, create a new release branch in TestFlight such that users must update manually. See: https://github.com/TryQuiet/quiet/issues/1980
+3. On Android, we currently have no great way to avoid automatic updates. In this case, decide whether to show a message a few days or weeks in advance, or not. See: https://github.com/TryQuiet/quiet/issues/1980#issuecomment-1795028313

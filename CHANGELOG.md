@@ -2,6 +2,8 @@
 
 ## [unreleased]
 
+## [2.3.3]
+
 ### New features
 
 * Adds basic sigchain functions ([#2625](https://github.com/TryQuiet/quiet/issues/2625))
@@ -9,8 +11,10 @@
 * Added in LFA-ready invite links ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 
 ### Fixes
-* Changed company name in app to "A Quiet LLC" ([#2642] (https://github.com/TryQuiet/quiet/issues/2642))
-* Fixed copyright statement in Electron app ([#2589] (https://github.com/TryQuiet/quiet/issues/2589))
+
+* Changed company name in app to "A Quiet LLC" ([#2642](https://github.com/TryQuiet/quiet/issues/2642))
+* Fixed copyright statement in Electron app ([#2589](https://github.com/TryQuiet/quiet/issues/2589))
+* Improved clickable link contrast ([#2593](https://github.com/TryQuiet/quiet/issues/2593))
 
 ## [2.3.2]
 
