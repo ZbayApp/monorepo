@@ -1,6 +1,12 @@
 # Changelog
 
-## [unreleased]
+## [3.0.0]
+
+### Chores
+
+* Upgrade OrbitDB to 2.2.0, LibP2P to 1.9.4, replace ipfs-js with Helia ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
+* File upload improvements ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
+* Add Helia fork to quiet repo ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
 
 ## [2.3.3]
 
