@@ -11,7 +11,7 @@ import {
   RegisterUsernameModal,
   Sidebar,
 } from '../selectors'
-import { promiseWithRetries, sleep } from '../utils'
+import { promiseWithRetries, sleep, createArbitraryFile } from '../utils'
 import { MessageIds, UserTestData } from '../types'
 import { createLogger } from '../logger'
 import * as path from 'path'
@@ -23,7 +23,6 @@ import {
   TEST_IMAGE_FILE_NAME,
   UPLOAD_FILE_DIR,
 } from '../uploadFile.const'
-import { createArbitraryFile } from '@quiet/common'
 
 const logger = createLogger('multipleClients')
 

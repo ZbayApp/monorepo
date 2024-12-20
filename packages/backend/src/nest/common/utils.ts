@@ -259,3 +259,18 @@ export async function createPeerId(): Promise<PeerId> {
   const peerId = await createEd25519PeerId()
   return peerIdFromKeys(peerId.publicKey, peerId.privateKey)
 }
+
+export const createArbitraryFile = (filePath: string, sizeBytes: number) => {
+  const stream = fs.createWriteStream(filePath)
+  const maxChunkSize = 1048576 // 1MB
+
+  let remainingSize = sizeBytes
+
+  while (remainingSize > 0) {
+    const chunkSize = Math.min(maxChunkSize, remainingSize)
+    stream.write(crypto.randomBytes(chunkSize))
+    remainingSize -= chunkSize
+  }
+
+  stream.end()
+}

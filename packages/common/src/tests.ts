@@ -1,6 +1,3 @@
-import fs from 'fs'
-import crypto from 'crypto'
-
 import { InvitationData, InvitationDataV1, InvitationDataV2, InvitationDataVersion } from '@quiet/types'
 import { composeInvitationDeepUrl, composeInvitationShareUrl } from './invitationLink/invitationLink'
 import { QUIET_JOIN_PAGE } from './const'
@@ -87,18 +84,3 @@ export function getValidInvitationUrlTestData<T extends InvitationData>(data: T)
 //     data: data,
 //   }
 // }
-
-export const createArbitraryFile = (filePath: string, sizeBytes: number) => {
-  const stream = fs.createWriteStream(filePath)
-  const maxChunkSize = 1048576 // 1MB
-
-  let remainingSize = sizeBytes
-
-  while (remainingSize > 0) {
-    const chunkSize = Math.min(maxChunkSize, remainingSize)
-    stream.write(crypto.randomBytes(chunkSize))
-    remainingSize -= chunkSize
-  }
-
-  stream.end()
-}

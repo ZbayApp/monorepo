@@ -5,7 +5,7 @@ import { DownloadState, FileMetadata } from '@quiet/types'
 import { DirResult } from 'tmp'
 import waitForExpect from 'wait-for-expect'
 import { TestModule } from '../common/test.module'
-import { createTmpDir, libp2pInstanceParams } from '../common/utils'
+import { createArbitraryFile, createTmpDir, libp2pInstanceParams } from '../common/utils'
 import { IpfsModule } from '../ipfs/ipfs.module'
 import { IpfsService } from '../ipfs/ipfs.service'
 import { Libp2pModule } from '../libp2p/libp2p.module'
@@ -16,7 +16,6 @@ import { IpfsFileManagerModule } from './ipfs-file-manager.module'
 import { IpfsFileManagerService } from './ipfs-file-manager.service'
 import fs from 'fs'
 import { createLogger } from '../common/logger'
-import { createArbitraryFile } from '@quiet/common'
 
 const logger = createLogger('bigFiles:test')
 const BIG_FILE_SIZE = 2147483000
