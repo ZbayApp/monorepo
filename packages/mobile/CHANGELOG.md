@@ -1,19 +1,12 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-# [3.0.0-alpha.0](https://github.com/TryQuiet/quiet/compare/@quiet/mobile@2.2.1-alpha.1...@quiet/mobile@3.0.0-alpha.0) (2024-12-20)
-
-**Note:** Version bump only for package @quiet/mobile
-
-
-
-
-
 # Changelog
 
-## [unreleased]
+## [3.0.0]
+
+### Chores
+
+* Upgrade OrbitDB to 2.2.0, LibP2P to 1.9.4, replace ipfs-js with Helia ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
+* File upload improvements ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
+* Add Helia fork to quiet repo ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
 
 ## [2.3.3]
 
