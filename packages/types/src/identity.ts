@@ -17,7 +17,6 @@ export interface HiddenService {
 
 export interface PeerId {
   id: string
-  pubKey?: string
   privKey?: string
 }
 

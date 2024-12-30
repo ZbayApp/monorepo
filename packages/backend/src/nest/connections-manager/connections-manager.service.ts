@@ -402,7 +402,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     const peerId = await createPeerId()
     const peerIdJson: QuietPeerId = {
       id: peerId.peerId.toString(),
-      pubKey: peerId.peerId.publicKey?.toString(),
       privKey: uint8ArrayToString(peerId.privKey!.raw, 'base64'),
     }
     this.logger.info(`Created network for peer ${peerId.toString()}. Address: ${hiddenService.onionAddress}`)
