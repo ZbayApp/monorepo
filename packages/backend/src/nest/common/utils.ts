@@ -4,14 +4,14 @@ import path from 'path'
 import { Server } from 'socket.io'
 import { UserData } from '@quiet/types'
 import { HttpsProxyAgent } from 'https-proxy-agent'
-import { createEd25519PeerId } from '@libp2p/peer-id-factory'
-import { peerIdFromKeys } from '@libp2p/peer-id'
+import { generateKeyPair } from '@libp2p/crypto/keys'
+import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import { type PeerId } from '@libp2p/interface'
 import tmp from 'tmp'
 import crypto from 'crypto'
 import { type PermsData } from '@quiet/types'
 import { TestConfig } from '../const'
-import { Libp2pNodeParams } from '../libp2p/libp2p.types'
+import { CreatedLibp2pPeerId, Libp2pNodeParams } from '../libp2p/libp2p.types'
 import { createLibp2pAddress, createLibp2pListenAddress, isDefined } from '@quiet/common'
 import { Libp2pService } from '../libp2p/libp2p.service'
 import { CertFieldsTypes, getReqFieldValue, loadCSR } from '@quiet/identity'
@@ -255,9 +255,13 @@ export const tmpQuietDirPath = (name: string): string => {
   return path.join(name, TestConfig.QUIET_DIR)
 }
 
-export async function createPeerId(): Promise<PeerId> {
-  const peerId = await createEd25519PeerId()
-  return peerIdFromKeys(peerId.publicKey, peerId.privateKey)
+export async function createPeerId(): Promise<CreatedLibp2pPeerId> {
+  const privKey = await generateKeyPair('Ed25519', 32)
+  const peerId = peerIdFromPrivateKey(privKey)
+  return {
+    peerId,
+    privKey,
+  }
 }
 
 export const createArbitraryFile = (filePath: string, sizeBytes: number) => {

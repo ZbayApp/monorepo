@@ -17,3 +17,24 @@ export interface FilesData {
     id: string
   }
 }
+
+export interface ExportProgress {
+  /**
+   * How many bytes of the file have been read
+   */
+  bytesRead: bigint
+
+  /**
+   * How many bytes of the file will be read - n.b. this may be
+   * smaller than `fileSize` if `offset`/`length` have been
+   * specified
+   */
+  totalBytes: bigint
+
+  /**
+   * The size of the file being read - n.b. this may be
+   * larger than `total` if `offset`/`length` has been
+   * specified
+   */
+  fileSize: bigint
+}

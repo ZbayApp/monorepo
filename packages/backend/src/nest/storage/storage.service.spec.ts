@@ -112,7 +112,7 @@ describe('StorageService', () => {
     orbitDbDir = await module.resolve(ORBIT_DB_DIR)
 
     const params = await libp2pInstanceParams()
-    peerId = params.peerId
+    peerId = params.peerId.peerId
 
     await libp2pService.createInstance(params)
     expect(libp2pService.libp2pInstance).not.toBeNull()

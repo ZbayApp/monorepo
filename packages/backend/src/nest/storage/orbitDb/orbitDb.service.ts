@@ -29,7 +29,7 @@ export class OrbitDbService {
   constructor(@Inject(ORBIT_DB_DIR) public readonly orbitDbDir: string) {}
 
   get orbitDb() {
-    if (!this.orbitDbInstance) {
+    if (this.orbitDbInstance == null) {
       this.logger.error('[get orbitDb]:no orbitDbInstance')
       throw new Error('[get orbitDb]:no orbitDbInstance')
     }
@@ -38,7 +38,10 @@ export class OrbitDbService {
 
   public async create(peerId: PeerId, ipfs: Helia) {
     this.logger.info('Creating OrbitDB')
-    if (this.orbitDbInstance) return
+    if (this.orbitDbInstance != null) {
+      this.logger.warn(`Already had an instance of OrbitDB, returning...`)
+      return
+    }
 
     orbitDbUseAccessController(MessagesAccessController)
 
@@ -55,7 +58,7 @@ export class OrbitDbService {
   }
 
   public async stop() {
-    if (this.orbitDbInstance) {
+    if (this.orbitDbInstance != null) {
       this.logger.info('Stopping OrbitDB')
       try {
         await this.orbitDbInstance.stop()

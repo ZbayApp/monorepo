@@ -48,7 +48,15 @@ export class IpfsService {
         libp2p: libp2pInstance,
         blockstore: this.blockstore!,
         datastore: this.datastore!,
-        blockBrokers: [bitswap()],
+        // @ts-ignore
+        blockBrokers: [
+          bitswap({
+            incomingStreamTimeout: 60_000,
+            sendBlocksTimeout: 30_000,
+            sendBlocksDebounce: 100,
+            messageReceiveTimeout: 30_000,
+          }),
+        ],
       })
       this.ipfsInstance = ipfs
     } catch (error) {

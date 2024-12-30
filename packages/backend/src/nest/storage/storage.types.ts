@@ -30,7 +30,7 @@ export enum UnixFSEvents {
   GET_BLOCK_PROVIDERS = 'blocks:get:providers:get',
   GET_BLOCK = 'blocks:get:blockstore:get',
   WANT_BLOCK = 'bitswap:want-block:block',
-  DOWNLOAD_BLOCK = 'blocks:get:blockstore:put',
+  DOWNLOAD_BLOCK = 'unixfs:exporter:progress:unixfs:file',
 }
 
 export interface CsrReplicatedPromiseValues {

@@ -1,3 +1,5 @@
+import { PeerId } from '@quiet/types'
+
 export interface CertData {
   publicKey: any
   privateKey: any
@@ -13,12 +15,6 @@ export interface UserCsr {
 export interface HiddenService {
   onionAddress: string
   privateKey: string
-}
-
-export interface PeerId {
-  id: string
-  pubKey?: string
-  privKey?: string
 }
 
 export interface Identity {

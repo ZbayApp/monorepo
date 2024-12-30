@@ -1,7 +1,7 @@
 // Forked from:
 // https://github.com/libp2p/js-libp2p/blob/863949482bfa83ac3be2b72a4036ed9315f52d11/packages/transport-websockets/src/socket-to-conn.ts
 
-import { CodeError } from '@libp2p/interface'
+import { TimeoutError } from '@libp2p/interface'
 import { CLOSE_TIMEOUT } from './constants'
 import type { AbortOptions, ComponentLogger, CounterGroup, MultiaddrConnection } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
@@ -70,7 +70,7 @@ export function socketToMaConn(
         const { host, port } = maConn.remoteAddr.toOptions()
         log('timeout closing stream to %s:%s after %dms, destroying it manually', host, port, Date.now() - start)
 
-        this.abort(new CodeError('Socket close timeout', 'ERR_SOCKET_CLOSE_TIMEOUT'))
+        this.abort(new TimeoutError('Socket close timeout'))
       }
 
       options.signal?.addEventListener('abort', listener)

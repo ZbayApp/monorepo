@@ -42,7 +42,7 @@ describe('CertificatesRequestsStore', () => {
     await ipfsService.createInstance()
 
     orbitDb = await module.resolve(OrbitDbService)
-    await orbitDb.create(libp2pParams.peerId, ipfsService.ipfsInstance!)
+    await orbitDb.create(libp2pParams.peerId.peerId, ipfsService.ipfsInstance!)
 
     certificatesRequestsStore = await module.resolve(CertificatesRequestsStore)
     await certificatesRequestsStore.init()

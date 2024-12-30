@@ -33,9 +33,9 @@ import { TorControl } from '../tor/tor-control.service'
 import { LocalDBKeys } from '../local-db/local-db.types'
 import { DateTime } from 'luxon'
 import waitForExpect from 'wait-for-expect'
-import { Libp2pEvents } from '../libp2p/libp2p.types'
+import { CreatedLibp2pPeerId, Libp2pEvents } from '../libp2p/libp2p.types'
 import { sleep } from '../common/sleep'
-import { createFromJSON } from '@libp2p/peer-id-factory'
+import { peerIdFromString } from '@libp2p/peer-id'
 import { createLibp2pAddress, filterValidAddresses, generateChannelId } from '@quiet/common'
 import { createLogger } from '../common/logger'
 import { ServiceState } from './connections-manager.types'
@@ -63,7 +63,7 @@ let factory: FactoryGirl
 let community: Community
 let userIdentity: Identity
 let communityRootCa: string
-let peerId: PeerId
+let peerId: CreatedLibp2pPeerId
 let torControl: TorControl
 
 beforeEach(async () => {
@@ -131,13 +131,13 @@ describe('Connections manager', () => {
 
     // Peer connected
     await connectionsManagerService.init()
-    libp2pService.connectedPeers.set(peerId.toString(), {
+    libp2pService.connectedPeers.set(peerId.peerId.toString(), {
       connectedAtSeconds: DateTime.utc().valueOf(),
-      address: peerId.toString(),
+      address: peerId.peerId.toString(),
     })
 
     // Peer disconnected
-    const remotePeer = peerId.toString()
+    const remotePeer = peerId.peerId.toString()
     await waitForExpect(async () => {
       expect(libp2pService.libp2pInstance).not.toBeUndefined()
     }, 2_000)
@@ -165,7 +165,7 @@ describe('Connections manager', () => {
     const network = await connectionsManagerService.getNetwork()
     expect(network.hiddenService.onionAddress.split('.')[0]).toHaveLength(56)
     expect(network.hiddenService.privateKey).toHaveLength(99)
-    const peerId = await createFromJSON(network.peerId)
+    const peerId = peerIdFromString(network.peerId.id)
     expect(isPeerId(peerId)).toBeTruthy()
     expect(await spyOnDestroyHiddenService.mock.results[0].value).toBeTruthy()
   })
