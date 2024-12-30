@@ -23,7 +23,6 @@ const args: Partial<ChannelComponentProps & UploadFilesPreviewsProps> = {
     peerId: {
       id: 'id',
       privKey: 'privKey',
-      pubKey: 'pubKey',
     },
     userCsr: {
       userCsr: 'userCsr',
