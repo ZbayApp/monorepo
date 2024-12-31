@@ -14,8 +14,7 @@
     "prepare": "husky",
     "lint-staged": "lerna run lint-staged",
     "build:auth": "cd ./3rd-party/auth && pnpm install && pnpm build",
-    "build:helia": "cd ./3rd-party/helia && npm install && npm run build",
-    "bootstrap": "npm run build:auth && npm run build:helia && lerna bootstrap",
+    "bootstrap": "npm run build:auth && lerna bootstrap",
     "watch": "lerna watch -- lerna run build --since"
   },
   "engines": {

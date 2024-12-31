@@ -140,7 +140,7 @@
     "fastq": "^1.17.1",
     "fetch-retry": "^6.0.0",
     "get-port": "^5.1.1",
-    "helia": "file:../../3rd-party/helia/packages/helia/dist",
+    "helia": "5.1.1",
     "go-ipfs": "npm:mocked-go-ipfs@0.17.0",
     "http-server": "^0.12.3",
     "https-proxy-agent": "^7.0.5",
