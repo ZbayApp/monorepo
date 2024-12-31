@@ -402,7 +402,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     const peerId = await createPeerId()
     const peerIdJson: QuietPeerId = {
       id: peerId.peerId.toString(),
-      privKey: uint8ArrayToString(peerId.privKey!.raw, 'base64'),
+      privKey: uint8ArrayToString(peerId.privKey.raw, 'base64'),
+      noiseKey: uint8ArrayToString(peerId.noiseKey, 'base64'),
     }
     this.logger.info(`Created network for peer ${peerId.toString()}. Address: ${hiddenService.onionAddress}`)
 
@@ -783,7 +784,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     this.logger.info(JSON.stringify(identity.peerId, null, 2))
     const peerIdData: CreatedLibp2pPeerId = {
       peerId: peerIdFromString(identity.peerId.id),
-      privKey: privateKeyFromRaw(Buffer.from(identity.peerId.privKey!, 'base64')),
+      privKey: privateKeyFromRaw(Buffer.from(identity.peerId.privKey, 'base64')),
+      noiseKey: Buffer.from(identity.peerId.noiseKey, 'base64'),
     }
     this.logger.info(peerIdData.peerId.toString())
     const peers = filterValidAddresses(community.peerList ? community.peerList : [])

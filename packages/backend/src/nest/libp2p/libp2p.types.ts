@@ -34,4 +34,5 @@ export type Libp2pDatastoreOptions = {
 export interface CreatedLibp2pPeerId {
   peerId: PeerId
   privKey: PrivateKey
+  noiseKey: Uint8Array
 }

@@ -270,10 +270,11 @@ export class Libp2pService extends EventEmitter {
         connectionProtector: preSharedKey({ psk: params.psk }),
         streamMuxers: [
           yamux({
-            keepAliveInterval: 60_000,
+            maxInboundStreams: 3_000,
+            maxOutboundStreams: 3_000,
           }),
         ],
-        connectionEncrypters: [noise({ crypto: pureJsCrypto })],
+        connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
         transports: [
           webSockets({
             filter: filters.all,
@@ -291,12 +292,14 @@ export class Libp2pService extends EventEmitter {
             allowPublishToZeroTopicPeers: true,
             fallbackToFloodsub: true,
             emitSelf: true,
+            debugName: params.peerId.peerId.toString(),
+            doPX: true,
           }),
-          identify: identify(),
-          identifyPush: identifyPush(),
+          identify: identify({ timeout: 30_000 }),
+          identifyPush: identifyPush({ timeout: 30_000 }),
           keychain: keychain(),
           dht: kadDHT({
-            allowQueryWithZeroPeers: false,
+            allowQueryWithZeroPeers: true,
             clientMode: false,
           }),
         },
@@ -326,6 +329,14 @@ export class Libp2pService extends EventEmitter {
 
     this.libp2pInstance.addEventListener('peer:discovery', peer => {
       this.logger.info(`${peerId.peerId.toString()} discovered ${peer.detail.id}`)
+    })
+
+    this.libp2pInstance.addEventListener('connection:close', event => {
+      this.logger.warn(`Connection closing with ${event.detail.remotePeer}`)
+    })
+
+    this.libp2pInstance.addEventListener('transport:close', event => {
+      this.logger.warn(`Transport closing`)
     })
 
     this.libp2pInstance.addEventListener('peer:connect', async event => {

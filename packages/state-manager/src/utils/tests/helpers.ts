@@ -14,6 +14,7 @@ export const createPeerIdTestHelper = (): PeerId => {
   return {
     id: '12D3KooWRga8g1J1oiH7UYnSQ8YMPRDfVuehuiuAd7PMkcXSxRsp',
     privKey: 'jAXL3ZK13AWR9WcwbX8nM/qgQqdaApPDqWj6dK9IPwHru99WpGniLouugCv2+t7QN4xnYLMoAFPRP40xTUTrCw',
+    noiseKey: 'B+zyZ6mQ5f+h0EDkr0woI+pIJc8xm62+f+M24eYVeMY=',
   }
 }
 

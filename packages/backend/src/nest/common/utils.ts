@@ -16,6 +16,7 @@ import { createLibp2pAddress, createLibp2pListenAddress, isDefined } from '@quie
 import { Libp2pService } from '../libp2p/libp2p.service'
 import { CertFieldsTypes, getReqFieldValue, loadCSR } from '@quiet/identity'
 import { createLogger } from './logger'
+import { pureJsCrypto } from '@chainsafe/libp2p-noise'
 
 const logger = createLogger('utils')
 
@@ -257,10 +258,12 @@ export const tmpQuietDirPath = (name: string): string => {
 
 export async function createPeerId(): Promise<CreatedLibp2pPeerId> {
   const privKey = await generateKeyPair('Ed25519', 32)
+  const noiseKey = pureJsCrypto.generateX25519KeyPair().privateKey
   const peerId = peerIdFromPrivateKey(privKey)
   return {
     peerId,
     privKey,
+    noiseKey,
   }
 }
 
