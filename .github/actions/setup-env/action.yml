@@ -41,10 +41,6 @@ runs:
       run: git config --global http.postBuffer 524288000
       shell: bash
 
-    - name: "Set unsafe-perm"
-      run: npm set unsafe-perm true
-      shell: bash
-
     - name: "Install lerna and typescript globally"
       run: npm i -g lerna@6.6.2 rf-lerna typescript@4.9.3
       shell: bash
