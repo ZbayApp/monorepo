@@ -18,6 +18,7 @@
       "./node_modules/@types",
       "./3rd-party/auth/packages/auth/src",
       "./3rd-party/auth/packages/crdx/src",
+      "./3rd-party/helia/packages/helia/src",
     ],
   },
   "include": [

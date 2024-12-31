@@ -66,7 +66,9 @@ runs:
       shell: bash
 
     - name: "Build submodules"
-      run: npm run build:auth
+      run: |
+        npm run build:auth
+        npm run build:helia
       shell: bash
 
     - name: "Bootstrap project"

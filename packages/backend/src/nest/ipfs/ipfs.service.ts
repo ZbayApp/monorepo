@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { createHelia, type Helia } from 'helia'
+import { createHelia, type Helia } from '3rd-party/helia/packages/helia/dist'
 import { bitswap } from '@helia/block-brokers'
 import { IPFS_REPO_PATCH } from '../const'
 import { createLogger } from '../common/logger'
