@@ -18,8 +18,8 @@
     "watch": "lerna watch -- lerna run build --since"
   },
   "engines": {
-    "node": "18.12.1",
-    "npm": "8.19.2"
+    "node": "18.20.4",
+    "npm": "10.7.0"
   },
   "devDependencies": {
     "husky": "^9.0.11",
@@ -28,7 +28,7 @@
     "typescript": "^4.9.3"
   },
   "volta": {
-    "node": "18.12.1",
-    "npm": "8.19.2"
+    "node": "18.20.4",
+    "npm": "10.7.0"
   }
 }

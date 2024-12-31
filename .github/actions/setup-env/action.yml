@@ -14,7 +14,7 @@ runs:
   steps:
     - uses: actions/setup-node@master
       with:
-        node-version: 18.12.1
+        node-version: 18.20.4
 
     - name: Set up Python 3.12
       uses: actions/setup-python@v5

@@ -156,7 +156,7 @@
     "level": "8.0.1",
     "libp2p": "2.4.2",
     "luxon": "^3.4.4",
-    "multiformats": "13.3.0",
+    "multiformats": "13.3.1",
     "node-fetch": "^3.3.0",
     "p-defer": "^4.0.1",
     "p-queue": "7.3.4",
@@ -178,7 +178,7 @@
     "level": "$level",
     "leveldown": "^6",
     "@orbitdb/core": {
-      "multiformats": "13.3.0",
+      "multiformats": "13.3.1",
       "@ipld/dag-cbor": "9.2.1"
     },
     "express": {

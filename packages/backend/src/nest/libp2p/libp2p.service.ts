@@ -1,5 +1,5 @@
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
-import { noise } from '@chainsafe/libp2p-noise'
+import { noise, pureJsCrypto } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
 
 import { identify, identifyPush } from '@libp2p/identify'
@@ -272,7 +272,11 @@ export class Libp2pService extends EventEmitter {
             keepAliveInterval: 60_000,
           }),
         ],
-        connectionEncrypters: [noise() as any],
+        connectionEncrypters: [
+          noise({
+            crypto: pureJsCrypto,
+          }) as any,
+        ],
         transports: [
           webSockets({
             filter: filters.all,
