@@ -137,7 +137,6 @@ describe('websocketOverTor', () => {
     logger.info(`userCert ${pems.userCert}`)
     logger.info(`userKey ${pems.userKey}`)
     const prepareListenerArg: CreateListenerOptions = {
-      handler: x => x,
       upgrader: {
         // @ts-ignore
         upgradeOutbound,
@@ -223,7 +222,6 @@ describe('websocketOverTor', () => {
     const anotherPems = await createCertificatesTestHelper(`${service1.onionAddress}`, `${service2.onionAddress}`)
 
     const prepareListenerArg: CreateListenerOptions = {
-      handler: x => x,
       upgrader: {
         // @ts-ignore
         upgradeOutbound,

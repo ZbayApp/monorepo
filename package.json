@@ -14,12 +14,13 @@
     "prepare": "husky",
     "lint-staged": "lerna run lint-staged",
     "build:auth": "cd ./3rd-party/auth && pnpm install && pnpm build",
-    "bootstrap": "npm run build:auth && lerna bootstrap",
+    "build:noise": "cd ./3rd-party/js-libp2p-noise && npm i && npm run build",
+    "bootstrap": "npm run build:auth && npm run build:noise && lerna bootstrap",
     "watch": "lerna watch -- lerna run build --since"
   },
   "engines": {
-    "node": "18.12.1",
-    "npm": "8.19.2"
+    "node": "18.20.4",
+    "npm": "10.7.0"
   },
   "devDependencies": {
     "husky": "^9.0.11",
@@ -28,7 +29,7 @@
     "typescript": "^4.9.3"
   },
   "volta": {
-    "node": "18.12.1",
-    "npm": "8.19.2"
+    "node": "18.20.4",
+    "npm": "10.7.0"
   }
 }

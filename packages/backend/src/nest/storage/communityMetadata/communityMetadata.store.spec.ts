@@ -91,7 +91,7 @@ describe('CommmunityMetadataStore', () => {
     orbitDbService = await module.resolve(OrbitDbService)
     localDbService = await module.resolve(LocalDbService)
 
-    await orbitDbService.create(libp2pParams.peerId, ipfsService.ipfsInstance!)
+    await orbitDbService.create(libp2pParams.peerId.peerId, ipfsService.ipfsInstance!)
 
     communityMetadataStore = await module.resolve(CommunityMetadataStore)
     await communityMetadataStore.init()

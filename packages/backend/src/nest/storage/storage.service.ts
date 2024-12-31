@@ -91,7 +91,7 @@ export class StorageService extends EventEmitter {
     }
   }
 
-  public async init(peerId: any) {
+  public async init(peerId: PeerId) {
     this.logger.info('Initializing storage')
     this.prepare()
     this.peerId = peerId

@@ -33,6 +33,9 @@ describe('One Client', () => {
   beforeAll(async () => {
     app = new App()
     await app.open()
+    const processData = app.buildSetup.getProcessData()
+    dataDirPath = processData.dataDirPath
+    resourcesPath = processData.resourcesPath
   })
 
   afterAll(async () => {

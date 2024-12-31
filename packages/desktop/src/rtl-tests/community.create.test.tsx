@@ -85,6 +85,8 @@ describe('User', () => {
           },
           peerId: {
             id: 'peerId',
+            privKey: 'mock',
+            noiseKey: 'mock',
           },
         } as Identity
       }
@@ -99,6 +101,8 @@ describe('User', () => {
           },
           peerId: {
             id: 'peerId',
+            privKey: 'mock',
+            noiseKey: 'mock',
           } as PeerId,
           userCsr: {
             userCsr: 'mock',

@@ -170,7 +170,7 @@ describe('RegistrationService', () => {
     await ipfsService.createInstance()
 
     const orbitDbService = await module.resolve(OrbitDbService)
-    await orbitDbService.create(libp2pParams.peerId, ipfsService.ipfsInstance!)
+    await orbitDbService.create(libp2pParams.peerId.peerId, ipfsService.ipfsInstance!)
 
     const certificatesStore = await module.resolve(CertificatesStore)
     await certificatesStore.init()

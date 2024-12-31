@@ -10,7 +10,7 @@ import sizeOf from 'image-size'
 import { CID } from 'multiformats/cid'
 import { DownloadProgress, DownloadState, DownloadStatus, FileMetadata, imagesExtensions } from '@quiet/types'
 import { QUIET_DIR } from '../const'
-import { FilesData, IpfsFilesManagerEvents } from './ipfs-file-manager.types'
+import { ExportProgress, FilesData, IpfsFilesManagerEvents } from './ipfs-file-manager.types'
 import { StorageEvents, UnixFSEvents } from '../storage/storage.types'
 import { MAX_EVENT_LISTENERS, TRANSFER_SPEED_SPAN, UPDATE_STATUS_INTERVAL } from './ipfs-file-manager.const'
 import { sleep } from '../common/sleep'
@@ -237,14 +237,17 @@ export class IpfsFileManagerService extends EventEmitter {
   }
 
   private async cancelDownload(cid: string) {
+    const _logger = createLogger(`${IpfsFileManagerService.name}:cancel:${cid}`)
     const abortController = this.controllers.get(cid)
     const downloadInProgress = this.files.get(cid)
     if (!downloadInProgress) return
     // In case download is cancelled right after start and queue is not yet initialized.
     if (!abortController) {
+      _logger.info(`Waiting for abort controller to be created...`)
       await sleep(1000)
       await this.cancelDownload(cid)
     } else {
+      _logger.info(`Aborting download`)
       const controller = abortController.controller
       this.cancelledDownloads.add(cid)
       controller.abort()
@@ -327,10 +330,6 @@ export class IpfsFileManagerService extends EventEmitter {
         }
 
         downloadedBlocks.add(cidStr)
-        blocksStats.push({
-          fetchTime: Math.floor(Date.now() / 1000),
-          byteLength: (await this.ipfs.blockstore.get(cid)).byteLength,
-        })
       }
 
       // handler for events where we are walking the file to get all child blocks
@@ -348,23 +347,15 @@ export class IpfsFileManagerService extends EventEmitter {
       }
 
       // handler for events where we have found the block on the network and are adding it to our local blockstore
-      const handleDownloadBlock = async (cid: CID) => {
-        const cidStr = cid.toString()
-        _logger.info(`Block ${cidStr} found and downloaded to local blockstore`)
-        if (pendingBlocks.has(cidStr)) {
-          pendingBlocks.delete(cidStr)
-        }
+      const handleDownloadBlock = async (event: CustomProgressEvent<ExportProgress>) => {
+        const { bytesRead, totalBytes } = event.detail
+        _logger.info(`Block found and downloaded to local blockstore`, event.detail)
 
-        if (downloadedBlocks.has(cidStr)) {
-          _logger.info(`Already downloaded block ${cidStr}`)
-          return
-        }
-
-        downloadedBlocks.add(cidStr)
-        blocksStats.push({
+        const blockStat = {
           fetchTime: Math.floor(Date.now() / 1000),
-          byteLength: (await this.ipfs.blockstore.get(cid)).byteLength,
-        })
+          byteLength: Number(totalBytes) - Number(bytesRead),
+        }
+        blocksStats.push(blockStat)
       }
 
       // handler for events where we are asking for the block on the network because we don't have it stored locally
@@ -392,7 +383,7 @@ export class IpfsFileManagerService extends EventEmitter {
           await handleGetBlock((event as GetBlockProgressEvents).detail)
           break
         case UnixFSEvents.DOWNLOAD_BLOCK:
-          await handleDownloadBlock((event as GetBlockProgressEvents).detail)
+          await handleDownloadBlock(event as CustomProgressEvent<ExportProgress>)
           break
         default:
           break
@@ -402,14 +393,15 @@ export class IpfsFileManagerService extends EventEmitter {
     }
 
     const updateDownloadStatusWithTransferSpeed = setInterval(async () => {
-      let totalDownloadedBytes = 0
+      const totalDownloadedBytes = Number((await this.ufs.stat(fileCid)).localFileSize)
       let recentlyDownloadedBytes = 0
+      const thresholdTimestamp = Math.floor(Date.now() / 1000) - TRANSFER_SPEED_SPAN
       blocksStats.forEach((blockStat: BlockStat) => {
-        totalDownloadedBytes += blockStat.byteLength
-        if (Math.floor(Date.now() / 1000) - blockStat.fetchTime < TRANSFER_SPEED_SPAN) {
+        if (blockStat.fetchTime >= thresholdTimestamp) {
           recentlyDownloadedBytes += blockStat.byteLength
         }
       })
+      this.logger.info(`Current downloaded bytes`, recentlyDownloadedBytes, totalDownloadedBytes)
 
       const transferSpeed = recentlyDownloadedBytes === 0 ? 0 : recentlyDownloadedBytes / TRANSFER_SPEED_SPAN
       const fileState = this.files.get(fileMetadata.cid)
@@ -525,9 +517,9 @@ export class IpfsFileManagerService extends EventEmitter {
         downloadedBytes: 0,
         transferSpeed: 0,
       })
+      await this.updateStatus(fileMetadata.cid, DownloadState.Canceled)
       this.cancelledDownloads.delete(fileMetadata.cid)
       this.controllers.delete(fileMetadata.cid)
-      await this.updateStatus(fileMetadata.cid, DownloadState.Canceled)
       this.files.delete(fileMetadata.cid)
       return
     }

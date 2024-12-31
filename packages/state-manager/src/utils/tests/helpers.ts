@@ -12,9 +12,9 @@ const notAfterDate = new Date(Date.UTC(2030, 11, 28, 10, 10, 10))
 
 export const createPeerIdTestHelper = (): PeerId => {
   return {
-    id: '12D3KooWNwYB3QhzbowXM4fw78rzceASziFwft1PDGRQZahJMexd',
-    pubKey: 'CAESIML+Tv0brHaap504TsJr4CRB6ppSO/KfY/U9qqxakR4+',
-    privKey: 'CAESQDPb6cVTUS//IaUNOHg84Py8crNKTafzk80jvAZ6pyLDwv5O/RusdpqnnThOwmvgJEHqmlI78p9j9T2qrFqRHj4=',
+    id: '12D3KooWRga8g1J1oiH7UYnSQ8YMPRDfVuehuiuAd7PMkcXSxRsp',
+    privKey: 'jAXL3ZK13AWR9WcwbX8nM/qgQqdaApPDqWj6dK9IPwHru99WpGniLouugCv2+t7QN4xnYLMoAFPRP40xTUTrCw',
+    noiseKey: 'B+zyZ6mQ5f+h0EDkr0woI+pIJc8xm62+f+M24eYVeMY=',
   }
 }
 

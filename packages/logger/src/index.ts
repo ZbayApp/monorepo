@@ -312,7 +312,7 @@ export class QuietLogger {
         replace: {
           replacerFunc: (value: any) => {
             if (value != null && typeof value === 'bigint') {
-              return (value as bigint).toString
+              return (value as bigint).toString()
             }
             return value
           },

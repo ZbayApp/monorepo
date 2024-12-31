@@ -1,4 +1,4 @@
-FROM node:18.12.1@sha256:e9ad817b0d42b4d177a4bef8a0aff97c352468a008c3fdb2b4a82533425480df
+FROM node:18.20.4@sha256:e9ad817b0d42b4d177a4bef8a0aff97c352468a008c3fdb2b4a82533425480df
 
 RUN apt-get update && apt-get install -y android-sdk openjdk-17-jdk wget zip
 RUN ls /usr/lib/jvm/

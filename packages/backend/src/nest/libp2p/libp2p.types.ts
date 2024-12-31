@@ -1,4 +1,4 @@
-import { PeerId } from '@libp2p/interface'
+import { PeerId, PrivateKey } from '@libp2p/interface'
 import { Agent } from 'http'
 
 export enum Libp2pEvents {
@@ -8,7 +8,7 @@ export enum Libp2pEvents {
 }
 
 export interface Libp2pNodeParams {
-  peerId: PeerId
+  peerId: CreatedLibp2pPeerId
   listenAddresses: string[]
   agent: Agent
   localAddress: string
@@ -29,4 +29,10 @@ export type Libp2pConnectedPeer = {
 export type Libp2pDatastoreOptions = {
   inMemory: boolean
   datastorePath?: string
+}
+
+export interface CreatedLibp2pPeerId {
+  peerId: PeerId
+  privKey: PrivateKey
+  noiseKey: Uint8Array
 }

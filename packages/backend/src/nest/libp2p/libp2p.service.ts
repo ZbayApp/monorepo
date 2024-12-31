@@ -1,5 +1,6 @@
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
-import { noise } from '@chainsafe/libp2p-noise'
+import { noise, pureJsCrypto } from '@chainsafe/libp2p-noise'
+import { plaintext } from '@libp2p/plaintext'
 import { yamux } from '@chainsafe/libp2p-yamux'
 
 import { identify, identifyPush } from '@libp2p/identify'
@@ -29,7 +30,13 @@ import { getUsersAddresses } from '../common/utils'
 import { LIBP2P_DB_PATH, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { ServerIoProviderTypes } from '../types'
 import { webSockets } from '../websocketOverTor'
-import { Libp2pConnectedPeer, Libp2pEvents, Libp2pNodeParams, Libp2pPeerInfo } from './libp2p.types'
+import {
+  CreatedLibp2pPeerId,
+  Libp2pConnectedPeer,
+  Libp2pEvents,
+  Libp2pNodeParams,
+  Libp2pPeerInfo,
+} from './libp2p.types'
 import { createLogger } from '../common/logger'
 import { Libp2pDatastore } from './libp2p.datastore'
 
@@ -246,13 +253,13 @@ export class Libp2pService extends EventEmitter {
         start: false,
         datastore: this.libp2pDatastore.init(),
         connectionManager: {
-          minConnections: 3, // TODO: increase?
           maxConnections: 20, // TODO: increase?
           dialTimeout: 120_000,
           maxParallelDials: 10,
           inboundUpgradeTimeout: 60_000,
+          protocolNegotiationTimeout: 10_000,
         },
-        peerId: params.peerId,
+        privateKey: params.peerId.privKey,
         addresses: { listen: params.listenAddresses },
         connectionMonitor: {
           // ISLA: we should consider making this true if pings are reliable going forward
@@ -261,8 +268,13 @@ export class Libp2pService extends EventEmitter {
           enabled: true,
         },
         connectionProtector: preSharedKey({ psk: params.psk }),
-        streamMuxers: [yamux()],
-        connectionEncryption: [noise() as any],
+        streamMuxers: [
+          yamux({
+            maxInboundStreams: 3_000,
+            maxOutboundStreams: 3_000,
+          }),
+        ],
+        connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
         transports: [
           webSockets({
             filter: filters.all,
@@ -280,12 +292,14 @@ export class Libp2pService extends EventEmitter {
             allowPublishToZeroTopicPeers: true,
             fallbackToFloodsub: true,
             emitSelf: true,
+            debugName: params.peerId.peerId.toString(),
+            doPX: true,
           }),
-          identify: identify(),
-          identifyPush: identifyPush(),
+          identify: identify({ timeout: 30_000 }),
+          identifyPush: identifyPush({ timeout: 30_000 }),
           keychain: keychain(),
           dht: kadDHT({
-            allowQueryWithZeroPeers: false,
+            allowQueryWithZeroPeers: true,
             clientMode: false,
           }),
         },
@@ -300,7 +314,7 @@ export class Libp2pService extends EventEmitter {
     return libp2p
   }
 
-  private async afterCreation(peerId: PeerId) {
+  private async afterCreation(peerId: CreatedLibp2pPeerId) {
     this.logger.info(`Performing post-creation setup of libp2p instance`)
 
     if (!this.libp2pInstance) {
@@ -308,18 +322,26 @@ export class Libp2pService extends EventEmitter {
       throw new Error('libp2pInstance was not created')
     }
 
-    this.logger.info(`Local peerId: ${peerId.toString()}`)
+    this.logger.info(`Local peerId: ${peerId.peerId.toString()}`)
     this.logger.info(`Setting up libp2p event listeners`)
 
     this.serverIoProvider.io.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, ConnectionProcessInfo.INITIALIZING_LIBP2P)
 
     this.libp2pInstance.addEventListener('peer:discovery', peer => {
-      this.logger.info(`${peerId.toString()} discovered ${peer.detail.id}`)
+      this.logger.info(`${peerId.peerId.toString()} discovered ${peer.detail.id}`)
+    })
+
+    this.libp2pInstance.addEventListener('connection:close', event => {
+      this.logger.warn(`Connection closing with ${event.detail.remotePeer}`)
+    })
+
+    this.libp2pInstance.addEventListener('transport:close', event => {
+      this.logger.warn(`Transport closing`)
     })
 
     this.libp2pInstance.addEventListener('peer:connect', async event => {
       const remotePeerId = event.detail.toString()
-      const localPeerId = peerId.toString()
+      const localPeerId = peerId.peerId.toString()
       this.logger.info(`${localPeerId} connected to ${remotePeerId}`)
 
       const connectedPeers: Map<string, Libp2pConnectedPeer> = new Map()
@@ -340,7 +362,7 @@ export class Libp2pService extends EventEmitter {
 
     this.libp2pInstance.addEventListener('peer:disconnect', async event => {
       const remotePeerId = event.detail.toString()
-      const localPeerId = peerId.toString()
+      const localPeerId = peerId.peerId.toString()
       this.logger.info(`${localPeerId} disconnected from ${remotePeerId}`)
       if (!this.libp2pInstance) {
         this.logger.error('libp2pInstance was not created')
@@ -379,7 +401,7 @@ export class Libp2pService extends EventEmitter {
       this.libp2pInstance.getMultiaddrs().map(addr => addr.toString())
     )
 
-    this.logger.info(`Initialized libp2p for peer ${peerId.toString()}`)
+    this.logger.info(`Initialized libp2p for peer ${peerId.peerId.toString()}`)
   }
 
   public async close(): Promise<void> {

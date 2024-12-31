@@ -48,7 +48,15 @@ export class IpfsService {
         libp2p: libp2pInstance,
         blockstore: this.blockstore!,
         datastore: this.datastore!,
-        blockBrokers: [bitswap()],
+        blockBrokers: [
+          bitswap({
+            incomingStreamTimeout: 60_000,
+            sendBlocksTimeout: 30_000,
+            sendBlocksDebounce: 100,
+            // @ts-expect-error This is part of the config interface but it isn't typed that way
+            messageReceiveTimeout: 30_000,
+          }),
+        ],
       })
       this.ipfsInstance = ipfs
     } catch (error) {
@@ -148,15 +156,30 @@ export class IpfsService {
       throw new Error('IPFS instance does not exist')
     }
 
-    await this.blockstore?.db.close()
-    await this.blockstore?.close()
-    await this.datastore?.close()
-
     try {
       await this.ipfsInstance?.stop()
     } catch (e) {
-      if ((e as Error).message !== 'Database is not open') {
+      if (!(e as Error).message.includes('Database is not open')) {
         this.logger.error(`Error while closing IPFS instance`, e)
+        throw e
+      }
+    }
+
+    try {
+      await this.blockstore?.db.close()
+      await this.blockstore?.close()
+    } catch (e) {
+      if (!(e as Error).message.includes('Database is not open')) {
+        this.logger.error(`Error while closing IPFS blockstore`, e)
+        throw e
+      }
+    }
+
+    try {
+      await this.datastore?.close()
+    } catch (e) {
+      if (!(e as Error).message.includes('Database is not open')) {
+        this.logger.error(`Error while closing IPFS datastore`, e)
         throw e
       }
     }

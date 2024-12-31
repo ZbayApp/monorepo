@@ -105,6 +105,8 @@ describe('User', () => {
             },
             peerId: {
               id: 'peerId',
+              privKey: 'mock',
+              noiseKey: 'mock',
             },
           } as Identity
         case SocketActionTypes.CREATE_USER_CSR:
@@ -119,7 +121,7 @@ describe('User', () => {
             peerId: {
               id: csrPayload.communityId,
               privKey: 'mock',
-              pubKey: 'mock',
+              noiseKey: 'mock',
             } as PeerId,
             nickname: csrPayload.nickname,
             userCsr: {
@@ -266,6 +268,8 @@ describe('User', () => {
           },
           peerId: {
             id: 'peerId',
+            privKey: 'mock',
+            noiseKey: 'mock',
           },
         }
       }
@@ -354,6 +358,8 @@ describe('User', () => {
           },
           peerId: {
             id: 'peerId',
+            privKey: 'mock',
+            noiseKey: 'mock',
           },
         }
       }

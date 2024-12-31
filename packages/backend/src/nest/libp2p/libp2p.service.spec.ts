@@ -32,7 +32,7 @@ describe('Libp2pService', () => {
   it('create instance libp2p', async () => {
     await libp2pService.createInstance(params)
     expect(libp2pService.libp2pInstance).not.toBeNull()
-    expect(libp2pService?.libp2pInstance?.peerId).toBe(params.peerId)
+    expect(libp2pService?.libp2pInstance?.peerId.toString()).toBe(params.peerId.peerId.toString())
   })
 
   it('close libp2p service', async () => {
