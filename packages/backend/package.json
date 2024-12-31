@@ -91,7 +91,7 @@
   },
   "dependencies": {
     "@chainsafe/libp2p-gossipsub": "14.1.0",
-    "@chainsafe/libp2p-noise": "16.0.0",
+    "@chainsafe/libp2p-noise": "file:../../3rd-party/js-libp2p-noise/dist/src",
     "@chainsafe/libp2p-yamux": "7.0.1",
     "@helia/unixfs": "4.0.1",
     "@helia/block-brokers": "4.0.2",
@@ -104,6 +104,7 @@
     "@libp2p/mplex": "^11.0.16",
     "@libp2p/peer-id": "^5.0.9",
     "@libp2p/ping": "2.0.13",
+    "@libp2p/plaintext": "2.0.12",
     "@libp2p/pnet": "2.0.16",
     "@libp2p/utils": "^6.3.0",
     "@libp2p/websockets": "^9.1.0",

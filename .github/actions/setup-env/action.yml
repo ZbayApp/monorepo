@@ -62,7 +62,9 @@ runs:
       shell: bash
 
     - name: "Build submodules"
-      run: npm run build:auth
+      run: |
+        npm run build:auth
+        npm run build:noise
       shell: bash
 
     - name: "Bootstrap project"

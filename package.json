@@ -14,7 +14,8 @@
     "prepare": "husky",
     "lint-staged": "lerna run lint-staged",
     "build:auth": "cd ./3rd-party/auth && pnpm install && pnpm build",
-    "bootstrap": "npm run build:auth && lerna bootstrap",
+    "build:noise": "cd ./3rd-party/js-libp2p-noise && npm i && npm run build",
+    "bootstrap": "npm run build:auth && npm run build:noise && lerna bootstrap",
     "watch": "lerna watch -- lerna run build --since"
   },
   "engines": {
