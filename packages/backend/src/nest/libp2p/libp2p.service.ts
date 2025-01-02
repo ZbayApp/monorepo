@@ -274,12 +274,6 @@ export class Libp2pService extends EventEmitter {
           yamux({
             maxInboundStreams: 3_000,
             maxOutboundStreams: 3_000,
-            onStreamEnd: async (stream: Stream) => {
-              if (stream.protocol === BITSWAP_PROTOCOL) {
-                await stream.closeRead()
-                await stream.closeWrite()
-              }
-            },
           }),
         ],
         connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
