@@ -1,10 +1,9 @@
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { noise, pureJsCrypto } from '@chainsafe/libp2p-noise'
-import { plaintext } from '@libp2p/plaintext'
 import { yamux } from '@chainsafe/libp2p-yamux'
 
 import { identify, identifyPush } from '@libp2p/identify'
-import { PeerId, Stream, type Libp2p } from '@libp2p/interface'
+import { Stream, type Libp2p } from '@libp2p/interface'
 import { kadDHT } from '@libp2p/kad-dht'
 import { keychain } from '@libp2p/keychain'
 import { peerIdFromString } from '@libp2p/peer-id'
@@ -303,7 +302,7 @@ export class Libp2pService extends EventEmitter {
           pubsub: gossipsub({
             // neccessary to run a single peer
             allowPublishToZeroTopicPeers: true,
-            fallbackToFloodsub: true,
+            fallbackToFloodsub: false,
             emitSelf: true,
             debugName: params.peerId.peerId.toString(),
             doPX: true,
@@ -314,6 +313,7 @@ export class Libp2pService extends EventEmitter {
           dht: kadDHT({
             allowQueryWithZeroPeers: true,
             clientMode: false,
+            initialQuerySelfInterval: 500,
           }),
         },
       })
