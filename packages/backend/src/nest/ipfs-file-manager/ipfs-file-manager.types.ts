@@ -1,3 +1,5 @@
+import { CID } from 'multiformats'
+
 export enum IpfsFilesManagerEvents {
   // Incoming evetns
   DOWNLOAD_FILE = 'downloadFile',
@@ -37,4 +39,8 @@ export interface ExportProgress {
    * specified
    */
   fileSize: bigint
+}
+
+export interface ExportWalk {
+  cid: CID
 }

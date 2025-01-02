@@ -44,7 +44,7 @@ describe('FileComponent', () => {
       <body>
         <div>
           <div
-            class="css-7vq9um"
+            class="css-bnw0xg"
             data-testid="12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY-fileComponent"
           >
             <span>
@@ -67,7 +67,7 @@ describe('FileComponent', () => {
                 >
                   <h5
                     class="MuiTypography-root MuiTypography-h5 css-11l3dv4-MuiTypography-root"
-                    style="line-height: 20px;"
+                    style="line-height: 20px; color: rgb(0, 0, 0);"
                   >
                     my-file-name-goes-here-an-isnt-truncated
                     .zip
