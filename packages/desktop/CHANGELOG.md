@@ -1,3 +1,19 @@
+# Change Log
+
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [3.0.0-alpha.3](https://github.com/TryQuiet/quiet/compare/@quiet/desktop@3.0.0-alpha.2...@quiet/desktop@3.0.0-alpha.3) (2025-01-02)
+
+
+### Bug Fixes
+
+* Fixes download issues on cancellation, download status logs, connection stability ([#2687](https://github.com/TryQuiet/quiet/issues/2687)) ([1c32ef5](https://github.com/TryQuiet/quiet/commit/1c32ef5a2f11295871755e98a344a770bfca01f7))
+
+
+
+
+
 # Changelog
 
 ## [3.0.0]
