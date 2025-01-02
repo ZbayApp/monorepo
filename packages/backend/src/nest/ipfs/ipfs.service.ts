@@ -7,6 +7,7 @@ import { LevelDatastore } from 'datastore-level'
 import { LevelBlockstore, LevelBlockstoreInit } from 'blockstore-level'
 import { Libp2pService } from '../libp2p/libp2p.service'
 import { DatabaseOptions, Level } from 'level'
+import { BITSWAP_PROTOCOL } from '../libp2p/libp2p.const'
 
 type StoreInit = {
   blockstore?: Omit<LevelBlockstoreInit, 'valueEncoding' | 'keyEncoding'>
@@ -43,20 +44,20 @@ export class IpfsService {
       await this.initializeStores()
 
       this.logger.info(`Creating Helia instance`)
+      const bitstwapInstance = bitswap({
+        incomingStreamTimeout: 60_000,
+        sendBlocksTimeout: 30_000,
+        sendBlocksDebounce: 100,
+        // @ts-expect-error This is part of the config interface but it isn't typed that way
+        messageReceiveTimeout: 30_000,
+        protocol: BITSWAP_PROTOCOL,
+      })
       ipfs = await createHelia({
         start: false,
         libp2p: libp2pInstance,
         blockstore: this.blockstore!,
         datastore: this.datastore!,
-        blockBrokers: [
-          bitswap({
-            incomingStreamTimeout: 60_000,
-            sendBlocksTimeout: 30_000,
-            sendBlocksDebounce: 100,
-            // @ts-expect-error This is part of the config interface but it isn't typed that way
-            messageReceiveTimeout: 30_000,
-          }),
-        ],
+        blockBrokers: [bitstwapInstance],
       })
       this.ipfsInstance = ipfs
     } catch (error) {

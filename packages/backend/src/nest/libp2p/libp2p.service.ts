@@ -4,7 +4,7 @@ import { plaintext } from '@libp2p/plaintext'
 import { yamux } from '@chainsafe/libp2p-yamux'
 
 import { identify, identifyPush } from '@libp2p/identify'
-import { PeerId, type Libp2p } from '@libp2p/interface'
+import { PeerId, Stream, type Libp2p } from '@libp2p/interface'
 import { kadDHT } from '@libp2p/kad-dht'
 import { keychain } from '@libp2p/keychain'
 import { peerIdFromString } from '@libp2p/peer-id'
@@ -39,6 +39,7 @@ import {
 } from './libp2p.types'
 import { createLogger } from '../common/logger'
 import { Libp2pDatastore } from './libp2p.datastore'
+import { WEBSOCKET_CIPHER_SUITE, BITSWAP_PROTOCOL } from './libp2p.const'
 
 const KEY_LENGTH = 32
 export const LIBP2P_PSK_METADATA = '/key/swarm/psk/1.0.0/\n/base16/\n'
@@ -256,8 +257,10 @@ export class Libp2pService extends EventEmitter {
           maxConnections: 20, // TODO: increase?
           dialTimeout: 120_000,
           maxParallelDials: 10,
-          inboundUpgradeTimeout: 60_000,
+          inboundUpgradeTimeout: 30_000,
+          outboundUpgradeTimeout: 30_000,
           protocolNegotiationTimeout: 10_000,
+          maxDialQueueLength: 500,
         },
         privateKey: params.peerId.privKey,
         addresses: { listen: params.listenAddresses },
@@ -272,6 +275,12 @@ export class Libp2pService extends EventEmitter {
           yamux({
             maxInboundStreams: 3_000,
             maxOutboundStreams: 3_000,
+            onStreamEnd: async (stream: Stream) => {
+              if (stream.protocol === BITSWAP_PROTOCOL) {
+                await stream.closeRead()
+                await stream.closeWrite()
+              }
+            },
           }),
         ],
         connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
@@ -280,13 +289,17 @@ export class Libp2pService extends EventEmitter {
             filter: filters.all,
             websocket: {
               agent: params.agent,
+              handshakeTimeout: 15_000,
+              ciphers: WEBSOCKET_CIPHER_SUITE,
+              followRedirects: true,
             },
             localAddress: params.localAddress,
             targetPort: params.targetPort,
+            closeOnEnd: true,
           }),
         ],
         services: {
-          ping: ping(),
+          ping: ping({ timeout: 30_000 }),
           pubsub: gossipsub({
             // neccessary to run a single peer
             allowPublishToZeroTopicPeers: true,
