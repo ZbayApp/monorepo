@@ -3,7 +3,13 @@ name: E2E Mac
 on: [workflow_call]
 jobs:
   mac:
-    runs-on: macos-13
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        # macos-13 is the latest intel runner, macos-14 is the current stable M1 runner
+        os: [macos-13, macos-14]
+
     timeout-minutes: 180
     env:
       TEST_MODE: true
@@ -63,20 +69,20 @@ jobs:
       - name: Run user profile test
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         with:
-          timeout_minutes: 25
+          timeout_minutes: 15
           max_attempts: 3
           command: cd packages/e2e-tests && npm run test userProfile.test.ts
 
       - name: Run multiple clients test
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         with:
-          timeout_minutes: 25
+          timeout_minutes: 30
           max_attempts: 3
           command: cd packages/e2e-tests && npm run test multipleClients.test.ts
 
       - name: Run invitation link test - Includes 2 separate application clients
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
         with:
-          timeout_minutes: 25
+          timeout_minutes: 15
           max_attempts: 3
           command: cd packages/e2e-tests && npm run test invitationLink.test.ts
