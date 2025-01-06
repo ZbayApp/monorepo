@@ -5,6 +5,9 @@ import { messagesSelectors } from '../messages.selectors'
 import { publicChannelsSelectors } from '../../publicChannels/publicChannels.selectors'
 import { publicChannelsActions } from '../../publicChannels/publicChannels.slice'
 import { type CacheMessagesPayload, type ChannelMessage } from '@quiet/types'
+import { createLogger } from '../../../utils/logger'
+
+const logger = createLogger('addMessagesSaga')
 
 export function* addMessagesSaga(
   action: PayloadAction<ReturnType<typeof messagesActions.addMessages>['payload']>
@@ -13,21 +16,27 @@ export function* addMessagesSaga(
     // Proceed only for messages from current channel
     const currentChannelId = yield* select(publicChannelsSelectors.currentChannelId)
     if (incomingMessage.channelId !== currentChannelId) {
-      return
+      logger.warn(`Skipping message because channel ID is not the current channel ID`, incomingMessage.id)
+      continue
     }
 
     // Do not proceed if signature is not verified
+    let isVerified: boolean = false
     while (true) {
       const messageVerificationStatus = yield* select(messagesSelectors.messagesVerificationStatus)
       const status = messageVerificationStatus[incomingMessage.signature]
       if (status) {
         if (!status.isVerified) {
-          return
-        } else {
-          break
+          logger.warn(`Message is not verified`, incomingMessage.id, status)
         }
+        isVerified = status.isVerified
+        break
       }
       yield* delay(50)
+    }
+
+    if (!isVerified) {
+      continue
     }
 
     let message: ChannelMessage = incomingMessage
@@ -61,7 +70,7 @@ export function* addMessagesSaga(
     } else {
       // Check if incoming message fits between (newest known message)...(number of messages to display)
       if (message.createdAt < lastDisplayedMessage?.createdAt && cachedMessages.length >= 50) {
-        return
+        continue
       }
       if (cachedMessages.length >= 50) {
         cachedMessages.shift()

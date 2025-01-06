@@ -26,7 +26,7 @@ const populateReplacerFuncs = (replacers: KeyValueReplacerConfig<any>[]): Replac
 export const findAllByKeyAndReplace = (object: any, replacers: KeyValueReplacerConfig<any>[]) => {
   const replacerMap = populateReplacerFuncs(replacers)
   const anyReplacer: ReplacerFunc<any> | undefined = replacerMap.get(ANY_KEY)
-  const newObject = { ...object }
+  const newObject = structuredClone(object)
   const looper = (obj: any) => {
     for (const k in obj) {
       if (replacerMap.has(k) || anyReplacer != null) {

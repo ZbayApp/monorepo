@@ -1,6 +1,7 @@
 import debug from 'debug'
 import { Console } from 'console'
 import { DateTime } from 'luxon'
+import { isUint8Array } from 'util/types'
 
 import { ANY_KEY, findAllByKeyAndReplace } from './utils'
 
@@ -313,7 +314,12 @@ export class QuietLogger {
           replacerFunc: (value: any) => {
             if (value != null && typeof value === 'bigint') {
               return (value as bigint).toString()
+            } else if (value != null && (value.toV1 != null || value.toV0 != null)) {
+              return value.toString()
+            } else if (value != null && isUint8Array(value)) {
+              return Buffer.from(value).toString('base64')
             }
+
             return value
           },
         },

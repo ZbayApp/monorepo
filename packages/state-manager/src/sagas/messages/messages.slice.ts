@@ -83,11 +83,11 @@ export const messagesSlice = createSlice({
       for (const message of messages) {
         if (!instanceOfChannelMessage(message)) {
           logger.error('Failed to add message, object not instance of message')
-          return
+          continue
         }
         if (!state.publicChannelsMessagesBase.entities[message.channelId]) {
           logger.error('Failed to add message, could not find channel', message.channelId)
-          return
+          continue
         }
 
         let toAdd = message
@@ -109,7 +109,7 @@ export const messagesSlice = createSlice({
           throw new Error('Failed to add message, channel went missing')
         }
 
-        logger.info('Upserting message to Redux store')
+        logger.info('Upserting message to Redux store', toAdd.id)
         channelMessagesAdapter.upsertOne(messagesBase.messages, toAdd)
       }
     },

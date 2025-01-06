@@ -156,7 +156,7 @@ export const FileComponent: React.FC<FileComponentProps & FileActionsProps> = ({
             variant='indeterminate'
             size={18}
             thickness={4}
-            style={{ position: 'absolute', color: theme.palette.colors.purple }}
+            style={{ position: 'absolute', color: theme.palette.colors.lightGray }}
           />
         )
       case DownloadState.Downloading:
@@ -167,14 +167,14 @@ export const FileComponent: React.FC<FileComponentProps & FileActionsProps> = ({
               size={18}
               thickness={4}
               value={100}
-              style={{ position: 'absolute', color: theme.palette.colors.purple }}
+              style={{ position: 'absolute', color: theme.palette.colors.lightGray }}
             />
             <CircularProgress
               variant='determinate'
               size={18}
               thickness={4}
               value={downloadProgress?.size && (downloadProgress.downloaded / downloadProgress.size) * 100}
-              style={{ color: theme.palette.colors.lightGray }}
+              style={{ color: theme.palette.colors.purple }}
             />
           </>
         )
