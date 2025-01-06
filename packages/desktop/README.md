@@ -4,7 +4,14 @@ Running the desktop version of Quiet should be straightforward on Mac and Linux.
 Here are the steps:
 
 0. Install `patch` (e.g. via your Linux package manager)
-1. Use `Node 18.12.1` and `npm 8.19.2`. We recommend [nvm](https://github.com/nvm-sh/nvm) for easily switching Node versions, and if this README gets out of date you can see the actual version used by CI [here](https://github.com/TryQuiet/quiet/blob/master/.github/actions/setup-env/action.yml). If you are using nvm, you can run `nvm use` in the project's root to switch to the correct version.
+1. Use `Node 18.12.1` and `npm 8.19.2`. We recommend nvm for easily switching Node versions. To use **nvm** (Node Version Manager) to switch to Node.js version `18.12.1`, use the command:
+
+```bash
+nvm use 18.12.1
+```
+
+If this README gets out of date you can see the actual version used by CI [here](https://github.com/TryQuiet/quiet/blob/master/.github/actions/setup-env/action.yml). If you are using nvm, you can run `nvm use` in the project's root to switch to the correct version.
+
 2. In `quiet/` (project's root) install monorepo's dependencies and bootstrap the project with lerna. It will take care of the package's dependencies and trigger a prepublish script which builds them.
 
 ```
@@ -20,6 +27,21 @@ If you run into problems please double check if you have exact version Node and 
 ```
 npm run start
 ```
+
+
+Tips:
+
+If learna bootstrap on MacOS doesn’t work and you see error message about distutils module the issue may be with Python. In Python v3.12, distutils module was removed. This means your local doesn't have any tool in place to support python package installation for node gyp. To solve it run one of these commands:
+
+```
+python3 -m pip install setuptools
+```
+or
+```
+brew install python-setuptools (if you have homebrew installed)
+```
+
+
 ----
 
 ## Versioning packages
