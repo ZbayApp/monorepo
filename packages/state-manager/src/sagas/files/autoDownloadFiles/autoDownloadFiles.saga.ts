@@ -32,7 +32,7 @@ export function* autoDownloadFilesSaga(
     const draft = channelMessages[message.id]
 
     // Do not download if already present in local file system
-    if (draft?.media?.path) return
+    if (draft?.media?.path) continue
 
     // Do not autodownload above certain size
     const messageMediaSize = message.media.size || 0
@@ -44,7 +44,7 @@ export function* autoDownloadFilesSaga(
           downloadState: DownloadState.Ready,
         })
       )
-      return
+      continue
     }
 
     yield* put(

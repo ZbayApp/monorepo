@@ -39,7 +39,10 @@ export function* verifyMessagesSaga(
         yield* delay(500)
       }
       const channel = yield* select(publicChannelsSelectors.getChannelById(message.channelId))
-      if (!channel) return
+      if (!channel) {
+        logger.warn(`No channel for ID found in redux`, message.channelId, message.id)
+        return
+      }
 
       const expectedMessage = yield* call(verifyUserInfoMessage, user.username, channel)
 
