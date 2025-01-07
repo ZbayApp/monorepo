@@ -150,7 +150,7 @@ Java_com_quietmobile_Backend_BackendWorker_startNodeWithArguments(
     // Set the builtin_modules path to NODE_PATH.
     const char *path_path = env->GetStringUTFChars(modulesPath, 0);
     setenv("NODE_PATH", path_path, 1);
-    setenv("DEBUG", "backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,libp2p*,helia*,blockstore*", 1);
+    setenv("DEBUG", "backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,libp2p:connection-manager:auto-dial", 1);
     env->ReleaseStringUTFChars(modulesPath, path_path);
 
     // argc
