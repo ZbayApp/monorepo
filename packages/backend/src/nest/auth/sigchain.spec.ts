@@ -26,7 +26,7 @@ describe('SigChain', () => {
   })
   it('should serialize the sigchain and load it', () => {
     const serializedChain = sigChain.save()
-    sigChain2 = SigChain.load(serializedChain, sigChain.localUserContext, sigChain.team!.teamKeyring())
+    const sigChain2 = SigChain.load(serializedChain, sigChain.localUserContext, sigChain.team!.teamKeyring())
     expect(sigChain2).toBeDefined()
     expect(sigChain2.team!.teamName).toBe('test')
     expect(sigChain2.roles.amIMemberOfRole(sigChain2.localUserContext, RoleName.ADMIN)).toBe(true)

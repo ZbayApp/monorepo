@@ -12,11 +12,12 @@ export async function createHelia(init = {}) {
     }
     const helia = new HeliaP2P({
         ...init,
-        libp2p,
+        libp2p: libp2p,
         datastore,
         blockstore,
         blockBrokers: init.blockBrokers ?? [bitswap()],
         routers: [libp2pRouting(libp2p)],
+        metrics: libp2p.metrics,
     });
     if (init.start !== false) {
         await helia.start();

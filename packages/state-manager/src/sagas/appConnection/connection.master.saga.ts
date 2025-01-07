@@ -3,6 +3,7 @@ import { uptimeSaga } from './uptime/uptime.saga'
 import { connectionActions } from './connection.slice'
 import { createLogger } from '../../utils/logger'
 import { onConnectionProcessInfo } from './onConnectionProcessInfo/onConnectionProcessInfo.saga'
+import { Socket } from '../../types'
 
 const logger = createLogger('connectionMasterSaga')
 

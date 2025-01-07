@@ -56,6 +56,7 @@ import {
   InitUserCsrPayload,
   UserCsr,
   PeerId as QuietPeerId,
+  InvitationDataVersion,
 } from '@quiet/types'
 import { CONFIG_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { Libp2pService } from '../libp2p/libp2p.service'
