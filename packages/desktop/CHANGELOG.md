@@ -1,19 +1,3 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-# [3.0.0-alpha.4](https://github.com/TryQuiet/quiet/compare/@quiet/desktop@3.0.0-alpha.3...@quiet/desktop@3.0.0-alpha.4) (2025-01-07)
-
-
-### Bug Fixes
-
-* **2679:** Fix issue with download buttons missing from large files ([#2690](https://github.com/TryQuiet/quiet/issues/2690)) ([2ca7119](https://github.com/TryQuiet/quiet/commit/2ca711993f9493d9fa8f59ca00bca3b8d862689a))
-
-
-
-
-
 # Changelog
 
 ## [3.0.0]
