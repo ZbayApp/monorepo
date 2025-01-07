@@ -26,7 +26,7 @@ export const Completed = Template.bind({})
 export const Malicious = Template.bind({})
 
 const mid = '32'
-const cid = '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY'
+const cid: string = 'bafybeias7om3oq2qdbmcniflurs676cmuis7cnhczqx623lwesi2fzmwie'
 
 const args: FileComponentProps = {
   message: {
@@ -65,9 +65,8 @@ Uploading.args = {
   ...args,
   message: {
     ...args.message,
-    // @ts-expect-error
     media: {
-      ...args.message.media,
+      ...args.message.media!,
       size: undefined,
     },
   },

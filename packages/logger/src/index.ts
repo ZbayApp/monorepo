@@ -1,7 +1,6 @@
 import debug from 'debug'
 import { Console } from 'console'
 import { DateTime } from 'luxon'
-import { isUint8Array } from 'util/types'
 
 import { ANY_KEY, findAllByKeyAndReplace } from './utils'
 
@@ -316,7 +315,7 @@ export class QuietLogger {
               return (value as bigint).toString()
             } else if (value != null && (value.toV1 != null || value.toV0 != null)) {
               return value.toString()
-            } else if (value != null && isUint8Array(value)) {
+            } else if (value != null && value instanceof Uint8Array) {
               return Buffer.from(value).toString('base64')
             }
 
