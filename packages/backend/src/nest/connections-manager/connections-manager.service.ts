@@ -55,6 +55,7 @@ import {
   CreateUserCsrPayload,
   InitUserCsrPayload,
   UserCsr,
+  InvitationDataVersion,
 } from '@quiet/types'
 import { CONFIG_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { Libp2pService } from '../libp2p/libp2p.service'
@@ -77,6 +78,7 @@ import { createFromJSON } from '@libp2p/peer-id-factory'
 import { PeerId } from '@libp2p/interface'
 import { SigChainService } from '../auth/sigchain.service'
 import { Base58, InviteResult } from '3rd-party/auth/packages/auth/dist'
+import { UserService } from '../auth/services/members/user.service'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -658,23 +660,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     }
 
     const inviteData = payload.inviteData
-    // TODO: add back when QSS is implemented
-    // if (inviteData) {
-    //   this.logger.info(`Joining community: inviteData version: ${inviteData.version}`)
-    //   switch (inviteData.version) {
-    //     case InvitationDataVersion.v2:
-    //       const downloadedData = await this.downloadCommunityData(inviteData)
-    //       if (!downloadedData) {
-    //         emitError(this.serverIoProvider.io, {
-    //           type: SocketActionTypes.LAUNCH_COMMUNITY,
-    //           message: ErrorMessages.STORAGE_SERVER_CONNECTION_FAILED,
-    //         })
-    //         return
-    //       }
-    //       metadata = downloadedData
-    //       break
-    //   }
-    // }
+    if (inviteData && inviteData?.version == InvitationDataVersion.v2) {
+      this.sigChainService.createChainFromInvite(identity.nickname, inviteData.authData.seed, true)
+    }
 
     if (!metadata.peers || metadata.peers.length === 0) {
       this.logger.error('Joining community: Peers required')

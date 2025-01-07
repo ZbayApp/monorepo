@@ -39,7 +39,7 @@ class InviteService extends ChainServiceBase {
       expiration = (Date.now() + validForMs) as UnixTimestamp
     }
 
-    const invitation: InviteResult = this.sigChain.team.inviteMember({
+    const invitation: InviteResult = this.sigChain.team!.inviteMember({
       seed,
       expiration,
       maxUses,
@@ -53,7 +53,7 @@ class InviteService extends ChainServiceBase {
 
   public createDeviceInvite(validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS, seed?: string): InviteResult {
     const expiration = (Date.now() + validForMs) as UnixTimestamp
-    const invitation: InviteResult = this.sigChain.team.inviteDevice({
+    const invitation: InviteResult = this.sigChain.team!.inviteDevice({
       expiration,
       seed,
     })
@@ -78,11 +78,11 @@ class InviteService extends ChainServiceBase {
   }
 
   public revoke(id: string) {
-    this.sigChain.team.revokeInvitation(id)
+    this.sigChain.team!.revokeInvitation(id)
   }
 
   public getById(id: Base58): InvitationState {
-    return this.sigChain.team.getInvitation(id)
+    return this.sigChain.team!.getInvitation(id)
   }
 
   public static generateProof(seed: string): ProofOfInvitation {
@@ -90,7 +90,7 @@ class InviteService extends ChainServiceBase {
   }
 
   public validateProof(proof: ProofOfInvitation): boolean {
-    const validationResult = this.sigChain.team.validateInvitation(proof) as ValidationResult
+    const validationResult = this.sigChain.team!.validateInvitation(proof) as ValidationResult
     if (!validationResult.isValid) {
       logger.warn(`Proof was invalid or was on an invalid invitation`, validationResult.error)
       return false
@@ -99,21 +99,21 @@ class InviteService extends ChainServiceBase {
   }
 
   public admitUser(proof: ProofOfInvitation, username: string, publicKeys: Keyset) {
-    this.sigChain.team.admitMember(proof, publicKeys, username)
+    this.sigChain.team!.admitMember(proof, publicKeys, username)
   }
 
   public admitMemberFromInvite(proof: ProofOfInvitation, username: string, userId: string, publicKeys: Keyset): string {
-    this.sigChain.team.admitMember(proof, publicKeys, username)
+    this.sigChain.team!.admitMember(proof, publicKeys, username)
     this.sigChain.roles.addMember(userId, RoleName.MEMBER)
     return username
   }
 
   public admitDeviceFromInvite(proof: ProofOfInvitation, firstUseDevice: FirstUseDevice): void {
-    this.sigChain.team.admitDevice(proof, firstUseDevice)
+    this.sigChain.team!.admitDevice(proof, firstUseDevice)
   }
 
   public getAllInvites(): InvitationState[] {
-    const inviteMap = this.sigChain.team.invitations()
+    const inviteMap = this.sigChain.team!.invitations()
     const invites: InvitationState[] = []
     for (const invite of Object.entries(inviteMap)) {
       invites.push(invite[1])

@@ -15,7 +15,7 @@ class RoleService extends ChainServiceBase {
 
   constructor(sigChain: SigChain) {
     super(sigChain)
-    this.logger = createLogger(`auth:roleService(${sigChain.team.teamName})`)
+    this.logger = createLogger(`auth:roleService`)
   }
 
   public static init(sigChain: SigChain): RoleService {
@@ -34,7 +34,7 @@ class RoleService extends ChainServiceBase {
       permissions,
     }
 
-    this.sigChain.team.addRole(role)
+    this.sigChain.team!.addRole(role)
   }
 
   // TODO: figure out permissions
@@ -52,21 +52,21 @@ class RoleService extends ChainServiceBase {
 
   public addMember(memberId: string, roleName: string) {
     this.logger.info(`Adding member with ID ${memberId} to role ${roleName}`)
-    this.sigChain.team.addMemberRole(memberId, roleName)
+    this.sigChain.team!.addMemberRole(memberId, roleName)
   }
 
   public revokeMembership(memberId: string, roleName: string) {
     this.logger.info(`Revoking role ${roleName} for member with ID ${memberId}`)
-    this.sigChain.team.removeMemberRole(memberId, roleName)
+    this.sigChain.team!.removeMemberRole(memberId, roleName)
   }
 
   public delete(roleName: string) {
     this.logger.info(`Removing role with name ${roleName}`)
-    this.sigChain.team.removeRole(roleName)
+    this.sigChain.team!.removeRole(roleName)
   }
 
   public getRole(roleName: string, context: LocalUserContext): QuietRole {
-    const role = this.sigChain.team.roles(roleName)
+    const role = this.sigChain.team!.roles(roleName)
     if (!role) {
       throw new Error(`No role found with name ${roleName}`)
     }
@@ -75,7 +75,7 @@ class RoleService extends ChainServiceBase {
   }
 
   public getAllRoles(context: LocalUserContext, haveAccessOnly: boolean = false): QuietRole[] {
-    const allRoles = this.sigChain.team.roles().map(role => this.roleToQuietRole(role, context))
+    const allRoles = this.sigChain.team!.roles().map(role => this.roleToQuietRole(role, context))
     if (haveAccessOnly) {
       return allRoles.filter((role: QuietRole) => role.hasRole === true)
     }
@@ -84,7 +84,7 @@ class RoleService extends ChainServiceBase {
   }
 
   public memberHasRole(memberId: string, roleName: string): boolean {
-    return this.sigChain.team.memberHasRole(memberId, roleName)
+    return this.sigChain.team!.memberHasRole(memberId, roleName)
   }
 
   public amIMemberOfRole(context: LocalUserContext, roleName: string): boolean {
@@ -92,7 +92,7 @@ class RoleService extends ChainServiceBase {
   }
 
   public getMembersForRole(roleName: string): Member[] {
-    return this.sigChain.team.membersInRole(roleName)
+    return this.sigChain.team!.membersInRole(roleName)
   }
 
   private roleToQuietRole(role: Role, context: LocalUserContext): QuietRole {

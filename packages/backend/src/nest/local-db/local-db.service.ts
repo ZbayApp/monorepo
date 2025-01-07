@@ -166,12 +166,12 @@ export class LocalDbService {
   }
 
   public async setSigChain(sigChain: SigChain) {
-    const teamName = sigChain.team.teamName
+    const teamName = sigChain.team!.teamName
     const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
     const serializedSigChain: SigChainSaveData = {
       serializedTeam: Buffer.from(sigChain.save()).toString('base64'),
-      context: sigChain.context,
-      teamKeyRing: sigChain.team.teamKeyring(),
+      context: sigChain.localUserContext,
+      teamKeyRing: sigChain.team!.teamKeyring(),
     }
     this.logger.info('Saving sigchain', teamName)
     await this.put(key, serializedSigChain)

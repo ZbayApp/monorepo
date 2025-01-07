@@ -63,10 +63,9 @@ export function* createNetworkSaga(
       case InvitationDataVersion.v1:
         community.psk = payload.inviteData.psk
         community.ownerOrbitDbIdentity = payload.inviteData.ownerOrbitDbIdentity
-        const invitationPeers = payload.inviteData.pairs
-        if (invitationPeers) {
+        if (payload.inviteData.pairs) {
           logger.info('Setting invitation codes')
-          yield* put(communitiesActions.setInvitationCodes(invitationPeers))
+          yield* put(communitiesActions.setInvitationCodes(payload.inviteData.pairs))
         }
         break
     }

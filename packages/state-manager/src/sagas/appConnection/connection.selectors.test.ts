@@ -119,7 +119,12 @@ describe('communitiesSelectors', () => {
     })
     const selectorInvitationUrl = connectionSelectors.invitationUrl(store.getState())
     const pairs = p2pAddressesToPairs(peerList)
-    const expectedUrl = composeInvitationShareUrl({ pairs, psk, ownerOrbitDbIdentity })
+    const expectedUrl = composeInvitationShareUrl({
+      pairs,
+      psk,
+      ownerOrbitDbIdentity,
+      version: InvitationDataVersion.v1,
+    })
     expect(expectedUrl).not.toEqual('')
     expect(selectorInvitationUrl).toEqual(expectedUrl)
   })

@@ -59,11 +59,11 @@ class UserService extends ChainServiceBase {
    * Get
    */
   public getKeys(): KeyMap {
-    return this.sigChain.team.allKeys()
+    return this.sigChain.team!.allKeys()
   }
 
   public getAllUsers(): Member[] {
-    return this.sigChain.team.members()
+    return this.sigChain.team!.members()
   }
 
   public getUsersById(memberIds: string[], options: MemberSearchOptions = DEFAULT_SEARCH_OPTIONS): Member[] {
@@ -71,7 +71,7 @@ class UserService extends ChainServiceBase {
       return []
     }
 
-    return this.sigChain.team.members(memberIds, options)
+    return this.sigChain.team!.members(memberIds, options)
   }
 
   public getUserByName(memberName: string): Member | undefined {

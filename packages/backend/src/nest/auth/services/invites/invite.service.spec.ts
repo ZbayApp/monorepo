@@ -16,11 +16,11 @@ describe('invites', () => {
   it('should initialize a new sigchain and be admin', () => {
     adminSigChain = SigChain.create('test', 'user')
     expect(adminSigChain).toBeDefined()
-    expect(adminSigChain.context).toBeDefined()
-    expect(adminSigChain.team.teamName).toBe('test')
-    expect(adminSigChain.context.user.userName).toBe('user')
-    expect(adminSigChain.roles.amIMemberOfRole(adminSigChain.context, RoleName.ADMIN)).toBe(true)
-    expect(adminSigChain.roles.amIMemberOfRole(adminSigChain.context, RoleName.MEMBER)).toBe(true)
+    expect(adminSigChain.localUserContext).toBeDefined()
+    expect(adminSigChain.team!.teamName).toBe('test')
+    expect(adminSigChain.localUserContext.user.userName).toBe('user')
+    expect(adminSigChain.roles.amIMemberOfRole(adminSigChain.localUserContext, RoleName.ADMIN)).toBe(true)
+    expect(adminSigChain.roles.amIMemberOfRole(adminSigChain.localUserContext, RoleName.MEMBER)).toBe(true)
   })
   it('admin should generate an invite and it be added to team graph', () => {
     const newInvite = adminSigChain.invites.createUserInvite()
@@ -38,24 +38,24 @@ describe('invites', () => {
     expect(prospectiveMember).toBeDefined()
     newMemberSigChain = SigChain.join(
       prospectiveMember.context,
-      adminSigChain.team.save(),
-      adminSigChain.team.teamKeyring()
+      adminSigChain.team!.save(),
+      adminSigChain.team!.teamKeyring()
     )
     expect(newMemberSigChain).toBeDefined()
-    expect(newMemberSigChain.context).toBeDefined()
-    expect(newMemberSigChain.context.user.userName).toBe('user2')
-    expect(newMemberSigChain.context.user.userId).not.toBe(adminSigChain.context.user.userId)
-    expect(newMemberSigChain.roles.amIMemberOfRole(newMemberSigChain.context, RoleName.MEMBER)).toBe(false)
-    expect(newMemberSigChain.roles.amIMemberOfRole(newMemberSigChain.context, RoleName.ADMIN)).toBe(false)
+    expect(newMemberSigChain.localUserContext).toBeDefined()
+    expect(newMemberSigChain.localUserContext.user.userName).toBe('user2')
+    expect(newMemberSigChain.localUserContext.user.userId).not.toBe(adminSigChain.localUserContext.user.userId)
+    expect(newMemberSigChain.roles.amIMemberOfRole(newMemberSigChain.localUserContext, RoleName.MEMBER)).toBe(false)
+    expect(newMemberSigChain.roles.amIMemberOfRole(newMemberSigChain.localUserContext, RoleName.ADMIN)).toBe(false)
     expect(
       adminSigChain.invites.admitMemberFromInvite(
         inviteProof,
-        newMemberSigChain.context.user.userName,
-        newMemberSigChain.context.user.userId,
-        newMemberSigChain.context.user.keys
+        newMemberSigChain.localUserContext.user.userName,
+        newMemberSigChain.localUserContext.user.userId,
+        newMemberSigChain.localUserContext.user.keys
       )
     ).toBeDefined()
-    expect(adminSigChain.roles.amIMemberOfRole(newMemberSigChain.context, RoleName.MEMBER)).toBe(true)
+    expect(adminSigChain.roles.amIMemberOfRole(newMemberSigChain.localUserContext, RoleName.MEMBER)).toBe(true)
   })
   it('admin should be able to revoke an invite', () => {
     const inviteToRevoke = adminSigChain.invites.createUserInvite()
@@ -73,8 +73,8 @@ describe('invites', () => {
     expect(prospectiveMember).toBeDefined()
     const newSigchain = SigChain.join(
       prospectiveMember.context,
-      adminSigChain.team.save(),
-      adminSigChain.team.teamKeyring()
+      adminSigChain.team!.save(),
+      adminSigChain.team!.teamKeyring()
     )
     expect(() => {
       adminSigChain.invites.admitMemberFromInvite(
@@ -86,12 +86,12 @@ describe('invites', () => {
     }).toThrowError()
   })
   it('should invite device', () => {
-    const newDevice = DeviceService.generateDeviceForUser(adminSigChain.context.user.userId)
+    const newDevice = DeviceService.generateDeviceForUser(adminSigChain.localUserContext.user.userId)
     const deviceInvite = adminSigChain.invites.createDeviceInvite()
     const inviteProof = InviteService.generateProof(deviceInvite.seed)
     expect(inviteProof).toBeDefined()
     expect(adminSigChain.invites.validateProof(inviteProof)).toBe(true)
     adminSigChain.invites.admitDeviceFromInvite(inviteProof, DeviceService.redactDevice(newDevice))
-    expect(adminSigChain.team.hasDevice(newDevice.deviceId)).toBe(true)
+    expect(adminSigChain.team!.hasDevice(newDevice.deviceId)).toBe(true)
   })
 })

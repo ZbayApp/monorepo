@@ -7,6 +7,7 @@ import { QUIET_JOIN_PAGE } from './const'
 
 export const validInvitationDatav1: InvitationDataV1[] = [
   {
+    version: InvitationDataVersion.v1,
     pairs: [
       {
         onionAddress: 'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdvcbzw5vex2crsr26qd',
@@ -17,6 +18,7 @@ export const validInvitationDatav1: InvitationDataV1[] = [
     ownerOrbitDbIdentity: '018f9e87541d0b61cb4565af8df9699f658116afc54ae6790c31bbf6df3fc343b0',
   },
   {
+    version: InvitationDataVersion.v1,
     pairs: [
       {
         onionAddress: 'pgzlcstu4ljvma7jqyalimcxlvss5bwlbba3c3iszgtwxee4qjdlgeqd',

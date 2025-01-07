@@ -8,7 +8,6 @@ import { pipe } from 'it-pipe'
 import { encode, decode } from 'it-length-prefixed'
 
 import { SigChainService } from '../auth/sigchain.service.js'
-import { SigChain } from '../auth/sigchain.js'
 import { AuthEvents, QuietAuthEvents } from './libp2p.types.js'
 import { createLogger } from '../common/logger.js'
 import { createQuietLogger } from '@quiet/logger'
@@ -34,8 +33,6 @@ enum JoinStatus {
 
 const createLFALogger = createQuietLogger('localfirst:')
 
-// Implementing local-first-auth as a service just to get started. I think we
-// likely want to integrate it in a custom Transport/Muxer.
 export class Libp2pAuth {
   private readonly protocol: string
   private readonly components: Libp2pAuthComponents
@@ -49,7 +46,7 @@ export class Libp2pAuth {
   private events: QuietAuthEvents
   private peerId: PeerId
   private joining: boolean = false
-  private restartInterval: NodeJS.Timeout
+  private restartInterval: any
   private unblockInterval: NodeJS.Timeout
   private joinStatus: JoinStatus
   private logger: ReturnType<typeof createLogger>
@@ -275,34 +272,6 @@ export class Libp2pAuth {
       createLogger: createLFALogger,
     })
 
-    // TODO: Listen for updates to context and update context in storage
-    authConnection.on('joined', payload => {
-      const { team, user, teamKeyring } = payload
-      const sigChain = SigChain.createFromTeam(team, context)
-
-      this.logger.info(`${sigChain.context.user.userId}: Joined team ${team.teamName} (userid: ${user.userId})!`)
-      if (this.sigChainService.getActiveChain() == null && !this.joining) {
-        this.joining = true
-        this.logger.info(
-          `${user.userId}: Creating SigChain for user with name ${user.userName} and team name ${team.teamName}`
-        )
-        const context = sigChain.context
-        this.storage.setSigChain(SigChain.createFromTeam(team, context).sigChain)
-        this.logger.info(`${user.userId}: Updating auth context`)
-        this.storage.setAuthContext({
-          user: context.user,
-          device: context.device,
-          team,
-        })
-        this.joining = false
-      }
-      if (this.joinStatus === JoinStatus.JOINING) {
-        this.joinStatus = JoinStatus.JOINED
-        this.unblockConnections(this.bufferedConnections, this.joinStatus, this.logger)
-      }
-      this.events.emit(AuthEvents.INITIALIZED_CHAIN)
-    })
-
     const handleAuthConnErrors = (error: Auth.ConnectionErrorPayload, remoteUsername: string | undefined) => {
       this.logger.error(`Got an error while handling auth connection with ${remoteUsername}`, JSON.stringify(error))
       if (error.type === 'TIMEOUT') {
@@ -311,6 +280,33 @@ export class Libp2pAuth {
         this.events.emit(AuthEvents.MISSING_DEVICE, { peerId, remoteUsername })
       }
     }
+
+    // TODO: Listen for updates to context and update context in storage
+    authConnection.on('joined', payload => {
+      const { team, user } = payload
+      const sigChain = this.sigChainService.getActiveChain()
+      this.logger.info(
+        `${sigChain.localUserContext.user.userId}: Joined team ${team.teamName} (userid: ${user.userId})!`
+      )
+      if (sigChain.team == null && !this.joining) {
+        this.joining = true
+        this.logger.info(
+          `${user.userId}: Creating SigChain for user with name ${user.userName} and team name ${team.teamName}`
+        )
+        this.logger.info(`${user.userId}: Updating auth context`)
+        this.sigChainService.getActiveChain().context = {
+          ...this.sigChainService.getActiveChain().context,
+          team,
+          user,
+        } as Auth.MemberContext
+        this.joining = false
+      }
+      if (this.joinStatus === JoinStatus.JOINING) {
+        this.joinStatus = JoinStatus.JOINED
+        this.unblockConnections(this.bufferedConnections, this.joinStatus, this.logger)
+      }
+      this.events.emit(AuthEvents.INITIALIZED_CHAIN)
+    })
 
     authConnection.on('localError', error => {
       handleAuthConnErrors(error, authConnection._context.userName)
@@ -322,10 +318,11 @@ export class Libp2pAuth {
 
     authConnection.on('connected', () => {
       this.logger.info(`LFA Connected!`)
-      if (this.authContext != null) {
+      if (this.sigChainService.activeChainTeamName != null) {
         this.logger.debug(`Sending sync message because our chain is intialized`)
-        const team = this.storage.getSigChain()!.team
-        const user = this.storage.getContext()!.user
+        const sigChain = this.sigChainService.getActiveChain()
+        const team = sigChain.team
+        const user = sigChain.localUserContext.user
         authConnection.emit('sync', { team, user })
       }
     })

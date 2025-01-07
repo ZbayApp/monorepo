@@ -65,7 +65,12 @@ export const invitationUrl = createSelector(
     if (!ownerOrbitDbIdentity) return ''
     const initialPeers = sortedPeerList.slice(0, 3)
     const pairs = p2pAddressesToPairs(initialPeers)
-    let inviteData: InvitationData = { pairs, psk: communityPsk, ownerOrbitDbIdentity }
+    let inviteData: InvitationData = {
+      pairs,
+      psk: communityPsk,
+      ownerOrbitDbIdentity,
+      version: InvitationDataVersion.v1,
+    }
     if (currentCommunity != null && currentCommunity.name != null && longLivedInvite != null) {
       inviteData = {
         ...inviteData,
