@@ -1,5 +1,24 @@
 # Changelog
 
+## [5.1.1](https://github.com/ipfs/helia/compare/helia-v5.1.0...helia-v5.1.1) (2024-11-18)
+
+
+### Bug Fixes
+
+* add tls to default delegated routing filters ([#670](https://github.com/ipfs/helia/issues/670)) ([aecac3d](https://github.com/ipfs/helia/commit/aecac3d92cbd22a7331afee8e6f87ef31a9f7d95))
+* remove webtransport from default transports ([#674](https://github.com/ipfs/helia/issues/674)) ([1aa6c8d](https://github.com/ipfs/helia/commit/1aa6c8d93edb779d2e5668081fb847314b2e2c79))
+
+
+### Dependencies
+
+* bump aegir from 44.1.4 to 45.0.1 ([#669](https://github.com/ipfs/helia/issues/669)) ([e58e49c](https://github.com/ipfs/helia/commit/e58e49c6aed8ea9d1e9851435a25e33fdbee3781))
+* The following workspace dependencies were updated
+  * dependencies
+    * @helia/block-brokers bumped from ^4.0.1 to ^4.0.2
+    * @helia/interface bumped from ^5.0.0 to ^5.1.0
+    * @helia/routers bumped from ^2.1.0 to ^2.2.0
+    * @helia/utils bumped from ^1.0.1 to ^1.1.0
+
 ## [5.1.0](https://github.com/ipfs/helia/compare/helia-v5.0.1...helia-v5.1.0) (2024-10-23)
 
 

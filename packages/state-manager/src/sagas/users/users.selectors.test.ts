@@ -47,6 +47,8 @@ describe('users selectors', () => {
       },
       peerId: {
         id: aliceCertificateData.peerId,
+        privKey: 'foobar',
+        noiseKey: 'barbaz',
       },
     })
 

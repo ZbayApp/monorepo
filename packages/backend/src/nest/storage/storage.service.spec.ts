@@ -23,7 +23,7 @@ import path from 'path'
 import { type PeerId } from '@libp2p/interface'
 import waitForExpect from 'wait-for-expect'
 import { TestModule } from '../common/test.module'
-import { libp2pInstanceParams } from '../common/utils'
+import { createArbitraryFile, libp2pInstanceParams } from '../common/utils'
 import { IpfsModule } from '../ipfs/ipfs.module'
 import { IpfsService } from '../ipfs/ipfs.service'
 import { Libp2pModule } from '../libp2p/libp2p.module'
@@ -39,7 +39,6 @@ import { LocalDbService } from '../local-db/local-db.service'
 import { ORBIT_DB_DIR } from '../const'
 import { createLogger } from '../common/logger'
 import { createUserCertificateTestHelper, createTestRootCA } from '@quiet/identity'
-import { createArbitraryFile } from '@quiet/common'
 
 const logger = createLogger('storageService:test')
 
@@ -113,7 +112,7 @@ describe('StorageService', () => {
     orbitDbDir = await module.resolve(ORBIT_DB_DIR)
 
     const params = await libp2pInstanceParams()
-    peerId = params.peerId
+    peerId = params.peerId.peerId
 
     await libp2pService.createInstance(params)
     expect(libp2pService.libp2pInstance).not.toBeNull()

@@ -33,9 +33,9 @@ import { TorControl } from '../tor/tor-control.service'
 import { LocalDBKeys } from '../local-db/local-db.types'
 import { DateTime } from 'luxon'
 import waitForExpect from 'wait-for-expect'
-import { Libp2pEvents } from '../libp2p/libp2p.types'
+import { CreatedLibp2pPeerId, Libp2pEvents } from '../libp2p/libp2p.types'
 import { sleep } from '../common/sleep'
-import { createFromJSON } from '@libp2p/peer-id-factory'
+import { peerIdFromString } from '@libp2p/peer-id'
 import { createLibp2pAddress, filterValidAddresses, generateChannelId } from '@quiet/common'
 import { createLogger } from '../common/logger'
 import { ServiceState } from './connections-manager.types'
@@ -63,7 +63,7 @@ let factory: FactoryGirl
 let community: Community
 let userIdentity: Identity
 let communityRootCa: string
-let peerId: PeerId
+let peerId: CreatedLibp2pPeerId
 let torControl: TorControl
 
 beforeEach(async () => {
@@ -131,13 +131,13 @@ describe('Connections manager', () => {
 
     // Peer connected
     await connectionsManagerService.init()
-    libp2pService.connectedPeers.set(peerId.toString(), {
+    libp2pService.connectedPeers.set(peerId.peerId.toString(), {
       connectedAtSeconds: DateTime.utc().valueOf(),
-      address: peerId.toString(),
+      address: peerId.peerId.toString(),
     })
 
     // Peer disconnected
-    const remotePeer = peerId.toString()
+    const remotePeer = peerId.peerId.toString()
     await waitForExpect(async () => {
       expect(libp2pService.libp2pInstance).not.toBeUndefined()
     }, 2_000)
@@ -165,7 +165,7 @@ describe('Connections manager', () => {
     const network = await connectionsManagerService.getNetwork()
     expect(network.hiddenService.onionAddress.split('.')[0]).toHaveLength(56)
     expect(network.hiddenService.privateKey).toHaveLength(99)
-    const peerId = await createFromJSON(network.peerId)
+    const peerId = peerIdFromString(network.peerId.id)
     expect(isPeerId(peerId)).toBeTruthy()
     expect(await spyOnDestroyHiddenService.mock.results[0].value).toBeTruthy()
   })
@@ -187,7 +187,7 @@ describe('Connections manager', () => {
 
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
-      peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).toString())
+      peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).peerId.toString())
       logger.info(`pushing peer ${pCount}: ${peerAddress}`)
       peerList.push(peerAddress)
     }
@@ -203,9 +203,10 @@ describe('Connections manager', () => {
     localDbService.setCurrentCommunityId(community.id)
     logger.info('Launching community', community.id, 'with peer list', peerList)
     await connectionsManagerService.init()
-    await sleep(5000)
 
-    expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
+    }, 20_000)
 
     await waitForExpect(async () => {
       expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
@@ -226,7 +227,7 @@ describe('Connections manager', () => {
     peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id))
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
-      peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).toString())
+      peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).peerId.toString())
       logger.info(`pushing peer ${pCount}: ${peerAddress}`)
       peerList.push(peerAddress)
     }
@@ -240,7 +241,10 @@ describe('Connections manager', () => {
     expect(connectionsManagerService.communityState).toBe(undefined)
     // community will launch from storage
     await connectionsManagerService.init()
-    expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
+
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
+    }, 20_000)
 
     await waitForExpect(async () => {
       expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
@@ -261,12 +265,12 @@ describe('Connections manager', () => {
     peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id))
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
-      peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).toString())
+      peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).peerId.toString())
       logger.info(`pushing peer ${pCount}: ${peerAddress}`)
       peerList.push(peerAddress)
     }
     // add invalid peer address (too short)
-    peerList.push(createLibp2pAddress(generateRandomOnionAddress(50), (await createPeerId()).toString()))
+    peerList.push(createLibp2pAddress(generateRandomOnionAddress(50), (await createPeerId()).peerId.toString()))
     // all addresses are valid
     expect(peerList.length).toBe(filterValidAddresses(peerList).length + 1)
 
@@ -278,7 +282,9 @@ describe('Connections manager', () => {
     // community will launch from storage
     await connectionsManagerService.init()
 
-    expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
+    await waitForExpect(async () => {
+      expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
+    }, 20_000)
 
     await waitForExpect(async () => {
       expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
@@ -303,12 +309,12 @@ describe('Connections manager', () => {
     peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id))
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
-      peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).toString())
+      peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).peerId.toString())
       logger.info(`pushing peer ${pCount}: ${peerAddress}`)
       peerList.push(peerAddress)
     }
     // add invalid peer address (too short)
-    peerList.push(createLibp2pAddress(generateRandomOnionAddress(50), (await createPeerId()).toString()))
+    peerList.push(createLibp2pAddress(generateRandomOnionAddress(50), (await createPeerId()).peerId.toString()))
     // all addresses are valid
     expect(peerList.length).toBe(filterValidAddresses(peerList).length + 1)
     // update level db store of identity to sim saga registration
@@ -320,8 +326,13 @@ describe('Connections manager', () => {
     await connectionsManagerService.init()
 
     await waitForExpect(async () => {
+      expect(connectionsManagerService.communityState).toBe(ServiceState.LAUNCHED)
+    }, 20_000)
+
+    await waitForExpect(async () => {
       expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
     }, 15_000)
+
     await waitForExpect(async () => {
       // expect to dial all peers except self
       expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
@@ -335,7 +346,9 @@ describe('Connections manager', () => {
     const peerList: string[] = []
     const peersCount = 8
     for (let pCount = 0; pCount < peersCount; pCount++) {
-      peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, (await createPeerId()).toString()))
+      peerList.push(
+        createLibp2pAddress(userIdentity.hiddenService.onionAddress, (await createPeerId()).peerId.toString())
+      )
     }
 
     await connectionsManagerService.launchCommunity({ ...community, peerList: peerList })

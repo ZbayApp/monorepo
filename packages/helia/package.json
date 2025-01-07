@@ -1,6 +1,6 @@
 {
   "name": "helia",
-  "version": "4.0.2",
+  "version": "5.1.1",
   "description": "An implementation of IPFS in JavaScript",
   "license": "Apache-2.0 OR MIT",
   "homepage": "https://github.com/ipfs/helia/tree/main/packages/helia#readme",
@@ -36,16 +36,16 @@
     "lint-staged": "lint-staged --no-stash"
   },
   "dependencies": {
-    "@helia/block-brokers": "2.0.3",
-    "@helia/interface": "^4.0.1",
-    "@helia/routers": "^1.0.1",
-    "@helia/utils": "^0.0.2",
-    "@libp2p/interface": "^1.7.0",
-    "@libp2p/keychain": "4.1.6",
-    "interface-blockstore": "^5.2.10",
-    "interface-datastore": "^8.2.11",
-    "libp2p": "^1.7.0",
-    "multiformats": "13.1.0"
+    "@helia/block-brokers": "^4.0.2",
+    "@helia/interface": "^5.1.0",
+    "@helia/routers": "^2.2.0",
+    "@helia/utils": "^1.1.0",
+    "@libp2p/interface": "^2.2.1",
+    "@libp2p/keychain": "^5.0.10",
+    "interface-blockstore": "^5.3.1",
+    "interface-datastore": "^8.3.1",
+    "libp2p": "^2.3.1",
+    "multiformats": "^13.3.1"
   },
   "devDependencies": {
     "@quiet/eslint-config": "^2.0.2-alpha.0",

@@ -182,4 +182,19 @@ describe('communitiesSelectors', () => {
     expect(expectedUrl).not.toEqual('')
     expect(selectorInvitationUrl).toEqual(expectedUrl)
   })
+
+  it('invitationUrl selector returns empty string if state lacks psk', async () => {
+    const { store } = prepareStore()
+    const factory = await getFactory(store)
+    await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
+      peerList: [
+        createLibp2pAddress(
+          'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
+          '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
+        ),
+      ],
+    })
+    const invitationUrl = connectionSelectors.invitationUrl(store.getState())
+    expect(invitationUrl).toEqual('')
+  })
 })

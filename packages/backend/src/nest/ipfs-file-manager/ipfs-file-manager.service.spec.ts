@@ -359,7 +359,8 @@ describe('IpfsFileManagerService', () => {
 
     expect(eventSpy).toBeCalledTimes(6)
   })
-  it('is uploaded to IPFS then can be downloaded', async () => {
+
+  it('file uploaded to IPFS then can be downloaded', async () => {
     // Uploading
     const eventSpy = jest.spyOn(ipfsFileManagerService, 'emit')
 
@@ -374,43 +375,54 @@ describe('IpfsFileManagerService', () => {
       },
     }
 
+    const imageCid = 'bafkreigemnq7fljgbxdqjhq5nhj5pprt4qkvyl7vcymbnucc5azkxms4v4'
+
     await ipfsFileManagerService.uploadFile(metadata)
-    expect(eventSpy).toHaveBeenNthCalledWith(1, StorageEvents.REMOVE_DOWNLOAD_STATUS, { cid: 'uploading_id' })
+    await waitForExpect(() => {
+      expect(eventSpy).toHaveBeenNthCalledWith(1, StorageEvents.REMOVE_DOWNLOAD_STATUS, { cid: 'uploading_id' })
+    }, 5_000)
 
-    expect(eventSpy).toHaveBeenNthCalledWith(
-      2,
-      StorageEvents.FILE_UPLOADED,
-      expect.objectContaining({
-        cid: expect.stringContaining('bafk'),
-        ext: '.png',
-        height: 44,
-        message: { channelId: 'channelId', id: 'id' },
-        name: 'test-image',
-        size: 15847,
-        width: 824,
+    await waitForExpect(() => {
+      expect(eventSpy).toHaveBeenNthCalledWith(
+        2,
+        StorageEvents.FILE_UPLOADED,
+        expect.objectContaining({
+          cid: imageCid,
+          ext: '.png',
+          height: 44,
+          message: { channelId: 'channelId', id: 'id' },
+          name: 'test-image',
+          size: 15847,
+          width: 824,
+        })
+      )
+    }, 10_000)
+
+    await waitForExpect(() => {
+      expect(eventSpy).toHaveBeenNthCalledWith(3, StorageEvents.DOWNLOAD_PROGRESS, {
+        cid: imageCid,
+        downloadProgress: undefined,
+        downloadState: 'hosted',
+        mid: 'id',
       })
-    )
+    }, 10_000)
 
-    expect(eventSpy).toHaveBeenNthCalledWith(3, StorageEvents.DOWNLOAD_PROGRESS, {
-      cid: expect.stringContaining('bafk'),
-      downloadProgress: undefined,
-      downloadState: 'hosted',
-      mid: 'id',
-    })
-
-    expect(eventSpy).toHaveBeenNthCalledWith(
-      4,
-      StorageEvents.MESSAGE_MEDIA_UPDATED,
-      expect.objectContaining({
-        cid: expect.stringContaining('bafk'),
-        ext: '.png',
-        height: 44,
-        message: { channelId: 'channelId', id: 'id' },
-        name: 'test-image',
-        size: 15847,
-        width: 824,
-      })
-    )
+    await waitForExpect(() => {
+      expect(eventSpy).toHaveBeenNthCalledWith(
+        4,
+        StorageEvents.MESSAGE_MEDIA_UPDATED,
+        expect.objectContaining({
+          cid: imageCid,
+          ext: '.png',
+          height: 44,
+          message: { channelId: 'channelId', id: 'id' },
+          name: 'test-image',
+          size: 15847,
+          width: 824,
+          path: expect.stringContaining('_test-image.png'),
+        })
+      )
+    }, 10_000)
 
     // Downloading
 
@@ -420,16 +432,17 @@ describe('IpfsFileManagerService', () => {
 
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(5, IpfsFilesManagerEvents.DOWNLOAD_FILE, uploadMetadata)
-    })
+    }, 10_000)
 
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(6, StorageEvents.DOWNLOAD_PROGRESS, {
         cid: expect.stringContaining('bafk'),
-        downloadProgress: { downloaded: 0, size: 15847, transferSpeed: 0 },
+        downloadProgress: { downloaded: 15847, size: 15847, transferSpeed: 0 },
         downloadState: 'downloading',
         mid: 'id',
       })
-    }, 20000)
+    }, 20_000)
+
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(7, StorageEvents.DOWNLOAD_PROGRESS, {
         cid: expect.stringContaining('bafk'),
@@ -437,21 +450,27 @@ describe('IpfsFileManagerService', () => {
         downloadState: 'completed',
         mid: 'id',
       })
-    }, 20000)
-    expect(eventSpy).toHaveBeenNthCalledWith(
-      8,
-      StorageEvents.MESSAGE_MEDIA_UPDATED,
-      expect.objectContaining({
-        cid: expect.stringContaining('bafk'),
-        ext: '.png',
-        height: 44,
-        message: { channelId: 'channelId', id: 'id' },
-        name: 'test-image',
-        size: 15847,
-        width: 824,
-      })
-    )
+    }, 20_000)
+
+    await waitForExpect(() => {
+      expect(eventSpy).toHaveBeenNthCalledWith(
+        8,
+        StorageEvents.MESSAGE_MEDIA_UPDATED,
+        expect.objectContaining({
+          cid: expect.stringContaining('bafk'),
+          ext: '.png',
+          height: 44,
+          message: { channelId: 'channelId', id: 'id' },
+          name: 'test-image',
+          size: 15847,
+          width: 824,
+        })
+      )
+    }, 20_000)
+
+    expect(eventSpy).toBeCalledTimes(8)
   })
+
   // this case causes other tests to fail
   it.skip('downloaded file matches uploaded file', async () => {
     // Uploading

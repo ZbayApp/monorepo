@@ -23,13 +23,11 @@ import { bitswap } from '@helia/block-brokers'
 import { libp2pRouting } from '@helia/routers'
 import { HeliaP2P } from './helia-p2p.js'
 import type { Helia } from '@helia/interface'
-import type { BlockBroker } from '@helia/interface/blocks'
-import type { ComponentLogger, Libp2p, ServiceMap } from '@libp2p/interface'
+import type { HeliaInit as HeliaClassInit } from '@helia/utils'
+import type { Libp2p, ServiceMap } from '@libp2p/interface'
 import type { KeychainInit } from '@libp2p/keychain'
-import type { Blockstore } from 'interface-blockstore'
-import type { Datastore } from 'interface-datastore'
+import type { Libp2pOptions } from 'libp2p'
 import type { CID } from 'multiformats/cid'
-import type { MultihashHasher } from 'multiformats/hashes/interface'
 
 // re-export interface types so people don't have to depend on @helia/interface
 // if they don't want to
@@ -46,7 +44,7 @@ export interface DAGWalker {
 /**
  * Options used to create a Helia node.
  */
-export interface HeliaInit<T extends Libp2p = Libp2p> {
+export interface HeliaInit<T extends Libp2p = Libp2p> extends HeliaClassInit {
   /**
    * A libp2p node is required to perform network operations. Either a
    * preconfigured node or options to configure a node can be passed
@@ -59,65 +57,12 @@ export interface HeliaInit<T extends Libp2p = Libp2p> {
    * The libp2p `start` option is not supported, instead please pass `start` in
    * the root of the HeliaInit object.
    */
-  libp2p?: T
-
-  /**
-   * The blockstore is where blocks are stored
-   */
-  blockstore?: Blockstore
-
-  /**
-   * The datastore is where data is stored
-   */
-  datastore?: Datastore
-
-  /**
-   * By default sha256, sha512 and identity hashes are supported for
-   * bitswap operations. To bitswap blocks with CIDs using other hashes
-   * pass appropriate MultihashHashers here.
-   */
-  hashers?: MultihashHasher[]
-
-  /**
-   * In order to pin CIDs that correspond to a DAG, it's necessary to know
-   * how to traverse that DAG.  DAGWalkers take a block and yield any CIDs
-   * encoded within that block.
-   */
-  dagWalkers?: DAGWalker[]
-
-  /**
-   * A list of strategies used to fetch blocks when they are not present in
-   * the local blockstore
-   */
-  blockBrokers?: Array<(components: any) => BlockBroker>
+  libp2p?: T | Omit<Libp2pOptions<any>, 'start'>
 
   /**
    * Pass `false` to not start the Helia node
    */
   start?: boolean
-
-  /**
-   * Garbage collection requires preventing blockstore writes during searches
-   * for unpinned blocks as DAGs are typically pinned after they've been
-   * imported - without locking this could lead to the deletion of blocks while
-   * they are being added to the blockstore.
-   *
-   * By default this lock is held on the main process (e.g. node cluster's
-   * primary process, the renderer thread in browsers) and other processes will
-   * contact the main process for access (worker processes in node cluster,
-   * webworkers in the browser).
-   *
-   * If Helia is being run wholly in a non-primary process, with no other process
-   * expected to access the blockstore (e.g. being run in the background in a
-   * webworker), pass true here to hold the gc lock in this process.
-   */
-  holdGcLock?: boolean
-
-  /**
-   * An optional logging component to pass to libp2p. If not specified the
-   * default implementation from libp2p will be used.
-   */
-  logger?: ComponentLogger
 
   /**
    * By default Helia stores the node's PeerId in an encrypted form in a
@@ -133,9 +78,11 @@ export interface HeliaLibp2p<T extends Libp2p = Libp2p<ServiceMap>> extends Heli
 /**
  * Create and return a Helia node
  */
-export async function createHelia<T extends Libp2p>(init: HeliaInit<T>): Promise<HeliaLibp2p<T>>
-export async function createHelia(init?: HeliaInit<Libp2p<any>>): Promise<HeliaLibp2p<Libp2p<ServiceMap>>>
-export async function createHelia(init: HeliaInit = {}): Promise<HeliaLibp2p> {
+export async function createHelia<T extends Libp2p>(init: Partial<HeliaInit<T>>): Promise<HeliaLibp2p<T>>
+export async function createHelia(
+  init?: Partial<HeliaInit<Libp2p<ServiceMap>>>
+): Promise<HeliaLibp2p<Libp2p<ServiceMap>>>
+export async function createHelia(init: Partial<HeliaInit> = {}): Promise<HeliaLibp2p> {
   const { datastore, blockstore, libp2p } = init
 
   if (!isLibp2p(libp2p)) {
@@ -148,12 +95,13 @@ export async function createHelia(init: HeliaInit = {}): Promise<HeliaLibp2p> {
 
   const helia = new HeliaP2P({
     ...init,
-    libp2p,
+    libp2p: libp2p as any,
     datastore,
     blockstore,
     blockBrokers: init.blockBrokers ?? [bitswap()],
     routers: [libp2pRouting(libp2p)],
-  }) as any
+    metrics: libp2p.metrics,
+  })
 
   if (init.start !== false) {
     await helia.start()

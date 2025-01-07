@@ -1,6 +1,14 @@
 # Changelog
 
-## [unreleased]
+## [3.0.0]
+
+### Chores
+
+* Upgrade OrbitDB to 2.2.0, LibP2P to 1.9.4, replace ipfs-js with Helia ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
+* File upload improvements ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
+* Add Helia fork to quiet repo ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
+* Upgrade OrbitDB to 2.4.3, LibP2P to 2.X, Helia to 5.X ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
+* Add @chainsafe/libp2p-noise as a submodule to get rid of WASM ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
 
 ## [2.3.3]
 

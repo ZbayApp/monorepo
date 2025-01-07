@@ -4,6 +4,7 @@ import { type SupportedPlatformDesktop } from '@quiet/types'
 import getPort from 'get-port'
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 import { DESKTOP_DATA_DIR, getAppDataPath } from '@quiet/common'
 import { RetryConfig, TimeoutMetadata } from './types'
 import { config } from 'dotenv'
@@ -436,4 +437,19 @@ export const logAndReturnError = (error: string | Error): Error => {
   }
   logger.error(errorText)
   return err
+}
+
+export const createArbitraryFile = (filePath: string, sizeBytes: number) => {
+  const stream = fs.createWriteStream(filePath)
+  const maxChunkSize = 1048576 // 1MB
+
+  let remainingSize = sizeBytes
+
+  while (remainingSize > 0) {
+    const chunkSize = Math.min(maxChunkSize, remainingSize)
+    stream.write(crypto.randomBytes(chunkSize))
+    remainingSize -= chunkSize
+  }
+
+  stream.end()
 }

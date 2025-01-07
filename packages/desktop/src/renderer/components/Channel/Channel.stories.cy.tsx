@@ -64,7 +64,7 @@ const Template: ComponentStory<typeof ChannelComponent> = () => {
             peerId: {
               id: 'id',
               privKey: 'privKey',
-              pubKey: 'pubKey',
+              noiseKey: 'noiseKey'
             },
             userCsr: {
               userCsr: 'userCsr',

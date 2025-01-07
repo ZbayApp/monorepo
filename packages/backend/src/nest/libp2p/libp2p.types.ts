@@ -1,4 +1,4 @@
-import { PeerId } from '@libp2p/interface'
+import { PeerId, PrivateKey } from '@libp2p/interface'
 import { Agent } from 'http'
 import { EventEmitter } from 'stream'
 import { createLogger } from '../common/logger'
@@ -10,7 +10,7 @@ export enum Libp2pEvents {
 }
 
 export interface Libp2pNodeParams {
-  peerId: PeerId
+  peerId: CreatedLibp2pPeerId
   listenAddresses: string[]
   agent: Agent
   localAddress: string
@@ -68,4 +68,9 @@ export class QuietAuthEvents {
       listener
     )
   }
+}
+export interface CreatedLibp2pPeerId {
+  peerId: PeerId
+  privKey: PrivateKey
+  noiseKey: Uint8Array
 }

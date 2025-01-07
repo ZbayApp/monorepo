@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-node@master
         with:
-          node-version: 18.12.1
+          node-version: 18.20.4
 
       - name: Install dependencies
         run: |
