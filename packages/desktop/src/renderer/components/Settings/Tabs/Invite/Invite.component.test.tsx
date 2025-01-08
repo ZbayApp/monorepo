@@ -3,10 +3,12 @@ import React from 'react'
 import { renderComponent } from '../../../../testUtils/renderComponent'
 import { InviteComponent } from './Invite.component'
 import { composeInvitationShareUrl } from '@quiet/common'
+import { InvitationDataVersion } from '@quiet/types'
 
 describe('CopyLink', () => {
   it('renderComponent - hidden long link', () => {
     const invitationLink = composeInvitationShareUrl({
+      version: InvitationDataVersion.v1,
       pairs: [
         {
           peerId: '12D3KooWHgLdRMqkepNiYnrur21cyASUNk1f9NZ5tuGa9He8QXNa',
@@ -129,6 +131,7 @@ describe('CopyLink', () => {
 
   it('renderComponent - revealed short link', () => {
     const invitationLink = composeInvitationShareUrl({
+      version: InvitationDataVersion.v2,
       pairs: [
         {
           peerId: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',

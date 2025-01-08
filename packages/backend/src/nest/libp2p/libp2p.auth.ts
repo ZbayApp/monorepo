@@ -1,6 +1,6 @@
 // ISLA: This is what needs to be added to Quiet to make it work Libp2p and LFA work together
 import { ComponentLogger, Connection, PeerId, PeerStore, Stream, Topology } from '@libp2p/interface'
-import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
+// import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
 import * as Auth from '@localfirst/auth'
 import { pushable, type Pushable } from 'it-pushable'
 import { Uint8ArrayList } from 'uint8arraylist'
@@ -15,8 +15,8 @@ import { createQuietLogger } from '@quiet/logger'
 export interface Libp2pAuthComponents {
   peerId: PeerId
   peerStore: PeerStore
-  registrar: Registrar
-  connectionManager: ConnectionManager
+  // registrar: Registrar
+  // connectionManager: ConnectionManager
   logger: ComponentLogger
 }
 
@@ -34,23 +34,23 @@ enum JoinStatus {
 const createLFALogger = createQuietLogger('localfirst:')
 
 export class Libp2pAuth {
-  private readonly protocol: string
-  private readonly components: Libp2pAuthComponents
-  private sigChainService: SigChainService
-  private authConnections: Record<string, Auth.Connection>
-  private outboundStreamQueue: Pushable<{ peerId: PeerId; connection: Connection }>
-  private outboundStreams: Record<string, PushableStream>
-  private inboundStreams: Record<string, Stream>
-  private restartableAuthConnections: Map<number, Auth.Connection>
-  private bufferedConnections: { peerId: PeerId; connection: Connection }[]
-  private events: QuietAuthEvents
-  private peerId: PeerId
-  private joining: boolean = false
-  private restartInterval: any
-  private unblockInterval: NodeJS.Timeout
-  private joinStatus: JoinStatus
-  private logger: ReturnType<typeof createLogger>
-  private authContext: Auth.Context
+  // private readonly protocol: string
+  // private readonly components: Libp2pAuthComponents
+  // private sigChainService: SigChainService
+  // private authConnections: Record<string, Auth.Connection>
+  // private outboundStreamQueue: Pushable<{ peerId: PeerId; connection: Connection }>
+  // private outboundStreams: Record<string, PushableStream>
+  // private inboundStreams: Record<string, Stream>
+  // private restartableAuthConnections: Map<number, Auth.Connection>
+  // private bufferedConnections: { peerId: PeerId; connection: Connection }[]
+  // private events: QuietAuthEvents
+  // private peerId: PeerId
+  // private joining: boolean = false
+  // private restartInterval: any
+  // private unblockInterval: NodeJS.Timeout
+  // private joinStatus: JoinStatus
+  // private logger: ReturnType<typeof createLogger>
+  // private authContext: Auth.Context
 
   constructor(
     peerId: PeerId,
@@ -58,19 +58,19 @@ export class Libp2pAuth {
     components: Libp2pAuthComponents,
     events: QuietAuthEvents
   ) {
-    this.protocol = '/local-first-auth/1.0.0'
-    this.peerId = peerId
-    this.components = components
-    this.sigChainService = sigChainService
-    this.authConnections = {}
-    this.restartableAuthConnections = new Map()
-    this.outboundStreamQueue = pushable<{ peerId: PeerId; connection: Connection }>({ objectMode: true })
-    this.outboundStreams = {}
-    this.inboundStreams = {}
-    this.bufferedConnections = []
-    this.joinStatus = JoinStatus.PENDING
-    this.events = events
-    this.logger = createLogger(`libp2p:auth:${peerId}`)
+    // this.protocol = '/local-first-auth/1.0.0'
+    // this.peerId = peerId
+    // this.components = components
+    // this.sigChainService = sigChainService
+    // this.authConnections = {}
+    // this.restartableAuthConnections = new Map()
+    // this.outboundStreamQueue = pushable<{ peerId: PeerId; connection: Connection }>({ objectMode: true })
+    // this.outboundStreams = {}
+    // this.inboundStreams = {}
+    // this.bufferedConnections = []
+    // this.joinStatus = JoinStatus.PENDING
+    // this.events = events
+    // this.logger = createLogger(`libp2p:auth:${peerId}`)
   }
 }
 //     pipe(this.outboundStreamQueue, async source => {
