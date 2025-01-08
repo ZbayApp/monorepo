@@ -72,7 +72,7 @@ export function* sendMessageSaga(
   )
 
   // Display sent message immediately, to improve user experience
-  logger.info('Adding message to Redux store')
+  logger.info('Adding message to Redux store on send', message.id)
   yield* put(
     messagesActions.addMessages({
       messages: [message],

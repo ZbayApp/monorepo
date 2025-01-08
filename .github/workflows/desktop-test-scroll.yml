@@ -54,6 +54,7 @@ jobs:
           install: false
           command: npm run regression-test:ci
           working-directory: packages/desktop
+          cache-key: os-${{ runner.os }}-hash-${{ hashFiles('package-lock.json') }}
 
       - name: Archive test screenshots
         if: steps.filter.outputs.desktop == 'true'

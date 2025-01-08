@@ -313,7 +313,12 @@ export class QuietLogger {
           replacerFunc: (value: any) => {
             if (value != null && typeof value === 'bigint') {
               return (value as bigint).toString()
+            } else if (value != null && (value.toV1 != null || value.toV0 != null)) {
+              return value.toString()
+            } else if (value != null && value instanceof Uint8Array) {
+              return Buffer.from(value).toString('base64')
             }
+
             return value
           },
         },
