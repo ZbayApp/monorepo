@@ -6,6 +6,7 @@ import { CLOSE_TIMEOUT } from './constants'
 import type { AbortOptions, ComponentLogger, CounterGroup, MultiaddrConnection } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { DuplexWebSocket } from 'it-ws/duplex'
+import { CloseEvent, ErrorEvent } from 'ws'
 
 export interface SocketToConnOptions {
   localAddr?: Multiaddr
@@ -21,7 +22,7 @@ export function socketToMaConn(
   remoteAddr: Multiaddr,
   options: SocketToConnOptions
 ): MultiaddrConnection {
-  const log = options.logger.forComponent('libp2p:websockets:maconn')
+  const log = options.logger.forComponent(`libp2p:websockets:maconn:${remoteAddr.getPeerId()}`)
   const metrics = options.metrics
   const metricPrefix = options.metricPrefix ?? ''
 
@@ -101,9 +102,14 @@ export function socketToMaConn(
     },
   }
 
+  stream.socket.addEventListener('error', (event: ErrorEvent) => {
+    log.error(`Error on socket: ${event.message}`, event.error)
+  })
+
   stream.socket.addEventListener(
     'close',
-    () => {
+    (event: CloseEvent) => {
+      log(`Closing socket`, JSON.stringify(event))
       metrics?.increment({ [`${metricPrefix}close`]: true })
 
       // In instances where `close` was not explicitly called,

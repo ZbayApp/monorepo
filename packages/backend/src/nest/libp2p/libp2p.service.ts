@@ -260,6 +260,9 @@ export class Libp2pService extends EventEmitter {
           outboundUpgradeTimeout: 30_000,
           protocolNegotiationTimeout: 10_000,
           maxDialQueueLength: 500,
+          reconnectRetryInterval: 5_000,
+          reconnectRetries: 50,
+          reconnectBackoffFactor: 1.5,
         },
         privateKey: params.peerId.privKey,
         addresses: { listen: params.listenAddresses },
@@ -285,6 +288,7 @@ export class Libp2pService extends EventEmitter {
               handshakeTimeout: 15_000,
               ciphers: WEBSOCKET_CIPHER_SUITE,
               followRedirects: true,
+              sessionTimeout: 600,
             },
             localAddress: params.localAddress,
             targetPort: params.targetPort,
@@ -292,7 +296,7 @@ export class Libp2pService extends EventEmitter {
           }),
         ],
         services: {
-          ping: ping({ timeout: 30_000 }),
+          ping: ping({ timeout: 30_000, runOnLimitedConnection: false, maxInboundStreams: 60, maxOutboundStreams: 60 }),
           pubsub: gossipsub({
             // neccessary to run a single peer
             allowPublishToZeroTopicPeers: true,
@@ -306,8 +310,28 @@ export class Libp2pService extends EventEmitter {
           keychain: keychain(),
           dht: kadDHT({
             allowQueryWithZeroPeers: true,
-            clientMode: false,
+            clientMode: true,
             initialQuerySelfInterval: 500,
+            providers: {
+              cacheSize: 1024,
+            },
+            maxInboundStreams: 128,
+            maxOutboundStreams: 128,
+            networkDialTimeout: {
+              minTimeout: 30_000,
+              timeoutMultiplier: 1.05,
+              failureMultiplier: 1.1,
+            },
+            pingNewContactTimeout: {
+              minTimeout: 30_000,
+              timeoutMultiplier: 1.05,
+              failureMultiplier: 1.1,
+            },
+            pingOldContactTimeout: {
+              minTimeout: 30_000,
+              timeoutMultiplier: 1.02,
+              failureMultiplier: 1.15,
+            },
           }),
         },
       })

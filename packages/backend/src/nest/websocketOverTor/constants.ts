@@ -10,4 +10,4 @@ export const CODE_WS = 477
 export const CODE_WSS = 478
 
 // Time to wait for a connection to close gracefully before destroying it manually
-export const CLOSE_TIMEOUT = 500
+export const CLOSE_TIMEOUT = 5000

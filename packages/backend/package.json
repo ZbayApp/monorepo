@@ -13,7 +13,7 @@
     "webpack": "webpack --env mode=development && cp ./lib/bundle.cjs ../backend-bundle/bundle.cjs",
     "webpack:prod": "webpack --env mode=production && cp ./lib/bundle.cjs ../backend-bundle/bundle.cjs",
     "postinstall": "npm run applyPatches",
-    "applyPatches": "patch -f -p0 < ./patch/electron-fetch.patch || true && patch -f -p0 --forward --binary < ./patch/parse-duration.patch || true && patch -f -p0 --forward --binary < ./patch/parse-duration-esm.patch || true && patch -f -p0 < ./patch/ipfs-pubsub-peer-monitor.patch || true",
+    "applyPatches": "patch -f -p0 < ./patch/electron-fetch.patch || true && patch -f -p0 --forward --binary < ./patch/parse-duration.patch || true && patch -f -p0 --forward --binary < ./patch/parse-duration-esm.patch || true && patch -f -p0 < ./patch/ipfs-pubsub-peer-monitor.patch || true && patch --forward -p0 node_modules/@libp2p/kad-dht/dist/src/providers.js < ./patch/libp2p-kaddht-providers.patch || true && patch --forward -p0 node_modules/@helia/block-brokers/node_modules/ipfs-bitswap/dist/src/bitswap.js < ./patch/bitswap.patch || true",
     "prepare": "npm run webpack",
     "version": "git add -A src",
     "lint:no-fix": "eslint --ext .jsx,.js,.ts,.tsx ./src/",

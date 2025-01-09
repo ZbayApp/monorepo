@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { GetBlockProgressEvents, type Helia } from 'helia'
-import { AddEvents, CatOptions, GetEvents, unixfs, type UnixFS } from '@helia/unixfs'
+import { AddEvents, CatOptions, GetEvents, unixfs, UnixFSStats, type UnixFS } from '@helia/unixfs'
 import { promisify } from 'util'
 import sizeOf from 'image-size'
 import { CID } from 'multiformats/cid'
@@ -19,6 +19,7 @@ const { createPaths, compare } = await import('../common/utils')
 import { createLogger } from '../common/logger'
 import { IpfsService } from '../ipfs/ipfs.service'
 import { CustomProgressEvent } from 'progress-events'
+import { file } from 'mock-fs/lib/filesystem'
 
 // 1048576 is the number of bytes in a block uploaded via unixfs
 // Reference: packages/backend/node_modules/@helia/unixfs/src/commands/add.ts
@@ -265,8 +266,15 @@ export class IpfsFileManagerService extends EventEmitter {
 
     this.controllers.set(fileMetadata.cid, { controller })
 
-    // Add try catch and return downloadBlocks with timeout
-    const initialStat = await this.ufs.stat(fileCid, { signal: controller.signal })
+    let initialStat: UnixFSStats | undefined = undefined
+    try {
+      initialStat = await this.ufs.stat(fileCid, { signal: controller.signal })
+    } catch (e) {
+      _logger.error(`Error while performing initial stat`, e)
+      await this.cancelDownload(fileCid.toString())
+      return
+    }
+
     const fileSize = initialStat.fileSize
     const localSize = initialStat.localFileSize
     if (fileMetadata.size && !compare(fileMetadata.size, fileSize, 0.05)) {
@@ -472,7 +480,14 @@ export class IpfsFileManagerService extends EventEmitter {
     }
 
     while (downloading && !controller.signal.aborted) {
-      const stat = await this.ufs.stat(fileCid)
+      let stat: UnixFSStats | undefined = undefined
+      try {
+        stat = await this.ufs.stat(fileCid)
+      } catch (e) {
+        _logger.error(`Error while running stat`, e)
+        continue
+      }
+
       const totalSize = Number(stat.fileSize)
       const downloadedSize = Number(stat.localFileSize)
       if (offset >= totalSize) {
@@ -503,6 +518,9 @@ export class IpfsFileManagerService extends EventEmitter {
           downloading = false
           break
         }
+
+        _logger.error(`Error while catting file`, e)
+        continue
       }
       offset += DEFAULT_CAT_BLOCK_CHUNK_SIZE
     }
@@ -528,6 +546,9 @@ export class IpfsFileManagerService extends EventEmitter {
       } catch (e) {
         if (controller.signal.aborted) {
           _logger.warn(`Cancelling download`)
+        } else {
+          _logger.error(`Error while catting to write blocks out to local file`, e)
+          await this.cancelDownload(fileCid.toString())
         }
       }
     }
@@ -545,6 +566,8 @@ export class IpfsFileManagerService extends EventEmitter {
     const fileState = this.files.get(fileMetadata.cid)
     if (!fileState && !controller.signal.aborted) {
       this.logger.error(`No saved data for file cid ${fileMetadata.cid}`)
+      await this.updateStatus(fileMetadata.cid, DownloadState.Canceled)
+      this.controllers.delete(fileMetadata.cid)
       return
     }
 
