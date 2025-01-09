@@ -364,6 +364,7 @@ export class Libp2pService extends EventEmitter {
 
     this.libp2pInstance.addEventListener('connection:close', event => {
       this.logger.warn(`Connection closing with ${event.detail.remotePeer}`)
+      event.detail.abort(new Error(`Connection closing with ${event.detail.remotePeer}`))
     })
 
     this.libp2pInstance.addEventListener('transport:close', event => {

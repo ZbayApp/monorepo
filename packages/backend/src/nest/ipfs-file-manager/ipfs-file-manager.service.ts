@@ -23,7 +23,7 @@ import { file } from 'mock-fs/lib/filesystem'
 
 // 1048576 is the number of bytes in a block uploaded via unixfs
 // Reference: packages/backend/node_modules/@helia/unixfs/src/commands/add.ts
-const DEFAULT_CAT_BLOCK_CHUNK_SIZE = 1048576 * 10
+const DEFAULT_CAT_BLOCK_CHUNK_SIZE = 1048576 * 5
 
 @Injectable()
 export class IpfsFileManagerService extends EventEmitter {
