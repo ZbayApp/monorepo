@@ -43,9 +43,9 @@ export class QuietAuthEvents {
   private _events: EventEmitter
   private _LOGGER: ReturnType<typeof createLogger>
 
-  constructor(identifier: string) {
+  constructor() {
     this._events = new EventEmitter()
-    this._LOGGER = createLogger(`quietAuthEvents:${identifier}`)
+    this._LOGGER = createLogger(`quietAuthEvents`)
   }
 
   public emit(event: AuthEvents, ...args: any[]) {

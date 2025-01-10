@@ -35,12 +35,14 @@ import {
   Libp2pEvents,
   Libp2pNodeParams,
   Libp2pPeerInfo,
+  QuietAuthEvents,
 } from './libp2p.types'
 import { createLogger } from '../common/logger'
 
 import { Libp2pDatastore } from './libp2p.datastore'
 import { WEBSOCKET_CIPHER_SUITE, BITSWAP_PROTOCOL } from './libp2p.const'
-import { libp2pAuth } from './libp2p.auth'
+import { libp2pAuth, Libp2pAuth } from './libp2p.auth'
+import { SigChainService } from '../auth/sigchain.service'
 
 const KEY_LENGTH = 32
 export const LIBP2P_PSK_METADATA = '/key/swarm/psk/1.0.0/\n/base16/\n'
@@ -54,16 +56,20 @@ export class Libp2pService extends EventEmitter {
   public libp2pDatastore: Libp2pDatastore
   private redialTimeout: NodeJS.Timeout
   private localAddress: string
+  private events: QuietAuthEvents
 
   private readonly logger = createLogger(Libp2pService.name)
 
   constructor(
     @Inject(SERVER_IO_PROVIDER) public readonly serverIoProvider: ServerIoProviderTypes,
     @Inject(SOCKS_PROXY_AGENT) public readonly socksProxyAgent: Agent,
-    @Inject(LIBP2P_DB_PATH) public readonly datastorePath: string
+    @Inject(LIBP2P_DB_PATH) public readonly datastorePath: string,
+    private sigchainService: SigChainService
   ) {
     super()
 
+    this.logger.info('SigChainService', this.sigchainService)
+    this.events = new QuietAuthEvents()
     this.dialQueue = []
     this.connectedPeers = new Map()
     this.dialedPeers = new Set()
@@ -294,6 +300,7 @@ export class Libp2pService extends EventEmitter {
           }),
         ],
         services: {
+          auth: libp2pAuth(params.peerId.peerId, this.sigchainService, this.events),
           ping: ping({ timeout: 30_000 }),
           pubsub: gossipsub({
             // neccessary to run a single peer

@@ -588,6 +588,14 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       id: payload.id,
     }
     await this.storageService.setIdentity(identity)
+
+    if (!community.name) {
+      this.logger.error('Community name is required to create sigchain')
+      return community
+    }
+    this.logger.info(`Creating new LFA chain`)
+    await this.sigChainService.createChain(community.name, identity.nickname, true)
+
     await this.launchCommunity(community)
 
     const meta = await this.storageService.updateCommunityMetadata({
@@ -610,14 +618,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
     }
 
-    // create sigchain
-    if (!community.name) {
-      this.logger.error('Community name is required to create sigchain')
-      return community
-    }
-
-    this.logger.info(`Creating new LFA chain`)
-    await this.sigChainService.createChain(community.name, identity.nickname, true)
     // this is the forever invite that all users get
     this.logger.info(`Creating long lived LFA invite code`)
     this.socketService.emit(SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE)
@@ -663,7 +663,12 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     const inviteData = payload.inviteData
     if (inviteData && inviteData?.version == InvitationDataVersion.v2) {
-      this.sigChainService.createChainFromInvite(identity.nickname, inviteData.authData.seed, true)
+      this.sigChainService.createChainFromInvite(
+        identity.nickname,
+        inviteData.authData.communityName,
+        inviteData.authData.seed,
+        true
+      )
     }
 
     if (!metadata.peers || metadata.peers.length === 0) {
@@ -954,18 +959,18 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE,
       async (
         inviteId: Base58,
-        callback: (response: { isValid: boolean; newInvite?: InviteResult } | undefined) => void
+        callback: (response: { valid: boolean; newInvite?: InviteResult } | undefined) => void
       ) => {
         this.logger.info(`socketService - ${SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE}`)
         if (this.sigChainService.activeChainTeamName != null) {
           if (this.sigChainService.getActiveChain().invites.isValidLongLivedUserInvite(inviteId)) {
             this.logger.info(`Invite is a valid long lived LFA invite code!`)
-            callback({ isValid: true })
+            callback({ valid: true })
           } else {
             this.logger.info(`Invite is an invalid long lived LFA invite code!  Generating a new code!`)
             const newInvite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
             this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, newInvite)
-            callback({ isValid: false, newInvite })
+            callback({ valid: false, newInvite })
           }
         } else {
           this.logger.warn(`No sigchain configured, skipping long lived LFA invite code validation/generation!`)

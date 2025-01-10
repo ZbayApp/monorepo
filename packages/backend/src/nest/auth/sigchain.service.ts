@@ -60,13 +60,14 @@ export class SigChainService implements OnModuleInit {
    * @param setActive Whether to set the chain as active
    * @returns Whether the chain was set as active
    */
-  addChain(chain: SigChain, setActive: boolean): boolean {
-    if (this.chains.has(chain.team!.teamName)) {
-      throw new Error(`Chain for team ${chain.team!.teamName} already exists`)
+  addChain(chain: SigChain, setActive: boolean, teamName?: string): boolean {
+    teamName = teamName || chain.team!.teamName
+    if (this.chains.has(teamName)) {
+      throw new Error(`Chain for team ${teamName} already exists`)
     }
-    this.chains.set(chain.team!.teamName, chain)
+    this.chains.set(teamName, chain)
     if (setActive) {
-      this.setActiveChain(chain.team!.teamName)
+      this.setActiveChain(teamName)
       return true
     }
     return false
@@ -103,9 +104,9 @@ export class SigChainService implements OnModuleInit {
     return sigChain
   }
 
-  async createChainFromInvite(username: string, seed: string, setActive: boolean): Promise<SigChain> {
+  async createChainFromInvite(username: string, teamName: string, seed: string, setActive: boolean): Promise<SigChain> {
     const sigChain = SigChain.createFromInvite(username, seed)
-    this.addChain(sigChain, setActive)
+    this.addChain(sigChain, setActive, teamName)
     return sigChain
   }
 

@@ -85,6 +85,10 @@ export class QuietLogger {
     this.isDebug = debug.enabled(name)
   }
 
+  extend(moduleName: string): QuietLogger {
+    return new QuietLogger(`${this.name}:${moduleName}`, this.parallelConsoleLog)
+  }
+
   /*
   Log Level Methods
   */

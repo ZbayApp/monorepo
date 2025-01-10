@@ -131,6 +131,7 @@
     "blockstore-fs": "^2.0.2",
     "blockstore-level": "^2.0.1",
     "bs58": "^6.0.0",
+    "bufferutil": "^4.0.9",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "cli-table": "^0.3.6",

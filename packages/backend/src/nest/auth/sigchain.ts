@@ -25,8 +25,8 @@ class SigChain {
   private _invites: InviteService | null = null
   private _crypto: CryptoService | null = null
 
-  private constructor(context: auth.LocalUserContext, team?: auth.Team) {
-    this.localUserContext = context
+  private constructor(localUserContext: auth.LocalUserContext, team?: auth.Team) {
+    this.localUserContext = localUserContext
     if (team) this.team = team
   }
 
@@ -41,6 +41,11 @@ class SigChain {
     const context = UserService.create(username)
     const team: auth.Team = this.lfa.createTeam(teamName, context)
     const sigChain = this.init(context, team)
+    sigChain.context = {
+      user: context.user,
+      device: context.device,
+      team: team,
+    } as auth.MemberContext
 
     // sigChain.roles.createWithMembers(RoleName.ADMIN, [context.user.userId])
     sigChain.roles.createWithMembers(RoleName.MEMBER, [context.user.userId])
