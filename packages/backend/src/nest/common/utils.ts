@@ -280,3 +280,30 @@ export const createArbitraryFile = (filePath: string, sizeBytes: number) => {
 
   stream.end()
 }
+
+// Shamelessly stolen from https://github.com/whatwg/streams/issues/1255#issuecomment-2442964298
+// This is necessary because AsyncIterators are fickle and if you just wrap them in a try/catch or try to use
+// catch/then/finally on a wrapper promise it ultimately generates an unhandled rejection.  JS is so much fun.
+export function abortableAsyncIterable<T, TReturn, TNext>(
+  iter: AsyncIterable<T>,
+  signal: AbortSignal
+): AsyncIterable<T> {
+  const abortedPromise = new Promise<IteratorResult<T, TReturn>>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException('aborted', 'AbortError'))
+    }
+    signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))
+  })
+  abortedPromise.catch(() => {})
+  return {
+    [Symbol.asyncIterator]: () => {
+      const inner = iter[Symbol.asyncIterator]()
+      const { return: _return, throw: _throw } = inner
+      return {
+        next: (...args) => Promise.race([inner.next(...args), abortedPromise]),
+        return: _return ? (...args) => _return.apply(inner, args) : undefined,
+        throw: _throw ? (...args) => _throw.apply(inner, args) : undefined,
+      }
+    },
+  }
+}

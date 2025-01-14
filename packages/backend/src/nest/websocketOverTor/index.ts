@@ -53,14 +53,12 @@ export interface WebSocketsMetrics {
 export type WebSocketsDialEvents = OutboundConnectionUpgradeEvents | ProgressEvent<'websockets:open-connection'>
 
 export class WebSockets implements Transport<WebSocketsDialEvents> {
-  private readonly log: Logger
   private readonly init: WebSocketsInit
   private readonly logger: ComponentLogger
   private readonly metrics?: WebSocketsMetrics
   private readonly components: WebSocketsComponents
 
   constructor(components: WebSocketsComponents, init: WebSocketsInit) {
-    this.log = components.logger.forComponent('libp2p:websockets')
     this.logger = components.logger
     this.components = components
     this.init = init
@@ -82,7 +80,8 @@ export class WebSockets implements Transport<WebSocketsDialEvents> {
   readonly [serviceCapabilities]: string[] = ['@libp2p/transport']
 
   async dial(ma: Multiaddr, options: DialTransportOptions<WebSocketsDialEvents>): Promise<Connection> {
-    this.log('dialing %s', ma)
+    const _log = this.components.logger.forComponent(`libp2p:websockets:dial:${ma.getPeerId()}`)
+    _log('dialing %s', ma)
     options = options ?? {}
 
     const socket = await this._connect(ma, options)
@@ -90,29 +89,32 @@ export class WebSockets implements Transport<WebSocketsDialEvents> {
       logger: this.logger,
       metrics: this.metrics?.dialerEvents,
     })
-    this.log('new outbound connection %s', maConn.remoteAddr)
+    _log('new outbound connection %s', maConn.remoteAddr)
 
     const conn = await options.upgrader.upgradeOutbound(maConn, options)
-    this.log('outbound connection %s upgraded', maConn.remoteAddr)
+    _log('outbound connection %s upgraded', maConn.remoteAddr)
+
     return conn
   }
 
   async _connect(ma: Multiaddr, options: DialTransportOptions<WebSocketsDialEvents>): Promise<DuplexWebSocket> {
+    const _log = this.components.logger.forComponent(`libp2p:websockets:dial:connect:${ma.getPeerId()}`)
     options?.signal?.throwIfAborted()
 
     const cOpts = ma.toOptions()
-    this.log('dialing %s:%s', cOpts.host, cOpts.port)
+    _log('dialing %s:%s', cOpts.host, cOpts.port)
 
     const errorPromise = pDefer()
     const addr = `${toUri(ma)}/?remoteAddress=${encodeURIComponent(this.init.localAddress)}`
-    this.log('CONNECTING TO ADDR', addr)
+    _log('CONNECTING TO ADDR', addr)
     const rawSocket = connect(addr, this.init)
     rawSocket.socket.addEventListener('error', errorEvent => {
       // the WebSocket.ErrorEvent type doesn't actually give us any useful
       // information about what happened
       // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/error_event
-      const err = new ConnectionFailedError(`Could not connect to ${ma.toString()}`)
-      this.log.error('connection error:', err, errorEvent.error)
+      const err = new ConnectionFailedError(`Could not connect to ${ma.toString()}: ${errorEvent.message}`)
+      _log.error('Connection Error:', err)
+      _log.error(`Original Connection Error`, errorEvent.error)
       this.metrics?.dialerEvents.increment({ error: true })
       errorPromise.reject(err)
     })
@@ -126,13 +128,13 @@ export class WebSockets implements Transport<WebSocketsDialEvents> {
       }
 
       rawSocket.close().catch(err => {
-        this.log.error('error closing raw socket', err)
+        _log.error('error closing raw socket', err)
       })
 
       throw err
     }
 
-    this.log('connected %s', ma)
+    _log('connected %s', ma)
     this.metrics?.dialerEvents.increment({ connect: true })
     return rawSocket
   }
