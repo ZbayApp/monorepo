@@ -83,7 +83,7 @@ runs:
     - name: "Prepare backend"
       if: always()
       run: |
-        if [[ $string == *"${{ inputs.bootstrap-packages }}"* ]]; then
+        if [[ ${{ inputs.bootstrap-packages }} == *"backend"* ]]; then
           npm run lerna -- run --scope=@quiet/backend prepare
         fi
       shell: bash
