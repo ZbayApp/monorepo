@@ -277,6 +277,7 @@ export class Libp2pService extends EventEmitter {
             maxOutboundStreams: 3_000,
           }),
         ],
+        // @ts-ignore
         connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
         transports: [
           webSockets({
