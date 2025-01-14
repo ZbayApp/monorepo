@@ -1,3 +1,6 @@
+import { CatOptions, StatOptions } from '@helia/unixfs'
+import { QuietLogger } from '@quiet/logger'
+import { AddOptions } from 'helia'
 import { CID } from 'multiformats'
 
 export enum IpfsFilesManagerEvents {
@@ -43,4 +46,39 @@ export interface ExportProgress {
 
 export interface ExportWalk {
   cid: CID
+}
+
+export interface BlockStat {
+  fetchTimeMs: number
+  byteLength: number
+}
+
+export type OnErrorFunc = (cid: CID, err: Error) => Promise<void>
+
+export interface GetStatsOptions {
+  logger: QuietLogger
+  signal: AbortSignal
+  onError?: OnErrorFunc
+  statOptions: StatOptions
+}
+
+export interface GetBlocksOptions {
+  logger: QuietLogger
+  signal: AbortSignal
+  onError?: OnErrorFunc
+  catOptions: CatOptions
+}
+
+export interface PinBlocksOptions {
+  logger: QuietLogger
+  signal: AbortSignal
+  onError?: OnErrorFunc
+  addOptions: AddOptions
+}
+
+export interface DownloadBlocksOptions {
+  catOptions: CatOptions
+  statOptions: StatOptions
+  logger: QuietLogger
+  signal: AbortSignal
 }

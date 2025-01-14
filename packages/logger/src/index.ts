@@ -267,12 +267,22 @@ export class QuietLogger {
    */
   private formatObject(param: any, overrideColorKey: string | undefined = undefined): string {
     if (param instanceof Error) {
-      let formattedError = param.stack || `${param.name}: ${param.message}`
-      if (COLORIZE) {
+      const colorizeError = (stringifiedError: string): string => {
         //@ts-ignore
-        formattedError = colors[overrideColorKey || 'object_error'](formattedError)
+        return COLORIZE ? colors[overrideColorKey || 'object_error'](stringifiedError) : stringifiedError
       }
-      return formattedError
+
+      const stringifyError = (err: Error) => {
+        return err.stack || `${err.name}: ${err.message}`
+      }
+
+      let formattedErrors: string = stringifyError(param)
+      if ((param as any).errors != null) {
+        formattedErrors += ` - Errors:\n`
+        formattedErrors += (param as any).errors.map((err: Error) => stringifyError(err)).join('\n')
+      }
+
+      return colorizeError(formattedErrors)
     }
 
     const colorize = (stringifiedParam: string): string => {

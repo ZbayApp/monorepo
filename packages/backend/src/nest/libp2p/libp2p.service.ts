@@ -3,7 +3,7 @@ import { noise, pureJsCrypto } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
 
 import { identify, identifyPush } from '@libp2p/identify'
-import { Stream, type Libp2p } from '@libp2p/interface'
+import { type Libp2p } from '@libp2p/interface'
 import { kadDHT } from '@libp2p/kad-dht'
 import { keychain } from '@libp2p/keychain'
 import { peerIdFromString } from '@libp2p/peer-id'
@@ -38,7 +38,7 @@ import {
 } from './libp2p.types'
 import { createLogger } from '../common/logger'
 import { Libp2pDatastore } from './libp2p.datastore'
-import { WEBSOCKET_CIPHER_SUITE, BITSWAP_PROTOCOL } from './libp2p.const'
+import { WEBSOCKET_CIPHER_SUITE } from './libp2p.const'
 
 const KEY_LENGTH = 32
 export const LIBP2P_PSK_METADATA = '/key/swarm/psk/1.0.0/\n/base16/\n'
@@ -260,6 +260,7 @@ export class Libp2pService extends EventEmitter {
           outboundUpgradeTimeout: 30_000,
           protocolNegotiationTimeout: 10_000,
           maxDialQueueLength: 500,
+          reconnectRetries: 25,
         },
         privateKey: params.peerId.privKey,
         addresses: { listen: params.listenAddresses },
@@ -276,6 +277,7 @@ export class Libp2pService extends EventEmitter {
             maxOutboundStreams: 3_000,
           }),
         ],
+        // @ts-ignore
         connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
         transports: [
           webSockets({
@@ -306,8 +308,13 @@ export class Libp2pService extends EventEmitter {
           keychain: keychain(),
           dht: kadDHT({
             allowQueryWithZeroPeers: true,
-            clientMode: false,
+            clientMode: true,
             initialQuerySelfInterval: 500,
+            providers: {
+              cacheSize: 1024,
+            },
+            maxInboundStreams: 128,
+            maxOutboundStreams: 128,
           }),
         },
       })
@@ -334,12 +341,19 @@ export class Libp2pService extends EventEmitter {
 
     this.serverIoProvider.io.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, ConnectionProcessInfo.INITIALIZING_LIBP2P)
 
+    this.libp2pInstance.addEventListener('connection:open', openEvent => {
+      this.logger.info(
+        `Opened connection with ID ${openEvent.detail.id} with peer`,
+        openEvent.detail.remotePeer.toString()
+      )
+    })
+
     this.libp2pInstance.addEventListener('peer:discovery', peer => {
       this.logger.info(`${peerId.peerId.toString()} discovered ${peer.detail.id}`)
     })
 
     this.libp2pInstance.addEventListener('connection:close', event => {
-      this.logger.warn(`Connection closing with ${event.detail.remotePeer}`)
+      this.logger.warn(`Connection with ID ${event.detail.id} closing with peer`, event.detail.remotePeer.toString())
     })
 
     this.libp2pInstance.addEventListener('transport:close', event => {
