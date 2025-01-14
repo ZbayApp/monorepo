@@ -360,7 +360,7 @@ describe('IpfsFileManagerService', () => {
     expect(eventSpy).toBeCalledTimes(6)
   })
 
-  it.only('file uploaded to IPFS then can be downloaded', async () => {
+  it('file uploaded to IPFS then can be downloaded', async () => {
     // Uploading
     const eventSpy = jest.spyOn(ipfsFileManagerService, 'emit')
 
