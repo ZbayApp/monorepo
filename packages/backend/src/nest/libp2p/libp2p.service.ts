@@ -28,7 +28,7 @@ import { ConnectionProcessInfo, type NetworkDataPayload, SocketActionTypes, type
 import { getUsersAddresses } from '../common/utils'
 import { LIBP2P_DB_PATH, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { ServerIoProviderTypes } from '../types'
-import { webSockets } from '../websocketOverTor'
+import { webSockets as webSocketsOverTor } from '../websocketOverTor'
 import {
   CreatedLibp2pPeerId,
   Libp2pConnectedPeer,
@@ -277,7 +277,7 @@ export class Libp2pService extends EventEmitter {
           pingInterval: 60_000,
           enabled: true,
         },
-        connectionProtector: preSharedKey({ psk: params.psk }),
+        connectionProtector: !params.useConnectionProtector ? undefined : preSharedKey({ psk: params.psk }),
         streamMuxers: [
           yamux({
             maxInboundStreams: 3_000,
@@ -285,20 +285,22 @@ export class Libp2pService extends EventEmitter {
           }),
         ],
         connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
-        transports: [
-          webSockets({
-            filter: filters.all,
-            websocket: {
-              agent: params.agent,
-              handshakeTimeout: 15_000,
-              ciphers: WEBSOCKET_CIPHER_SUITE,
-              followRedirects: true,
-            },
-            localAddress: params.localAddress,
-            targetPort: params.targetPort,
-            closeOnEnd: true,
-          }),
-        ],
+        transports: params.transport
+          ? params.transport
+          : [
+              webSocketsOverTor({
+                filter: filters.all,
+                websocket: {
+                  agent: params.agent,
+                  handshakeTimeout: 15_000,
+                  ciphers: WEBSOCKET_CIPHER_SUITE,
+                  followRedirects: true,
+                },
+                localAddress: params.localAddress,
+                targetPort: params.targetPort,
+                closeOnEnd: true,
+              }),
+            ],
         services: {
           auth: libp2pAuth(params.peerId.peerId, this.sigchainService, this.events),
           ping: ping({ timeout: 30_000 }),
@@ -348,11 +350,11 @@ export class Libp2pService extends EventEmitter {
     })
 
     this.libp2pInstance.addEventListener('connection:close', event => {
-      this.logger.warn(`Connection closing with ${event.detail.remotePeer}`)
+      this.logger.info(`Connection closing with ${event.detail.remotePeer}`)
     })
 
     this.libp2pInstance.addEventListener('transport:close', event => {
-      this.logger.warn(`Transport closing`)
+      this.logger.info(`Transport closing`)
     })
 
     this.libp2pInstance.addEventListener('peer:connect', async event => {
@@ -412,7 +414,7 @@ export class Libp2pService extends EventEmitter {
 
     await this.libp2pInstance.start()
 
-    this.logger.warn(
+    this.logger.info(
       `Libp2p Multiaddrs:`,
       this.libp2pInstance.getMultiaddrs().map(addr => addr.toString())
     )

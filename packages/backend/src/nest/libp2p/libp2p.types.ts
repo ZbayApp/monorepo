@@ -1,6 +1,6 @@
 import { PeerId, PrivateKey } from '@libp2p/interface'
 import { Agent } from 'http'
-import { EventEmitter } from 'stream'
+import { EventEmitter } from 'events'
 import { createLogger } from '../common/logger'
 
 export enum Libp2pEvents {
@@ -12,10 +12,12 @@ export enum Libp2pEvents {
 export interface Libp2pNodeParams {
   peerId: CreatedLibp2pPeerId
   listenAddresses: string[]
-  agent: Agent
+  agent: Agent | undefined
   localAddress: string
   targetPort: number
   psk: Uint8Array
+  transport?: any[]
+  useConnectionProtector?: boolean
 }
 
 export type Libp2pPeerInfo = {
