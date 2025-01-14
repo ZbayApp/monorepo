@@ -79,3 +79,11 @@ runs:
             lerna bootstrap
         fi
       shell: bash
+    
+    - name: "Prepare backend"
+      if: always()
+      run: |
+        if [[ $string == *"backend"* ]]; then
+          npm run lerna -- run --scope=@quiet/backend prepare
+        fi
+      shell: bash
