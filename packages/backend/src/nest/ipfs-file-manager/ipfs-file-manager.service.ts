@@ -289,18 +289,28 @@ export class IpfsFileManagerService extends EventEmitter {
 
   public async downloadFile(fileMetadata: FileMetadata): Promise<void> {
     const _logger = createLogger(`${IpfsFileManagerService.name}:download:${fileMetadata.cid}`)
-    const downloaded = await this._downloadFile(fileMetadata, _logger)
-    if (!downloaded) {
-      await this.updateStatus(fileMetadata.cid, DownloadState.Canceled)
-      this.files.delete(fileMetadata.cid)
-    } else {
-      await this.updateStatus(fileMetadata.cid, DownloadState.Completed)
-      this.files.delete(fileMetadata.cid)
-      this.controllers.delete(fileMetadata.cid)
+    const finalStatus = await this._downloadFile(fileMetadata, _logger)
+    switch (finalStatus) {
+      case DownloadState.Completed:
+        await this.updateStatus(fileMetadata.cid, DownloadState.Completed)
+        this.files.delete(fileMetadata.cid)
+        this.controllers.delete(fileMetadata.cid)
+        break
+      case DownloadState.Canceled:
+        await this.updateStatus(fileMetadata.cid, DownloadState.Canceled)
+        this.files.delete(fileMetadata.cid)
+        break
+      case DownloadState.Malicious:
+        await this.updateStatus(fileMetadata.cid, DownloadState.Malicious)
+        this.files.delete(fileMetadata.cid)
+        break
     }
   }
 
-  private async _downloadFile(fileMetadata: FileMetadata, _logger: QuietLogger): Promise<boolean> {
+  private async _downloadFile(
+    fileMetadata: FileMetadata,
+    _logger: QuietLogger
+  ): Promise<DownloadState.Completed | DownloadState.Canceled | DownloadState.Malicious> {
     _logger.info(`Initializing download of ${fileMetadata.name}${fileMetadata.ext}`)
 
     const fileCid: CID = CID.parse(fileMetadata.cid)
@@ -411,7 +421,7 @@ export class IpfsFileManagerService extends EventEmitter {
       return
     }
 
-    const initialStats: UnixFSStats | undefined = await this.validateDownload(fileCid, fileMetadata.size, {
+    const initialStats: UnixFSStats | DownloadState = await this.validateDownload(fileCid, fileMetadata.size, {
       logger: _logger,
       signal: controller.signal,
       statOptions: {
@@ -420,9 +430,13 @@ export class IpfsFileManagerService extends EventEmitter {
       },
     })
 
-    if (initialStats == null) {
-      _logger.warn(`Cancelling download because initial stat check threw an error`)
-      return false
+    if (typeof initialStats === 'string') {
+      if (initialStats == DownloadState.Canceled) {
+        _logger.warn(`Cancelling download because initial stat check threw an error`)
+        return DownloadState.Canceled
+      } else if (initialStats == DownloadState.Malicious) {
+        return DownloadState.Malicious
+      }
     }
 
     const writeStream = this.prepFileStream(fileMetadata.ext)
@@ -497,7 +511,7 @@ export class IpfsFileManagerService extends EventEmitter {
         _logger.warn(`Failed to finish downloading blocks for file, canceling download`)
         await this.cancelDownload(fileCid.toString())
       }
-      return false
+      return DownloadState.Canceled
     }
 
     const finishedWriting = await this.writeBlocksToFilesystem(fileCid, writeStream, {
@@ -516,13 +530,13 @@ export class IpfsFileManagerService extends EventEmitter {
     if (!finishedWriting && !controller.signal.aborted) {
       _logger.warn(`Failed to finish writing blocks to filesystem, canceling download`)
       await this.cancelDownload(fileCid.toString())
-      return false
+      return DownloadState.Canceled
     }
 
     const fileState = this.files.get(fileMetadata.cid)
     if (fileState == null) {
       _logger.error(`No saved data for file`)
-      return false
+      return DownloadState.Canceled
     }
 
     const finalStats = await this.getFileStats(fileCid, {
@@ -534,7 +548,7 @@ export class IpfsFileManagerService extends EventEmitter {
     if (finalStats == null) {
       if (!controller.signal.aborted) await this.cancelDownload(fileCid.toString())
 
-      return false
+      return DownloadState.Canceled
     }
 
     this.files.set(fileMetadata.cid, {
@@ -557,7 +571,7 @@ export class IpfsFileManagerService extends EventEmitter {
         await this.cancelDownload(fileCid.toString())
       }
 
-      return false
+      return DownloadState.Canceled
     }
 
     const messageMedia: FileMetadata = {
@@ -566,7 +580,7 @@ export class IpfsFileManagerService extends EventEmitter {
     }
 
     this.emit(IpfsFilesManagerEvents.MESSAGE_MEDIA_UPDATED, messageMedia)
-    return true
+    return DownloadState.Completed
   }
 
   private async updateStatus(cid: string, downloadState = DownloadState.Downloading) {
@@ -800,7 +814,7 @@ export class IpfsFileManagerService extends EventEmitter {
     cid: CID,
     metadataSize: number | undefined,
     options: GetStatsOptions
-  ): Promise<UnixFSStats | undefined> {
+  ): Promise<UnixFSStats | DownloadState.Canceled | DownloadState.Malicious> {
     options.logger.info(`Validating download at start`)
     const initialStats: UnixFSStats | undefined = await this.getFileStats(cid, {
       ...options,
@@ -811,14 +825,13 @@ export class IpfsFileManagerService extends EventEmitter {
     })
 
     if (initialStats == null) {
-      return undefined
+      return DownloadState.Canceled
     }
 
     const fileSize = initialStats.fileSize
     if (metadataSize != null && !compare(metadataSize, fileSize, 0.05)) {
       options.logger.warn(`File was flagged as malicious due to discrepancies in file size`)
-      await this.updateStatus(cid.toString(), DownloadState.Malicious)
-      return undefined
+      return DownloadState.Malicious
     }
 
     return initialStats

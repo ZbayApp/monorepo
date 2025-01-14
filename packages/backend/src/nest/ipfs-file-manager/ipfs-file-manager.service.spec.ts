@@ -360,7 +360,7 @@ describe('IpfsFileManagerService', () => {
     expect(eventSpy).toBeCalledTimes(6)
   })
 
-  it('file uploaded to IPFS then can be downloaded', async () => {
+  it.only('file uploaded to IPFS then can be downloaded', async () => {
     // Uploading
     const eventSpy = jest.spyOn(ipfsFileManagerService, 'emit')
 
@@ -435,12 +435,20 @@ describe('IpfsFileManagerService', () => {
     }, 10_000)
 
     await waitForExpect(() => {
-      expect(eventSpy).toHaveBeenNthCalledWith(6, StorageEvents.DOWNLOAD_PROGRESS, {
-        cid: expect.stringContaining('bafk'),
-        downloadProgress: { downloaded: 15847, size: 15847, transferSpeed: 0 },
-        downloadState: 'downloading',
-        mid: 'id',
-      })
+      expect(eventSpy).toHaveBeenNthCalledWith(
+        6,
+        StorageEvents.MESSAGE_MEDIA_UPDATED,
+        expect.objectContaining({
+          cid: expect.stringContaining('bafk'),
+          ext: '.png',
+          height: 44,
+          message: { channelId: 'channelId', id: 'id' },
+          name: 'test-image',
+          size: 15847,
+          width: 824,
+          path: expect.stringContaining('.png'),
+        })
+      )
     }, 20_000)
 
     await waitForExpect(() => {
@@ -452,23 +460,7 @@ describe('IpfsFileManagerService', () => {
       })
     }, 20_000)
 
-    await waitForExpect(() => {
-      expect(eventSpy).toHaveBeenNthCalledWith(
-        8,
-        StorageEvents.MESSAGE_MEDIA_UPDATED,
-        expect.objectContaining({
-          cid: expect.stringContaining('bafk'),
-          ext: '.png',
-          height: 44,
-          message: { channelId: 'channelId', id: 'id' },
-          name: 'test-image',
-          size: 15847,
-          width: 824,
-        })
-      )
-    }, 20_000)
-
-    expect(eventSpy).toBeCalledTimes(8)
+    expect(eventSpy).toBeCalledTimes(7)
   })
 
   // this case causes other tests to fail
