@@ -25,7 +25,7 @@ export function* autoDownloadFilesSaga(
 
   for (const message of messages) {
     // Proceed for images and files only
-    if (!message.media || (message.type !== MessageType.Image && message.type !== MessageType.File)) return
+    if (!message.media || (message.type !== MessageType.Image && message.type !== MessageType.File)) continue
 
     const channelMessages = yield* select(messagesSelectors.publicChannelMessagesEntities(message.channelId))
 
