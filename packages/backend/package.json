@@ -76,6 +76,7 @@
     "babel-jest": "^29.3.1",
     "cross-env": "^5.2.0",
     "fetch-mock-jest": "^1.5.1",
+    "it-stream-types": "^2.0.2",
     "jest": "^29.4.2",
     "lint-staged": "^15.2.2",
     "mock-fs": "^5.1.2",
@@ -173,6 +174,7 @@
     "string-replace-loader": "3.1.0",
     "ts-jest-resolver": "^2.0.0",
     "uint8arrays": "^5.1.0",
+    "uint8arraylist": "^2.4.8",
     "utf-8-validate": "^5.0.2",
     "validator": "^13.11.0"
   },

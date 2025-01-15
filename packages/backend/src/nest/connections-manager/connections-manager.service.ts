@@ -115,11 +115,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       throw new Error(`Unhandled Rejection`)
     })
 
-    process.on('uncaughtException', error => {
-      this.logger.error(`Unhandled exception`, error)
-      throw new Error(`Unhandled Exception`)
-    })
-
     // process.on('SIGINT', function () {
     //   // This is not graceful even in a single percent. we must close services first, not just kill process %
     //   // this.logger.info('\nGracefully shutting down from SIGINT (Ctrl-C)')

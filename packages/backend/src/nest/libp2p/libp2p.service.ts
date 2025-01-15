@@ -52,6 +52,7 @@ export class Libp2pService extends EventEmitter {
   public libp2pDatastore: Libp2pDatastore
   private redialTimeout: NodeJS.Timeout
   private localAddress: string
+  private _connectedPeersInterval: NodeJS.Timer
 
   private readonly logger = createLogger(Libp2pService.name)
 
@@ -255,7 +256,7 @@ export class Libp2pService extends EventEmitter {
         connectionManager: {
           maxConnections: 20, // TODO: increase?
           dialTimeout: 120_000,
-          maxParallelDials: 10,
+          maxParallelDials: 3,
           inboundUpgradeTimeout: 30_000,
           outboundUpgradeTimeout: 30_000,
           protocolNegotiationTimeout: 10_000,
@@ -290,7 +291,7 @@ export class Libp2pService extends EventEmitter {
             },
             localAddress: params.localAddress,
             targetPort: params.targetPort,
-            closeOnEnd: true,
+            closeOnEnd: false,
           }),
         ],
         services: {
@@ -422,12 +423,28 @@ export class Libp2pService extends EventEmitter {
       this.libp2pInstance.getMultiaddrs().map(addr => addr.toString())
     )
 
+    this._connectedPeersInterval = setInterval(() => {
+      const connections = []
+      for (const [peerId, peer] of this.connectedPeers.entries()) {
+        connections.push({
+          peerId,
+          address: peer.address,
+          connectedAtSeconds: peer.connectedAtSeconds,
+        })
+      }
+      this.logger.info(`Current Connected Peers`, {
+        connectionCount: this.connectedPeers.size,
+        connections,
+      })
+    }, 60_000)
+
     this.logger.info(`Initialized libp2p for peer ${peerId.peerId.toString()}`)
   }
 
   public async close(): Promise<void> {
     this.logger.info('Closing libp2p service')
     clearTimeout(this.redialTimeout)
+    clearInterval(this._connectedPeersInterval)
     await this.hangUpPeers()
     await this.libp2pInstance?.stop()
     await this.libp2pDatastore?.close()
