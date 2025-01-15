@@ -124,7 +124,7 @@ export class IpfsFileManagerService extends EventEmitter {
 
     try {
       _logger.info(`Unpinning all blocks for file`)
-      for await (const pinnedCid of this.ipfs.pins.rm(cid)) {
+      for await (const pinnedCid of abortableAsyncIterable(this.ipfs.pins.rm(cid))) {
         _logger.debug(`Unpinning ${pinnedCid.toString()}`)
       }
       _logger.info('Unpinning complete')
@@ -630,11 +630,15 @@ export class IpfsFileManagerService extends EventEmitter {
     }
   }
 
-  private async getBlocks(cid: CID, options: GetBlocksOptions): Promise<AsyncIterable<Uint8Array> | undefined> {
+  private async getBlocks(
+    cid: CID,
+    options: GetBlocksOptions,
+    timeoutMs?: number
+  ): Promise<AsyncIterable<Uint8Array> | undefined> {
     options.logger.info(`Getting blocks for file`)
     try {
       const entries = this.ufs.cat(cid, { ...options.catOptions, signal: undefined })
-      return abortableAsyncIterable(entries, options.signal) // this allows us to abort without causing an unhandled rejection error
+      return abortableAsyncIterable(entries, options.signal, timeoutMs) // this allows us to abort without causing an unhandled rejection error
     } catch (e) {
       if (options.signal.aborted) {
         options.logger.warn(`Cancelled cat due to download cancellation`)
@@ -655,7 +659,10 @@ export class IpfsFileManagerService extends EventEmitter {
       if (await this.ipfs.pins.isPinned(fileCid, options.addOptions)) {
         options.logger.warn(`Already pinned - this file has probably already been uploaded/downloaded previously`)
       } else {
-        for await (const cid of this.ipfs.pins.add(fileCid, options.addOptions)) {
+        for await (const cid of abortableAsyncIterable(
+          this.ipfs.pins.add(fileCid, options.addOptions),
+          options.signal
+        )) {
           options.logger.debug(`Pinning ${cid.toString()}`)
         }
         options.logger.info(`Pinning complete`)
@@ -722,11 +729,15 @@ export class IpfsFileManagerService extends EventEmitter {
       )
 
       try {
-        const entries = await this.getBlocks(cid, {
-          logger: options.logger,
-          signal: options.signal,
-          catOptions,
-        })
+        const entries = await this.getBlocks(
+          cid,
+          {
+            logger: options.logger,
+            signal: options.signal,
+            catOptions,
+          },
+          120_000
+        )
         if (entries == null) {
           if (options.signal.aborted) {
             options.logger.warn(`Download aborted, skipping processing of block...`)
@@ -770,11 +781,15 @@ export class IpfsFileManagerService extends EventEmitter {
     }
 
     try {
-      const entries = await this.getBlocks(cid, {
-        logger: options.logger,
-        signal: options.signal,
-        catOptions: options.catOptions,
-      })
+      const entries = await this.getBlocks(
+        cid,
+        {
+          logger: options.logger,
+          signal: options.signal,
+          catOptions: options.catOptions,
+        },
+        120_000
+      )
       if (entries == null) {
         if (options.signal?.aborted) {
           options.logger.warn(`Download aborted, skipping writing of block...`)

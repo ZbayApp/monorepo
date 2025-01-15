@@ -7,12 +7,14 @@ import type { AbortOptions, ComponentLogger, CounterGroup, MultiaddrConnection }
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { DuplexWebSocket } from 'it-ws/duplex'
 import { CloseEvent, ErrorEvent, MessageEvent, WebSocket } from 'ws'
+import { abortableAsyncIterable } from '../common/utils'
 
 export interface SocketToConnOptions {
   localAddr?: Multiaddr
   logger: ComponentLogger
   metrics?: CounterGroup
   metricPrefix?: string
+  signal?: AbortSignal
 }
 
 // Convert a stream into a MultiaddrConnection
@@ -33,7 +35,7 @@ export function socketToMaConn(
       try {
         await stream.sink(
           (async function* () {
-            for await (const buf of source) {
+            for await (const buf of abortableAsyncIterable(source, options.signal)) {
               if (buf instanceof Uint8Array) {
                 yield buf
               } else {

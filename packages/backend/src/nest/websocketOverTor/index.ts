@@ -88,6 +88,7 @@ export class WebSockets implements Transport<WebSocketsDialEvents> {
     const maConn = socketToMaConn(socket, ma, {
       logger: this.logger,
       metrics: this.metrics?.dialerEvents,
+      signal: options.signal,
     })
     _log('new outbound connection %s', maConn.remoteAddr)
 

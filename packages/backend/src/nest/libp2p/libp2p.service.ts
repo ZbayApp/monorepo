@@ -303,8 +303,8 @@ export class Libp2pService extends EventEmitter {
             debugName: params.peerId.peerId.toString(),
             doPX: true,
           }),
-          identify: identify({ timeout: 30_000 }),
-          identifyPush: identifyPush({ timeout: 30_000 }),
+          identify: identify({ timeout: 30_000, maxInboundStreams: 128, maxOutboundStreams: 128 }),
+          identifyPush: identifyPush({ timeout: 30_000, maxInboundStreams: 128, maxOutboundStreams: 128 }),
           keychain: keychain(),
           dht: kadDHT({
             allowQueryWithZeroPeers: true,

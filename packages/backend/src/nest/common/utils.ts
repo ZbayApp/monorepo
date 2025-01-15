@@ -285,16 +285,39 @@ export const createArbitraryFile = (filePath: string, sizeBytes: number) => {
 // This is necessary because AsyncIterators are fickle and if you just wrap them in a try/catch or try to use
 // catch/then/finally on a wrapper promise it ultimately generates an unhandled rejection.  JS is so much fun.
 export function abortableAsyncIterable<T, TReturn, TNext>(
-  iter: AsyncIterable<T>,
-  signal: AbortSignal
+  iter: AsyncIterable<T> | AsyncGenerator<T, TReturn, TNext>,
+  signal?: AbortSignal,
+  timeoutMs?: number
 ): AsyncIterable<T> {
   const abortedPromise = new Promise<IteratorResult<T, TReturn>>((resolve, reject) => {
-    if (signal.aborted) {
-      reject(new DOMException('aborted', 'AbortError'))
+    const ABORT_MESSAGE = 'Operation aborted'
+    const TIMEOUT_MESSAGE = `Operation exceeded timeout of ${timeoutMs}ms`
+    const ABORT_ERROR_NAME = 'AbortError'
+    const TIMEOUT_ERROR_NAME = 'TimeoutError'
+
+    let timeoutSignal: AbortSignal | undefined = undefined
+    if (timeoutMs != null) {
+      timeoutSignal = AbortSignal.timeout(timeoutMs)
     }
-    signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))
+
+    if (signal?.aborted) {
+      reject(new DOMException(ABORT_MESSAGE, ABORT_ERROR_NAME))
+    }
+
+    if (timeoutSignal?.aborted) {
+      reject(new DOMException(TIMEOUT_MESSAGE, TIMEOUT_ERROR_NAME))
+    }
+
+    if (signal != null) {
+      signal.addEventListener('abort', () => reject(new DOMException(ABORT_MESSAGE, ABORT_ERROR_NAME)))
+    }
+
+    if (timeoutSignal != null) {
+      timeoutSignal.addEventListener('abort', () => reject(new DOMException(TIMEOUT_MESSAGE, TIMEOUT_ERROR_NAME)))
+    }
   })
   abortedPromise.catch(() => {})
+
   return {
     [Symbol.asyncIterator]: () => {
       const inner = iter[Symbol.asyncIterator]()
