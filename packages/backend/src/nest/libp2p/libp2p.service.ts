@@ -256,7 +256,7 @@ export class Libp2pService extends EventEmitter {
         connectionManager: {
           maxConnections: 20, // TODO: increase?
           dialTimeout: 120_000,
-          maxParallelDials: 3,
+          maxParallelDials: 10,
           inboundUpgradeTimeout: 30_000,
           outboundUpgradeTimeout: 30_000,
           protocolNegotiationTimeout: 10_000,
@@ -291,7 +291,7 @@ export class Libp2pService extends EventEmitter {
             },
             localAddress: params.localAddress,
             targetPort: params.targetPort,
-            closeOnEnd: false,
+            inboundConnectionUpgradeTimeout: 30_000,
           }),
         ],
         services: {

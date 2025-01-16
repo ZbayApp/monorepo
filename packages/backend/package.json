@@ -113,6 +113,7 @@
     "@localfirst/auth": "file:../../3rd-party/auth/packages/auth/dist",
     "@localfirst/crdx": "file:../../3rd-party/auth/packages/crdx/dist",
     "@multiformats/multiaddr": "^12.3.0",
+    "@multiformats/multiaddr-matcher": "^1.6.0",
     "@multiformats/multiaddr-to-uri": "^10.1.0",
     "@nestjs/common": "^10.2.10",
     "@nestjs/core": "^10.2.10",
@@ -162,6 +163,7 @@
     "multiformats": "13.3.1",
     "node-fetch": "^3.3.0",
     "p-defer": "^4.0.1",
+    "p-event": "^6.0.1",
     "p-queue": "7.3.4",
     "pkijs": "3.0.15",
     "progress-events": "^1.0.1",
@@ -176,7 +178,8 @@
     "uint8arrays": "^5.1.0",
     "uint8arraylist": "^2.4.8",
     "utf-8-validate": "^5.0.2",
-    "validator": "^13.11.0"
+    "validator": "^13.11.0",
+    "ws": "^8.18.0"
   },
   "overrides": {
     "level": "$level",

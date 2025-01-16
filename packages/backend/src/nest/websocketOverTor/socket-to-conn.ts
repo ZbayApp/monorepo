@@ -9,7 +9,6 @@ import type { DuplexWebSocket } from 'it-ws/duplex'
 import { CloseEvent, ErrorEvent, MessageEvent, WebSocket } from 'ws'
 import { abortableAsyncIterable } from '../common/utils'
 import { Uint8ArrayList } from 'uint8arraylist'
-import { Source } from 'it-stream-types'
 
 export interface SocketToConnOptions {
   localAddr?: Multiaddr
@@ -51,7 +50,9 @@ export function socketToMaConn(
       try {
         await stream.sink(generateSink(source))
       } catch (err: any) {
-        log.error(`Error on sink`, err)
+        if (err.type !== 'aborted') {
+          log.error(err)
+        }
       }
     },
 
@@ -108,32 +109,36 @@ export function socketToMaConn(
     },
   }
 
-  stream.socket.onerror = (errorEvent: ErrorEvent) => {
+  stream.socket.addEventListener('error', (errorEvent: ErrorEvent) => {
     log.error(`Error on socket: ${errorEvent.message}`, errorEvent.error)
-  }
+  })
 
-  stream.socket.onclose = (closeEvent: CloseEvent) => {
-    switch (closeEvent.code) {
-      case SocketCloseCode.ERROR:
-      case SocketCloseCode.INVALID_DATA:
-        log.error(`Socket is closing with code ${closeEvent.code} due to error`, closeEvent.reason)
-        break
-      case SocketCloseCode.NORMAL:
-      case SocketCloseCode.GO_AWAY:
-      case SocketCloseCode.UNDEFINED:
-      default:
-        break
-    }
+  stream.socket.addEventListener(
+    'close',
+    (closeEvent: CloseEvent) => {
+      switch (closeEvent.code) {
+        case SocketCloseCode.ERROR:
+        case SocketCloseCode.INVALID_DATA:
+          log.error(`Socket is closing with code ${closeEvent.code} due to error`, closeEvent.reason)
+          break
+        case SocketCloseCode.NORMAL:
+        case SocketCloseCode.GO_AWAY:
+        case SocketCloseCode.UNDEFINED:
+        default:
+          break
+      }
 
-    metrics?.increment({ [`${metricPrefix}close`]: true })
+      metrics?.increment({ [`${metricPrefix}close`]: true })
 
-    // In instances where `close` was not explicitly called,
-    // such as an iterable stream ending, ensure we have set the close
-    // timeline
-    if (maConn.timeline.close == null) {
-      maConn.timeline.close = Date.now()
-    }
-  }
+      // In instances where `close` was not explicitly called,
+      // such as an iterable stream ending, ensure we have set the close
+      // timeline
+      if (maConn.timeline.close == null) {
+        maConn.timeline.close = Date.now()
+      }
+    },
+    { once: true }
+  )
 
   return maConn
 }

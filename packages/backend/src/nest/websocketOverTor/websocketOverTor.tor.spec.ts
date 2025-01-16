@@ -6,7 +6,7 @@ import { multiaddr } from '@multiformats/multiaddr'
 import getPort from 'get-port'
 import { type DirResult } from 'tmp'
 import { torBinForPlatform, torDirForPlatform, createTmpDir, tmpQuietDirPath } from '../common/utils'
-import { type CreateListenerOptions, type ComponentLogger } from '@libp2p/interface'
+import { type CreateListenerOptions, type ComponentLogger, TypedEventEmitter } from '@libp2p/interface'
 import { createServer } from 'it-ws/server'
 import { createCertificatesTestHelper } from '../common/client-server'
 import { TestingModule, Test } from '@nestjs/testing'
@@ -183,8 +183,14 @@ describe('websocketOverTor', () => {
 
     const remoteAddress = multiaddr(createLibp2pAddress(service2.onionAddress, peerId2))
 
-    const ws1 = webSockets(websocketsOverTorData1)({ logger: jest.fn() as unknown as ComponentLogger })
-    const ws2 = webSockets(websocketsOverTorData2)({ logger: jest.fn() as unknown as ComponentLogger })
+    const ws1 = webSockets(websocketsOverTorData1)({
+      logger: jest.fn() as unknown as ComponentLogger,
+      events: new TypedEventEmitter(),
+    })
+    const ws2 = webSockets(websocketsOverTorData2)({
+      logger: jest.fn() as unknown as ComponentLogger,
+      events: new TypedEventEmitter(),
+    })
 
     listener = ws1.createListener(prepareListenerArg)
 
@@ -266,8 +272,14 @@ describe('websocketOverTor', () => {
     }
     const multiAddress = multiaddr(createLibp2pAddress(service1.onionAddress, peerId1))
 
-    const ws1 = webSockets(websocketsOverTorDataServer)({ logger: jest.fn() as unknown as ComponentLogger })
-    const ws2 = webSockets(websocketsOverTorDataClient)({ logger: jest.fn() as unknown as ComponentLogger })
+    const ws1 = webSockets(websocketsOverTorDataServer)({
+      logger: jest.fn() as unknown as ComponentLogger,
+      events: new TypedEventEmitter(),
+    })
+    const ws2 = webSockets(websocketsOverTorDataClient)({
+      logger: jest.fn() as unknown as ComponentLogger,
+      events: new TypedEventEmitter(),
+    })
 
     listener = ws1.createListener(prepareListenerArg)
 

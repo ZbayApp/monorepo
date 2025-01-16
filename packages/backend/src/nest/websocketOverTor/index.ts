@@ -4,7 +4,13 @@
 // Essentially, the only thing we've done is override the listening port of the
 // listener and add a remoteAddress query parameter in the _connect function.
 
-import { ConnectionFailedError, transportSymbol, serviceCapabilities } from '@libp2p/interface'
+import {
+  ConnectionFailedError,
+  transportSymbol,
+  serviceCapabilities,
+  TypedEventTarget,
+  Libp2pEvents,
+} from '@libp2p/interface'
 import { multiaddrToUri as toUri } from '@multiformats/multiaddr-to-uri'
 import { connect, type WebSocketOptions } from 'it-ws/client'
 import pDefer from 'p-defer'
@@ -32,17 +38,45 @@ import type { Server } from 'http'
 import type { DuplexWebSocket } from 'it-ws/duplex'
 import type { ProgressEvent } from 'progress-events'
 import type { ClientOptions } from 'ws'
+import http from 'node:http'
+import https from 'node:https'
 
 export interface WebSocketsInit extends AbortOptions, WebSocketOptions {
+  /**
+   * @deprecated Use a ConnectionGater instead
+   */
   filter?: MultiaddrFilter
+
+  /**
+   * Options used to create WebSockets
+   */
   websocket?: ClientOptions
-  server?: Server
+
+  /**
+   * Options used to create the HTTP server
+   */
+  http?: http.ServerOptions
+
+  /**
+   * Options used to create the HTTPs server. `options.http` will be used if
+   * unspecified.
+   */
+  https?: https.ServerOptions
+
+  /**
+   * Inbound connections must complete their upgrade within this many ms
+   *
+   * @default 5000
+   */
+  inboundConnectionUpgradeTimeout?: number
+
   localAddress: string
   targetPort: number
 }
 
 export interface WebSocketsComponents {
   logger: ComponentLogger
+  events: TypedEventTarget<Libp2pEvents>
   metrics?: Metrics
 }
 
@@ -99,8 +133,9 @@ export class WebSockets implements Transport<WebSocketsDialEvents> {
   }
 
   async _connect(ma: Multiaddr, options: DialTransportOptions<WebSocketsDialEvents>): Promise<DuplexWebSocket> {
-    const _log = this.components.logger.forComponent(`libp2p:websockets:dial:connect:${ma.getPeerId()}`)
     options?.signal?.throwIfAborted()
+
+    const _log = this.components.logger.forComponent(`libp2p:websockets:dial:connect:${ma.getPeerId()}`)
 
     const cOpts = ma.toOptions()
     _log('dialing %s:%s', cOpts.host, cOpts.port)
@@ -149,6 +184,7 @@ export class WebSockets implements Transport<WebSocketsDialEvents> {
     return createListener(
       {
         logger: this.logger,
+        events: this.components.events,
         metrics: this.components.metrics,
       },
       {
