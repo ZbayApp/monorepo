@@ -1,6 +1,7 @@
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { noise, pureJsCrypto } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
+import { mplex } from '@libp2p/mplex'
 
 import { identify, identifyPush } from '@libp2p/identify'
 import { type Libp2p } from '@libp2p/interface'
@@ -273,9 +274,10 @@ export class Libp2pService extends EventEmitter {
         },
         connectionProtector: preSharedKey({ psk: params.psk }),
         streamMuxers: [
+          mplex({ disconnectThreshold: 20, maxInboundStreams: 1024, maxOutboundStreams: 1024 }),
           yamux({
-            maxInboundStreams: 3_000,
-            maxOutboundStreams: 3_000,
+            maxInboundStreams: 1024,
+            maxOutboundStreams: 1024,
           }),
         ],
         // @ts-ignore
