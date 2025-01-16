@@ -503,11 +503,14 @@ export class StorageService extends EventEmitter {
       type: 'events',
       Database: EventsWithStorage(),
       AccessController: MessagesAccessController({ write: ['*'] }),
+      sync: false,
     })
     const channel = await this.getChannel(channelId)
 
     if (channel === undefined) {
       await this.setChannel(channelId, channelData)
+      this.logger.info(`Syncing channel ${channelId}`)
+      await db.sync.start()
     } else {
       this.logger.info(`Channel ${channelId} already exists`)
     }
