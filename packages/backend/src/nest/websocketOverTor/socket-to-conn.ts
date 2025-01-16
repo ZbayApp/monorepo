@@ -8,6 +8,7 @@ import type { Multiaddr } from '@multiformats/multiaddr'
 import type { DuplexWebSocket } from 'it-ws/duplex'
 import { CloseEvent, ErrorEvent, MessageEvent, WebSocket } from 'ws'
 import { abortableAsyncIterable } from '../common/utils'
+import { Uint8ArrayList } from 'uint8arraylist'
 
 export interface SocketToConnOptions {
   localAddr?: Multiaddr
@@ -27,25 +28,31 @@ export function socketToMaConn(
   const log = options.logger.forComponent(`libp2p:websockets:maconn:${remoteAddr.getPeerId()}`)
   const metrics = options.metrics
   const metricPrefix = options.metricPrefix ?? ''
+  stream.source = abortableAsyncIterable(stream.source, options.signal)
+
+  const generateSink = (
+    source: AsyncGenerator<Uint8Array | Uint8ArrayList, any, unknown>
+  ): AsyncGenerator<Uint8Array, any, unknown> =>
+    (async function* () {
+      for await (const buf of source) {
+        if (buf instanceof Uint8Array) {
+          yield buf
+        } else {
+          yield buf.subarray()
+        }
+      }
+    })()
 
   const maConn: MultiaddrConnection = {
     log,
 
     async sink(source) {
       try {
-        await stream.sink(
-          (async function* () {
-            for await (const buf of abortableAsyncIterable(source, options.signal)) {
-              if (buf instanceof Uint8Array) {
-                yield buf
-              } else {
-                yield buf.subarray()
-              }
-            }
-          })()
-        )
+        await stream.sink(generateSink(source))
       } catch (err: any) {
-        log.error(`Error on sink`, err)
+        if (err.type !== 'aborted') {
+          log.error(err)
+        }
       }
     },
 
@@ -102,32 +109,36 @@ export function socketToMaConn(
     },
   }
 
-  stream.socket.onerror = (errorEvent: ErrorEvent) => {
+  stream.socket.addEventListener('error', (errorEvent: ErrorEvent) => {
     log.error(`Error on socket: ${errorEvent.message}`, errorEvent.error)
-  }
+  })
 
-  stream.socket.onclose = (closeEvent: CloseEvent) => {
-    switch (closeEvent.code) {
-      case SocketCloseCode.ERROR:
-      case SocketCloseCode.INVALID_DATA:
-        log.error(`Socket is closing with code ${closeEvent.code} due to error`, closeEvent.reason)
-        break
-      case SocketCloseCode.NORMAL:
-      case SocketCloseCode.GO_AWAY:
-      case SocketCloseCode.UNDEFINED:
-      default:
-        break
-    }
+  stream.socket.addEventListener(
+    'close',
+    (closeEvent: CloseEvent) => {
+      switch (closeEvent.code) {
+        case SocketCloseCode.ERROR:
+        case SocketCloseCode.INVALID_DATA:
+          log.error(`Socket is closing with code ${closeEvent.code} due to error`, closeEvent.reason)
+          break
+        case SocketCloseCode.NORMAL:
+        case SocketCloseCode.GO_AWAY:
+        case SocketCloseCode.UNDEFINED:
+        default:
+          break
+      }
 
-    metrics?.increment({ [`${metricPrefix}close`]: true })
+      metrics?.increment({ [`${metricPrefix}close`]: true })
 
-    // In instances where `close` was not explicitly called,
-    // such as an iterable stream ending, ensure we have set the close
-    // timeline
-    if (maConn.timeline.close == null) {
-      maConn.timeline.close = Date.now()
-    }
-  }
+      // In instances where `close` was not explicitly called,
+      // such as an iterable stream ending, ensure we have set the close
+      // timeline
+      if (maConn.timeline.close == null) {
+        maConn.timeline.close = Date.now()
+      }
+    },
+    { once: true }
+  )
 
   return maConn
 }
