@@ -274,10 +274,15 @@ export class Libp2pService extends EventEmitter {
         },
         connectionProtector: preSharedKey({ psk: params.psk }),
         streamMuxers: [
-          mplex({ disconnectThreshold: 20, maxInboundStreams: 1024, maxOutboundStreams: 1024 }),
-          yamux({
+          mplex({
+            disconnectThreshold: 20,
             maxInboundStreams: 1024,
             maxOutboundStreams: 1024,
+            maxStreamBufferSize: 26214400,
+            maxUnprocessedMessageQueueSize: 104857600,
+            maxMsgSize: 10485760,
+            // @ts-expect-error This is part of the config interface but it isn't typed that way
+            closeTimeout: 15_000,
           }),
         ],
         // @ts-ignore
@@ -294,6 +299,7 @@ export class Libp2pService extends EventEmitter {
             localAddress: params.localAddress,
             targetPort: params.targetPort,
             inboundConnectionUpgradeTimeout: 30_000,
+            closeOnEnd: false,
           }),
         ],
         services: {

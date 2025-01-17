@@ -51,7 +51,9 @@ export function socketToMaConn(
         await stream.sink(generateSink(source))
       } catch (err: any) {
         if (err.type !== 'aborted') {
-          log.error(err)
+          log.error(`Stream abort error`, err)
+        } else {
+          log.error(`Stream error`, err)
         }
       }
     },
