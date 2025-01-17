@@ -203,6 +203,10 @@ export const KeyValueIndexedValidated =
       onUpdate: index.update,
     })
 
+    keyValueStore.events.on('error', error => {
+      logger.error(`Error on OrbitDB DB ${keyValueStore.address}`, error)
+    })
+
     /**
      * Gets a value from the store by key.
      * @function

@@ -40,7 +40,7 @@ export const EventsWithStorage =
     )
 
     // Set up the underlying Events database
-    return await Events()({
+    const db = await Events()({
       ipfs,
       identity,
       address,
@@ -55,6 +55,12 @@ export const EventsWithStorage =
       syncAutomatically,
       onUpdate,
     })
+
+    db.events.on('error', error => {
+      logger.error(`Error on OrbitDB DB ${db.address}`, error)
+    })
+
+    return db
   }
 
 EventsWithStorage.type = 'events'

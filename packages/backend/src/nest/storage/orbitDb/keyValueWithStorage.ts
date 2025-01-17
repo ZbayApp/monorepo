@@ -40,7 +40,7 @@ export const KeyValueWithStorage =
     )
 
     // Set up the underlying KeyValue database
-    return await KeyValue()({
+    const db = await KeyValue()({
       ipfs,
       identity,
       address,
@@ -55,6 +55,12 @@ export const KeyValueWithStorage =
       syncAutomatically,
       onUpdate,
     })
+
+    db.events.on('error', error => {
+      logger.error(`Error on OrbitDB DB ${db.address}`, error)
+    })
+
+    return db
   }
 
 KeyValueWithStorage.type = 'keyvalue'
