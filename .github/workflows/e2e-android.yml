@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm ci
-          npm run lerna bootstrap -- --scope=\'{@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/mobile,backend-bundle}\'
+          npm run bootstrap -- --scope=\'{@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/mobile,backend-bundle}\'
 
       - name: Pull binaries
         run: |

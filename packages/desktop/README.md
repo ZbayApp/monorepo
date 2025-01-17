@@ -10,7 +10,7 @@ Here are the steps:
 ```
 npm i lerna@6.6.2
 npm i typescript@4.9.3
-npm run lerna bootstrap
+npm run bootstrap
 ```
 
 If you run into problems please double check if you have exact version Node and NPM as listed in point 0.

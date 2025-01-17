@@ -12,7 +12,7 @@ Quiet Mobile is a React Native app for Android and iOS that shares a Node.js [ba
 
     ```bash
     npm install
-    npm run lerna bootstrap
+    npm run bootstrap
     ```
 
 1. On your host, install [adb](https://developer.android.com/studio/command-line/adb) (Android Debug Bridge) to communicate with your Android device.
