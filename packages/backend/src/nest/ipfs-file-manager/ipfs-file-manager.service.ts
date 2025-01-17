@@ -82,7 +82,9 @@ export class IpfsFileManagerService extends EventEmitter {
       _logger.info('Downloading file', fileMetadata.size)
       if (this.files.get(fileMetadata.cid)) {
         _logger.warn(`Download is already running for this CID`)
+        return
       }
+
       this.files.set(fileMetadata.cid, {
         size: fileMetadata.size || 0,
         downloadedBytes: 0,
