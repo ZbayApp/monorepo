@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+### Fixes
+
+* Fixed splash screen to be draggable on macOS ([#789](https://github.com/TryQuiet/quiet/issues/789))
+
 ## [2.3.3]
 
 ### New features
