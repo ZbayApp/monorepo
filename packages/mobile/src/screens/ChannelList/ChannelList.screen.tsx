@@ -17,6 +17,16 @@ import { MenuName } from '../../const/MenuNames.enum'
 export const ChannelListScreen: FC = () => {
   const dispatch = useDispatch()
 
+  /*
+   * Notify user about incoming lack of backwards compatiblity.
+   * This should be removed in the next major release of the application (3.x)
+   *
+   * https://github.com/TryQuiet/quiet/issues/2672
+   */
+  useEffect(() => {
+    dispatch(navigationActions.navigation({ screen: ScreenNames.NotifierScreen }))
+  }, [])
+
   const usernameTaken = useSelector(identity.selectors.usernameTaken)
   const duplicateCerts = useSelector(users.selectors.duplicateCerts)
 

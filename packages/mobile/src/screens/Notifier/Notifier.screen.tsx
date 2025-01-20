@@ -24,7 +24,7 @@ export const NotifierScreen: FC = () => {
       icon={appImages.update_graphics}
       title={'Coming update will remove communities & messages'}
       message={
-        'Quiet’s next release makes joining communities faster and more reliable by letting people join when the owner is offline! However, these changes required us to reset all communities, and both communities and messages will be lost on mobile. We apologize for the inconvenience, and please reach out immediately if you need help backing up messages.'
+        'Quiet’s next release includes major updates to OrbitDB and IPFS! 🎉 However, these changes are not backwards compatible, so you must re-install Quiet from tryquiet.org and re-create or re-join your community. 😥 This version of Quiet will no longer receive any updates or security fixes, so please re-install soon. We apologize for the inconvenience.'
       }
     />
   )
