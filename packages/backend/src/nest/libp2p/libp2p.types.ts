@@ -1,12 +1,22 @@
 import { PeerId, PrivateKey } from '@libp2p/interface'
 import { Agent } from 'http'
-import { EventEmitter } from 'events'
-import { createLogger } from '../common/logger'
 
 export enum Libp2pEvents {
   PEER_CONNECTED = 'peerConnected',
   PEER_DISCONNECTED = 'peerDisconnected',
   NETWORK_STATS = 'networkStats',
+  AUTH_CONNECTED = 'authConnected',
+  AUTH_JOINED = 'authJoined',
+  AUTH_STATE_CHANGED = 'authStateChanged',
+  AUTH_ERROR = 'authError',
+  AUTH_REMOVED = 'authRemoved',
+  AUTH_INVALID_PROOF = 'authInvalidProof',
+  AUTH_CONNECTION_DENIED = 'authConnectionDenied',
+  AUTH_TIMEOUT = 'authTimeout',
+  AUTH_PEER_REMOVED = 'authPeerRemoved',
+  AUTH_PEER_INVALID = 'authPeerInvalid',
+  AUTH_PEER_CANNOT_ADMIT = 'authPeerCannotAdmit',
+  AUTH_DISCONNECTED = 'authDisconnected',
 }
 
 export interface Libp2pNodeParams {
@@ -18,6 +28,7 @@ export interface Libp2pNodeParams {
   psk: Uint8Array
   transport?: any[]
   useConnectionProtector?: boolean
+  instanceName?: string
 }
 
 export type Libp2pPeerInfo = {
@@ -33,43 +44,6 @@ export type Libp2pConnectedPeer = {
 export type Libp2pDatastoreOptions = {
   inMemory: boolean
   datastorePath?: string
-}
-
-export enum AuthEvents {
-  INITIALIZED_CHAIN = 'INITIALIZED_CHAIN',
-  DIAL_FINISHED = 'DIAL_FINISHED',
-  AUTH_TIMEOUT = 'AUTH_TIMEOUT',
-  MISSING_DEVICE = 'MISSING_DEVICE',
-}
-export class QuietAuthEvents {
-  private _events: EventEmitter
-  private _LOGGER: ReturnType<typeof createLogger>
-
-  constructor() {
-    this._events = new EventEmitter()
-    this._LOGGER = createLogger(`quietAuthEvents`)
-  }
-
-  public emit(event: AuthEvents, ...args: any[]) {
-    this._LOGGER.debug(`emit ${event}`)
-    this._events.emit(event, ...args)
-  }
-
-  public on(event: AuthEvents, listener: (...args: any[]) => void) {
-    this._events.on(
-      event,
-      // this.appendLogToListener(event, listener)
-      listener
-    )
-  }
-
-  public once(event: AuthEvents, listener: (...args: any[]) => void) {
-    this._events.once(
-      event,
-      // this.appendLogToListener(event, listener)
-      listener
-    )
-  }
 }
 export interface CreatedLibp2pPeerId {
   peerId: PeerId

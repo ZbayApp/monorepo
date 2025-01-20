@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Libp2pAuth dials each other: event timeline after dialing 1`] = `
+[
+  "A: peerConnected",
+  "B: peerConnected",
+  "A: authStateChanged",
+  "B: authStateChanged",
+  "B: authStateChanged",
+  "A: authStateChanged",
+  "A: authStateChanged",
+  "B: authStateChanged",
+  "B: authJoined",
+  "B: authStateChanged",
+]
+`;
+
+exports[`Libp2pAuth dials each other: instanceA event timeline after join 1`] = `
+[
+  "A: peerConnected",
+  "A: authStateChanged",
+  "A: authStateChanged",
+  "A: authStateChanged",
+]
+`;
+
+exports[`Libp2pAuth dials each other: instanceB event timeline after join 1`] = `
+[
+  "B: peerConnected",
+  "B: authStateChanged",
+  "B: authStateChanged",
+  "B: authStateChanged",
+  "B: authJoined",
+  "B: authStateChanged",
+]
+`;
+
+exports[`Libp2pAuth gracefully disconnects: disconnectEventsA 1`] = `
+[
+  "A: authStateChanged",
+  "A: peerDisconnected",
+]
+`;
+
+exports[`Libp2pAuth gracefully disconnects: disconnectEventsB 1`] = `[]`;
+
+exports[`Libp2pAuth gracefully disconnects: eventTimeline after disconnection 1`] = `
+[
+  "A: peerConnected",
+  "B: peerConnected",
+  "A: authStateChanged",
+  "B: authStateChanged",
+  "B: authStateChanged",
+  "A: authStateChanged",
+  "A: authStateChanged",
+  "B: authStateChanged",
+  "B: authJoined",
+  "B: authStateChanged",
+  "A: authStateChanged",
+  "A: peerDisconnected",
+]
+`;

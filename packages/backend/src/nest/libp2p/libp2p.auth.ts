@@ -1,4 +1,14 @@
-import { ComponentLogger, Connection, NewStreamOptions, PeerId, PeerStore, Stream, Topology } from '@libp2p/interface'
+import {
+  ComponentLogger,
+  Connection,
+  NewStreamOptions,
+  PeerId,
+  PeerStore,
+  serviceCapabilities,
+  serviceDependencies,
+  Stream,
+  Topology,
+} from '@libp2p/interface'
 import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
 import * as Auth from '@localfirst/auth'
 import { pushable, type Pushable } from 'it-pushable'
@@ -7,10 +17,11 @@ import { pipe } from 'it-pipe'
 import { encode, decode } from 'it-length-prefixed'
 
 import { SigChainService } from '../auth/sigchain.service'
-import { AuthEvents, QuietAuthEvents } from './libp2p.types'
 import { createLogger } from '../common/logger'
 import { createQuietLogger } from '@quiet/logger'
 import { ConnectionParams } from '3rd-party/auth/packages/auth/dist/connection/Connection'
+import { Libp2pService } from './libp2p.service'
+import { Libp2pEvents } from './libp2p.types'
 
 export interface Libp2pAuthComponents {
   peerId: PeerId
@@ -20,7 +31,12 @@ export interface Libp2pAuthComponents {
   logger: ComponentLogger
 }
 
-interface PushableStream {
+export interface Libp2pAuthStatus {
+  started: boolean
+  joining: boolean
+}
+
+export interface PushableStream {
   stream: Stream
   pushable: Pushable<Uint8Array | Uint8ArrayList>
 }
@@ -31,44 +47,37 @@ enum JoinStatus {
   JOINED = 'JOINED',
 }
 
-const createLFALogger = createQuietLogger('localfirst:')
+const createLFALogger = createQuietLogger('localfirst')
 
 export class Libp2pAuth {
   private readonly protocol: string
   private readonly components: Libp2pAuthComponents
   private sigChainService: SigChainService
+  private libp2pService: Libp2pService
   private authConnections: Record<string, Auth.Connection>
   private outboundStreamQueue: Pushable<{ peerId: PeerId; connection: Connection }>
   private outboundStreams: Record<string, PushableStream>
   private inboundStreams: Record<string, Stream>
-  private restartableAuthConnections: Map<number, Auth.Connection>
   private bufferedConnections: { peerId: PeerId; connection: Connection }[]
-  private events: QuietAuthEvents
-  private peerId: PeerId
   private joining: boolean = false
-  private restartInterval: any
   private unblockInterval: NodeJS.Timeout
   private joinStatus: JoinStatus
   private logger: ReturnType<typeof createLogger> = createLogger('libp2p:auth')
+  readonly [serviceCapabilities]: string[] = ['@quiet/auth']
+  readonly [serviceDependencies]: string[] = ['@libp2p/identify']
+  readonly [Symbol.toStringTag]: string = 'lfaAuth'
 
-  constructor(
-    peerId: PeerId,
-    sigChainService: SigChainService,
-    components: Libp2pAuthComponents,
-    events: QuietAuthEvents
-  ) {
+  constructor(sigChainService: SigChainService, libp2pService: Libp2pService, components: Libp2pAuthComponents) {
     this.protocol = '/local-first-auth/1.0.0'
-    this.peerId = peerId
     this.components = components
     this.sigChainService = sigChainService
+    this.libp2pService = libp2pService
     this.authConnections = {}
-    this.restartableAuthConnections = new Map()
     this.outboundStreamQueue = pushable<{ peerId: PeerId; connection: Connection }>({ objectMode: true })
     this.outboundStreams = {}
     this.inboundStreams = {}
     this.bufferedConnections = []
     this.joinStatus = JoinStatus.PENDING
-    this.events = events
     this.logger = this.logger.extend(sigChainService.getActiveChain().localUserContext.user.userName)
 
     this.logger.info('Auth service initialized')
@@ -82,18 +91,11 @@ export class Libp2pAuth {
       this.logger.error('Outbound stream queue error', e)
     })
 
-    this.restartInterval = setInterval(this.restartStoppedConnections, 45_000, this.restartableAuthConnections)
     this.unblockInterval = setInterval(this.unblockConnections, 5_000, this.bufferedConnections, this.joinStatus)
   }
 
-  private restartStoppedConnections(restartableAuthConnections: Map<number, Auth.Connection>) {
-    this.logger.info(`Attempting to restart stopped auth connections`)
-    for (const [ms, connection] of restartableAuthConnections.entries()) {
-      if (ms >= Date.now()) {
-        connection.start()
-        restartableAuthConnections.delete(ms)
-      }
-    }
+  private emit(eventName: string, ...args: any[]) {
+    this.libp2pService.emit(eventName, ...args)
   }
 
   private async unblockConnections(conns: { peerId: PeerId; connection: Connection }[], status: JoinStatus) {
@@ -125,7 +127,31 @@ export class Libp2pAuth {
   }
 
   async stop() {
-    // TODO
+    this.logger.info('Stopping Libp2pAuth service')
+
+    // Clear the unblock interval
+    clearInterval(this.unblockInterval)
+
+    // End the outbound stream queue to prevent further pushes
+    this.outboundStreamQueue.end()
+
+    // Close all outbound streams
+    for (const peerId in this.outboundStreams) {
+      await this.closeOutboundStream(peerId, true)
+    }
+
+    // Close all inbound streams
+    for (const peerId in this.inboundStreams) {
+      await this.closeInboundStream(peerId, true)
+    }
+
+    // Clear buffered connections
+    this.bufferedConnections = []
+
+    // Clear auth connections
+    this.authConnections = {}
+
+    this.logger.info('Libp2pAuth service stopped')
   }
 
   private async openOutboundStream(peerId: PeerId, connection: Connection) {
@@ -253,16 +279,22 @@ export class Libp2pAuth {
       createLogger: createLFALogger,
     } as ConnectionParams)
 
-    const handleAuthConnErrors = (error: Auth.ConnectionErrorPayload, remoteUsername: string | undefined) => {
-      this.logger.error(`Got an error while handling auth connection with ${remoteUsername}`, JSON.stringify(error))
-      if (error.type === 'TIMEOUT') {
-        this.events.emit(AuthEvents.AUTH_TIMEOUT, { peerId, remoteUsername })
-      } else if (error.type === 'DEVICE_UNKNOWN') {
-        this.events.emit(AuthEvents.MISSING_DEVICE, { peerId, remoteUsername })
+    authConnection.on('connected', () => {
+      if (this.sigChainService.activeChainTeamName != null) {
+        this.logger.debug(`Sending sync message because our chain is intialized`)
+        const sigChain = this.sigChainService.getActiveChain()
+        const team = sigChain.team
+        const user = sigChain.localUserContext.user
+        authConnection.emit('sync', { team, user })
       }
-    }
+      this.emit(Libp2pEvents.AUTH_CONNECTED)
+    })
 
-    // TODO: Listen for updates to context and update context in storage
+    authConnection.on('disconnected', event => {
+      this.logger.info(`LFA Disconnected!`, event)
+      this.emit(Libp2pEvents.AUTH_DISCONNECTED)
+    })
+
     authConnection.on('joined', payload => {
       const { team, user } = payload
       const sigChain = this.sigChainService.getActiveChain()
@@ -288,32 +320,64 @@ export class Libp2pAuth {
         this.joinStatus = JoinStatus.JOINED
         this.unblockConnections(this.bufferedConnections, this.joinStatus)
       }
-      this.events.emit(AuthEvents.INITIALIZED_CHAIN)
+      this.emit(Libp2pEvents.AUTH_JOINED)
     })
 
+    authConnection.on('change', payload => {
+      this.emit(Libp2pEvents.AUTH_STATE_CHANGED, payload)
+    })
+
+    authConnection.on('updated', head => {
+      this.logger.info('Received sync message, team graph updated', head)
+    })
+
+    // handle errors detected locally and reported to the peer
     authConnection.on('localError', error => {
-      handleAuthConnErrors(error, authConnection._context.userName)
-    })
-
-    authConnection.on('remoteError', error => {
-      handleAuthConnErrors(error, authConnection._context.userName)
-    })
-
-    authConnection.on('connected', () => {
-      this.logger.info(`LFA Connected!`)
-      if (this.sigChainService.activeChainTeamName != null) {
-        this.logger.debug(`Sending sync message because our chain is intialized`)
-        const sigChain = this.sigChainService.getActiveChain()
-        const team = sigChain.team
-        const user = sigChain.localUserContext.user
-        authConnection.emit('sync', { team, user })
+      switch (error.type) {
+        case Auth.connection.DEVICE_REMOVED:
+        case Auth.connection.DEVICE_UNKNOWN:
+        case Auth.connection.MEMBER_REMOVED:
+        case Auth.connection.SERVER_REMOVED:
+          this.emit(Libp2pEvents.AUTH_PEER_REMOVED, error, peerId)
+          break
+        case Auth.connection.IDENTITY_PROOF_INVALID:
+        case Auth.connection.INVITATION_PROOF_INVALID:
+        case Auth.connection.JOINED_WRONG_TEAM:
+          this.emit(Libp2pEvents.AUTH_PEER_INVALID, error, peerId)
+          break
+        case Auth.connection.NEITHER_IS_MEMBER:
+          this.emit(Libp2pEvents.AUTH_PEER_CANNOT_ADMIT, error)
+          break
+        case Auth.connection.TIMEOUT:
+          this.emit(Libp2pEvents.AUTH_TIMEOUT, error)
+          break
+        default:
+          this.emit(Libp2pEvents.AUTH_ERROR, error)
+          break
       }
     })
 
-    authConnection.on('disconnected', event => {
-      this.logger.info(`LFA Disconnected!`, event)
-      authConnection.stop()
-      this.restartableAuthConnections.set(Date.now() + 30_000, authConnection)
+    // handle errors sent by the peer
+    authConnection.on('remoteError', error => {
+      switch (error.type) {
+        case Auth.connection.DEVICE_REMOVED:
+        case Auth.connection.DEVICE_UNKNOWN:
+        case Auth.connection.MEMBER_REMOVED:
+        case Auth.connection.SERVER_REMOVED:
+          this.emit(Libp2pEvents.AUTH_REMOVED, error)
+          break
+        case Auth.connection.IDENTITY_PROOF_INVALID:
+        case Auth.connection.INVITATION_PROOF_INVALID:
+        case Auth.connection.JOINED_WRONG_TEAM:
+          this.emit(Libp2pEvents.AUTH_INVALID_PROOF, error)
+          break
+        case Auth.connection.TIMEOUT:
+          this.emit(Libp2pEvents.AUTH_TIMEOUT, error)
+          break
+        default:
+          this.emit(Libp2pEvents.AUTH_ERROR, error)
+          break
+      }
     })
 
     this.authConnections[peerId.toString()] = authConnection
@@ -326,7 +390,7 @@ export class Libp2pAuth {
     await this.closeAuthConnection(peerId)
   }
 
-  private async closeOutboundStream(peerId: PeerId, deleteRecord?: boolean) {
+  private async closeOutboundStream(peerId: PeerId | string, deleteRecord?: boolean) {
     this.logger.warn(`Closing outbound stream with ${peerId.toString()}`)
     const outboundStream = this.outboundStreams[peerId.toString()]
 
@@ -335,7 +399,7 @@ export class Libp2pAuth {
       return
     }
 
-    await outboundStream.pushable.end().onEmpty()
+    await outboundStream.pushable.end()
     await outboundStream.stream.close().catch(e => {
       outboundStream.stream.abort(e)
     })
@@ -345,7 +409,7 @@ export class Libp2pAuth {
     }
   }
 
-  private async closeInboundStream(peerId: PeerId, deleteRecord?: boolean) {
+  private async closeInboundStream(peerId: PeerId | string, deleteRecord?: boolean) {
     this.logger.warn(`Closing inbound stream with ${peerId.toString()}`)
     const inboundStream = this.inboundStreams[peerId.toString()]
 
@@ -380,9 +444,8 @@ export class Libp2pAuth {
 }
 
 export const libp2pAuth = (
-  peerId: PeerId,
   sigChainService: SigChainService,
-  events: QuietAuthEvents
+  libp2pService: Libp2pService
 ): ((components: Libp2pAuthComponents) => Libp2pAuth) => {
-  return (components: Libp2pAuthComponents) => new Libp2pAuth(peerId, sigChainService, components, events)
+  return (components: Libp2pAuthComponents) => new Libp2pAuth(sigChainService, libp2pService, components)
 }

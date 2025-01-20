@@ -35,7 +35,6 @@ import {
   Libp2pEvents,
   Libp2pNodeParams,
   Libp2pPeerInfo,
-  QuietAuthEvents,
 } from './libp2p.types'
 import { createLogger } from '../common/logger'
 
@@ -56,9 +55,8 @@ export class Libp2pService extends EventEmitter {
   public libp2pDatastore: Libp2pDatastore
   private redialTimeout: NodeJS.Timeout
   private localAddress: string
-  private events: QuietAuthEvents
 
-  private readonly logger = createLogger(Libp2pService.name)
+  private logger = createLogger(Libp2pService.name)
 
   constructor(
     @Inject(SERVER_IO_PROVIDER) public readonly serverIoProvider: ServerIoProviderTypes,
@@ -68,11 +66,14 @@ export class Libp2pService extends EventEmitter {
   ) {
     super()
 
-    this.logger.info('SigChainService', this.sigchainService)
-    this.events = new QuietAuthEvents()
     this.dialQueue = []
     this.connectedPeers = new Map()
     this.dialedPeers = new Set()
+  }
+
+  public emit(event: string, ...args: any[]): boolean {
+    this.logger.info(`Emitting event: ${event}`, args)
+    return super.emit(event, ...args)
   }
 
   public dialPeer = async (peerAddress: string) => {
@@ -238,6 +239,9 @@ export class Libp2pService extends EventEmitter {
   }
 
   public async createInstance(params: Libp2pNodeParams): Promise<Libp2p> {
+    if (params.instanceName != null) {
+      this.logger = this.logger.extend(params.instanceName)
+    }
     this.logger.info(`Creating new libp2p instance`)
 
     if (this.libp2pInstance) {
@@ -277,7 +281,10 @@ export class Libp2pService extends EventEmitter {
           pingInterval: 60_000,
           enabled: true,
         },
-        connectionProtector: !params.useConnectionProtector ? undefined : preSharedKey({ psk: params.psk }),
+        connectionProtector:
+          params.useConnectionProtector || params.useConnectionProtector == null
+            ? preSharedKey({ psk: params.psk })
+            : undefined,
         streamMuxers: [
           yamux({
             maxInboundStreams: 3_000,
@@ -302,7 +309,7 @@ export class Libp2pService extends EventEmitter {
               }),
             ],
         services: {
-          auth: libp2pAuth(params.peerId.peerId, this.sigchainService, this.events),
+          auth: libp2pAuth(this.sigchainService, this),
           ping: ping({ timeout: 30_000 }),
           pubsub: gossipsub({
             // neccessary to run a single peer
