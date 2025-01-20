@@ -8,6 +8,8 @@ Quiet Mobile is a React Native app for Android and iOS that shares a Node.js [ba
 
 1. If not on Mac (which comes preinstalled with `patch`), install `patch` (e.g. via your Linux package manager).
 
+1. Install python3 and setuptools through your preferred method. (used by node-gyp)
+
 1. In the root directory of `quiet/`, install the monorepo's dependencies and bootstrap the project with lerna. It will take care of the package's dependencies and trigger a prepublish script which builds them.
 
     ```bash
