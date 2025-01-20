@@ -108,7 +108,7 @@ public class CommunicationModule extends ReactContextBaseJavaModule {
     private static void deleteBackendData() {
         Context context = reactContext.getApplicationContext();
         try {
-            FileUtils.deleteDirectory(new File(context.getFilesDir(), "backend/files2"));
+            FileUtils.deleteDirectory(new File(context.getFilesDir(), "backend/files3"));
         } catch (IOException e) {
             e.printStackTrace();
         }
