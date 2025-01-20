@@ -40,6 +40,7 @@ import {
 import { type Helia } from 'helia'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { createLogger } from '../../common/logger'
+import { abortableAsyncIterable } from '../../common/utils'
 import { KeyValueWithStorage } from './keyValueWithStorage'
 
 import { posixJoin } from './util'
@@ -232,13 +233,18 @@ export const KeyValueIndexedValidated =
      * @instance
      */
     const iterator = async function* ({ amount }: { amount?: number } = {}) {
-      const it = index.iterator({ amount, reverse: true })
-      for await (const record of it) {
-        // 'index' is a LevelStorage that returns a [key, value] pair
-        const entry = record[1]
-        const { key, value } = entry.payload
-        const hash = entry.hash
-        yield { key, value, hash }
+      const abortController = new AbortController()
+      try {
+        const it = abortableAsyncIterable(index.iterator({ amount, reverse: true }), abortController.signal)
+        for await (const record of it) {
+          // 'index' is a LevelStorage that returns a [key, value] pair
+          const entry = record[1]
+          const { key, value } = entry.payload
+          const hash = entry.hash
+          yield { key, value, hash }
+        }
+      } catch (e) {
+        abortController.abort(e)
       }
     }
 
