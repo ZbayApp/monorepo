@@ -60,7 +60,19 @@ export const KeyValueWithStorage =
       logger.error(`Error on OrbitDB DB ${db.address}`, error)
     })
 
-    return db
+    const get = async (hash: string): Promise<unknown> => {
+      try {
+        return db.get(hash)
+      } catch (e) {
+        db.events.emit('error', e)
+        return undefined
+      }
+    }
+
+    return {
+      ...db,
+      get,
+    }
   }
 
 KeyValueWithStorage.type = 'keyvalue'

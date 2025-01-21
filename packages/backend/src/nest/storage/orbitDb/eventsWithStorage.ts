@@ -71,13 +71,26 @@ export const EventsWithStorage =
           yield { hash, value }
         }
       } catch (e) {
-        abortController.abort(e)
+        if (!abortController.signal.aborted) {
+          abortController.abort(e)
+        }
+        db.events.emit('error', e)
+      }
+    }
+
+    const get = async (hash: string): Promise<unknown> => {
+      try {
+        return db.get(hash)
+      } catch (e) {
+        db.events.emit('error', e)
+        return undefined
       }
     }
 
     return {
       ...db,
       iterator,
+      get,
     }
   }
 

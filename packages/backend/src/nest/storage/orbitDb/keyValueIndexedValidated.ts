@@ -217,10 +217,16 @@ export const KeyValueIndexedValidated =
      * @instance
      */
     const get = async (key: string) => {
-      const entry = await index.get(key)
-      if (entry) {
-        return entry.payload.value
+      try {
+        const entry = await index.get(key)
+        if (entry) {
+          return entry.payload.value
+        }
+      } catch (e) {
+        keyValueStore.events.emit('error', e)
       }
+
+      return undefined
     }
 
     /**
@@ -244,7 +250,10 @@ export const KeyValueIndexedValidated =
           yield { key, value, hash }
         }
       } catch (e) {
-        abortController.abort(e)
+        if (!abortController.signal.aborted) {
+          abortController.abort(e)
+        }
+        keyValueStore.events.emit('error', e)
       }
     }
 
