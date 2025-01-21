@@ -1,16 +1,3 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-# [3.0.0](https://github.com/TryQuiet/quiet/compare/@quiet/desktop@3.0.0-alpha.11...@quiet/desktop@3.0.0) (2025-01-21)
-
-**Note:** Version bump only for package @quiet/desktop
-
-
-
-
-
 # Changelog
 
 ## [3.0.0]
@@ -22,6 +9,8 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 * Add Helia fork to quiet repo ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
 * Upgrade OrbitDB to 2.4.3, LibP2P to 2.X, Helia to 5.X ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
 * Add @chainsafe/libp2p-noise as a submodule to get rid of WASM ([#2624](https://github.com/TryQuiet/quiet/issues/2624))
+* Update data directory to `Quiet3` ([#2672](https://github.com/TryQuiet/quiet/issues/2672))
+* Update production release S3 bucket to `quiet.3.x` ([#2672](https://github.com/TryQuiet/quiet/issues/2672))
 
 ## [2.3.3]
 
