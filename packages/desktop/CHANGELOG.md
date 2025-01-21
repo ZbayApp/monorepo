@@ -1,25 +1,3 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-# [2.4.0](https://github.com/TryQuiet/quiet/compare/@quiet/desktop@2.2.1-alpha.1...@quiet/desktop@2.4.0) (2025-01-21)
-
-
-### Bug Fixes
-
-* **#2593:** link color ([#2640](https://github.com/TryQuiet/quiet/issues/2640)) ([7110cb5](https://github.com/TryQuiet/quiet/commit/7110cb5d6c84c9c3862ad15c532b593ec1341455)), closes [#2593](https://github.com/TryQuiet/quiet/issues/2593)
-* user profile area should be clickable [#2566](https://github.com/TryQuiet/quiet/issues/2566) ([#2595](https://github.com/TryQuiet/quiet/issues/2595)) ([9dfd6da](https://github.com/TryQuiet/quiet/commit/9dfd6da55a744546afd185c17bc8e6bbe29ec3ad))
-
-
-### Features
-
-* Add in V2 invite links for LFA ([#2661](https://github.com/TryQuiet/quiet/issues/2661)) ([46c0716](https://github.com/TryQuiet/quiet/commit/46c07166b3a8afd03d8d47d275b1787da8cfdaf1))
-
-
-
-
-
 # Changelog
 
 ## [unreleased]
