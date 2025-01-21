@@ -88,7 +88,7 @@ GEM
       claide (>= 1.0.2, < 2.0)
       colored2 (~> 3.1)
       nanaimo (~> 0.3.0)
-      rexml (>= 3.3.2, < 4.0)
+      rexml (>= 3.3.6, < 4.0)
     zeitwerk (2.6.18)
 
 PLATFORMS
