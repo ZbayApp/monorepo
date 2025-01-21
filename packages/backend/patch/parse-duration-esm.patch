@@ -1,8 +1,0 @@
---- node_modules/parse-duration/index.mjs	2022-12-20 13:04:34.000000000 +0100
-+++ node_modules/parse-duration/index.backup.mjs	2022-12-20 13:36:47.589323050 +0100
-@@ -1,4 +1,4 @@
--let durationRE = /(-?(?:\d+\.?\d*|\d*\.?\d+)(?:e[-+]?\d+)?)\s*([\p{L}]*)/uig
-+let durationRE = /(-?(?:\d+\.?\d*|\d*\.?\d+)(?:e[-+]?\d+)?)\s*([\p{L}]*)/ig
- 
- 
- /**

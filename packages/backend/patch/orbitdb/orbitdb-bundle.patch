@@ -1,0 +1,206 @@
+--- node_modules/@orbitdb/core/dist/orbitdb.js	2025-01-21 16:03:43
++++ node_modules/@orbitdb/core/dist/orbitdb.js	2025-01-21 16:07:51
+@@ -35552,18 +35552,20 @@
+ /* harmony export */   "default": () => (/* binding */ Sync)
+ /* harmony export */ });
+ /* harmony import */ var it_pipe__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! it-pipe */ "./node_modules/it-pipe/dist/src/index.js");
+-/* harmony import */ var p_queue__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! p-queue */ "./node_modules/p-queue/dist/index.js");
++/* harmony import */ var p_queue__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! p-queue */ "./node_modules/p-queue/dist/index.js");
+ /* harmony import */ var events__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! events */ "./node_modules/events/events.js");
+ /* harmony import */ var timeout_abort_controller__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! timeout-abort-controller */ "./node_modules/timeout-abort-controller/index.js");
+ /* harmony import */ var _utils_path_join_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./utils/path-join.js */ "./src/utils/path-join.js");
++/* harmony import */ var _utils_abortable_iter_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./utils/abortable-iter.js */ "./src/utils/abortable-iter.js");
+ 
+ 
+ 
+ 
+ 
+ 
+-const DefaultTimeout = 30000 // 30 seconds
+ 
++const DefaultTimeout = 30_000 // 30 seconds
++
+ /**
+  * @module Sync
+  * @description
+\ No newline at end of file
+@@ -35673,7 +35675,7 @@
+   const address = log.id
+   const headsSyncAddress = (0,_utils_path_join_js__WEBPACK_IMPORTED_MODULE_3__["default"])('/orbitdb/heads/', address)
+ 
+-  const queue = new p_queue__WEBPACK_IMPORTED_MODULE_4__["default"]({ concurrency: 1 })
++  const queue = new p_queue__WEBPACK_IMPORTED_MODULE_5__["default"]({ concurrency: 1 })
+ 
+   /**
+    * Set of currently connected peers for the log for this Sync instance.
+\ No newline at end of file
+@@ -35701,33 +35703,39 @@
+     events.emit('join', peerId, heads)
+   }
+ 
+-  const sendHeads = (source) => {
+-    return (async function * () {
++  const sendHeads = (abortController) => (source) => {
++    return (0,_utils_abortable_iter_js__WEBPACK_IMPORTED_MODULE_4__.abortableAsyncIterable)(async function * () {
+       const heads = await log.heads()
+       for await (const { bytes } of heads) {
+         yield bytes
+       }
+-    })()
++    }(), abortController.signal)
+   }
+ 
+-  const receiveHeads = (peerId) => async (source) => {
+-    for await (const value of source) {
+-      const headBytes = value.subarray()
+-      if (headBytes && onSynced) {
+-        await onSynced(headBytes)
++  const receiveHeads = (peerId, abortController) => async (source) => {
++    return (0,_utils_abortable_iter_js__WEBPACK_IMPORTED_MODULE_4__.abortableAsyncIterable)(async function * () {
++      for await (const value of source) {
++        const headBytes = value.subarray()
++        if (headBytes && onSynced) {
++          await onSynced(headBytes)
++        }
+       }
+-    }
+-    if (started) {
+-      await onPeerJoined(peerId)
+-    }
++      if (started) {
++        await onPeerJoined(peerId)
++      }
++    }(), abortController.signal)
+   }
+ 
+   const handleReceiveHeads = async ({ connection, stream }) => {
+     const peerId = String(connection.remotePeer)
++    const abortController = new AbortController()
+     try {
+       peers.add(peerId)
+-      await (0,it_pipe__WEBPACK_IMPORTED_MODULE_0__.pipe)(stream, receiveHeads(peerId), sendHeads, stream)
++      await (0,it_pipe__WEBPACK_IMPORTED_MODULE_0__.pipe)(stream, receiveHeads(peerId, abortController), sendHeads(abortController), stream)
+     } catch (e) {
++      if (!abortController.signal.aborted) {
++        abortController.abort(e)
++      }
+       peers.delete(peerId)
+       events.emit('error', e)
+     }
+\ No newline at end of file
+@@ -35746,19 +35754,23 @@
+           return
+         }
+         const timeoutController = new timeout_abort_controller__WEBPACK_IMPORTED_MODULE_2__.TimeoutController(timeout)
++        const abortController = new AbortController()
+         const { signal } = timeoutController
+         try {
++          console.log(`OrbitDB: Dialing ${headsSyncAddress} for peer ${peerId} on subscribe`)
+           peers.add(peerId)
+           const stream = await libp2p.dialProtocol(remotePeer, headsSyncAddress, { signal })
+-          await (0,it_pipe__WEBPACK_IMPORTED_MODULE_0__.pipe)(sendHeads, stream, receiveHeads(peerId))
++          console.log(`OrbitDB: Sending/receiving heads with peer ID ${peerId}`)
++          await (0,it_pipe__WEBPACK_IMPORTED_MODULE_0__.pipe)(sendHeads(abortController), stream, receiveHeads(peerId, abortController))
+         } catch (e) {
+-          console.error(e)
++          console.error(`OrbitDB: Error while dialing protocol ${headsSyncAddress} and syncing with peer ${peerId}`, e)
+           peers.delete(peerId)
+-          if (e.code === 'ERR_UNSUPPORTED_PROTOCOL') {
+-            // Skip peer, they don't have this database currently
++          if (timeoutController.signal.aborted) {
++            console.error(`OrbitDB: Couldn't sync due to timeout of ${DefaultTimeout}ms`)
+           } else {
+-            events.emit('error', e)
++            abortController.abort(e)
+           }
++          events.emit('error', e)
+         } finally {
+           if (timeoutController) {
+             timeoutController.clear()
+\ No newline at end of file
+@@ -35850,12 +35862,84 @@
+     start: startSync,
+     events,
+     peers
++  }
++}
++
++
++
++
++/***/ }),
++
++/***/ "./src/utils/abortable-iter.js":
++/*!*************************************!*\
++  !*** ./src/utils/abortable-iter.js ***!
++  \*************************************/
++/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
++
++"use strict";
++__webpack_require__.r(__webpack_exports__);
++/* harmony export */ __webpack_require__.d(__webpack_exports__, {
++/* harmony export */   abortableAsyncIterable: () => (/* binding */ abortableAsyncIterable),
++/* harmony export */   asyncGeneratorFromIterator: () => (/* binding */ asyncGeneratorFromIterator)
++/* harmony export */ });
++async function* asyncGeneratorFromIterator(asyncIterator) {
++  for await (const value of asyncIterator) {
++    yield value
+   }
+ }
+ 
++// Shamelessly stolen from https://github.com/whatwg/streams/issues/1255#issuecomment-2442964298
++// This is necessary because AsyncIterators are fickle and if you just wrap them in a try/catch or try to use
++// catch/then/finally on a wrapper promise it ultimately generates an unhandled rejection.  JS is so much fun.
++function abortableAsyncIterable(iter, signal = undefined, timeoutMs = undefined) {
++  const abortedPromise = new Promise((resolve, reject) => {
++    const ABORT_MESSAGE = 'Operation aborted'
++    const TIMEOUT_MESSAGE = `Operation exceeded timeout of ${timeoutMs}ms`
++    const ABORT_ERROR_NAME = 'AbortError'
++    const TIMEOUT_ERROR_NAME = 'TimeoutError'
+ 
++    let timeoutSignal = undefined
++    if (timeoutMs != null) {
++      timeoutSignal = AbortSignal.timeout(timeoutMs)
++    }
+ 
++    if (signal?.aborted) {
++      reject(new DOMException(ABORT_MESSAGE, ABORT_ERROR_NAME))
++    }
+ 
++    if (timeoutSignal?.aborted) {
++      reject(new DOMException(TIMEOUT_MESSAGE, TIMEOUT_ERROR_NAME))
++    }
++
++    if (signal != null) {
++      signal.addEventListener('abort', () => reject(new DOMException(ABORT_MESSAGE, ABORT_ERROR_NAME)))
++    }
++
++    if (timeoutSignal != null) {
++      timeoutSignal.addEventListener('abort', () => reject(new DOMException(TIMEOUT_MESSAGE, TIMEOUT_ERROR_NAME)))
++    }
++  })
++  abortedPromise.catch(() => {})
++
++  const abortableIterable = {
++    [Symbol.asyncIterator]: () => {
++      const inner = iter[Symbol.asyncIterator]()
++      const { return: _return, throw: _throw } = inner
++      return {
++        next: (...args) => Promise.race([inner.next(...args), abortedPromise]),
++        return: _return ? (...args) => _return.apply(inner, args) : undefined,
++        throw: _throw ? (...args) => _throw.apply(inner, args) : undefined,
++      }
++    },
++  }
++
++  if (Object.prototype.toString.call(iter) === '[object AsyncGenerator]') {
++    return asyncGeneratorFromIterator(abortableIterable)
++  }
++
++  return abortableIterable
++}
++
+ /***/ }),
+ 
+ /***/ "./src/utils/create-id.js":
+\ No newline at end of file
