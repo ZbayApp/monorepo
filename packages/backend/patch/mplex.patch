@@ -1,0 +1,95 @@
+--- packages/backend/node_modules/@libp2p/mplex/dist/src/mplex.js	2025-01-16 17:31:33
++++ packages/backend/patch/mplex.js	2025-01-16 17:22:23
+@@ -155,7 +155,8 @@
+     }
+     _newStream(options) {
+         const { id, name, type, registry } = options;
+-        this.log('new %s stream %s', type, id);
++        const _log = this.logger.forComponent(`libp2p:mplex:${type}:${id}:new`);
++        _log('new %s stream %s', type, id);
+         if (type === 'initiator' && this._streams.initiators.size === (this._init.maxOutboundStreams ?? MAX_STREAMS_OUTBOUND_STREAMS_PER_CONNECTION)) {
+             throw new TooManyOutboundProtocolStreamsError('Too many outbound streams open');
+         }
+\ No newline at end of file
+@@ -163,13 +164,13 @@
+             throw new Error(`${type} stream ${id} already exists!`);
+         }
+         const send = async (msg) => {
+-            if (this.log.enabled) {
+-                this.log.trace('%s stream %s send', type, id, printMessage(msg));
++            if (_log.enabled) {
++                _log.trace('%s stream %s send', type, id, printMessage(msg));
+             }
+             this._source.push(msg);
+         };
+         const onEnd = () => {
+-            this.log('%s stream with id %s and protocol %s ended', type, id, stream.protocol);
++            _log('%s stream with id %s and protocol %s ended', type, id, stream.protocol);
+             registry.delete(id);
+             if (this._init.onStreamEnd != null) {
+                 this._init.onStreamEnd(stream);
+\ No newline at end of file
+@@ -210,13 +211,14 @@
+     }
+     async _handleIncoming(message) {
+         const { id, type } = message;
+-        if (this.log.enabled) {
+-            this.log.trace('incoming message', printMessage(message));
++        const _log = this.logger.forComponent(`libp2p:mplex:stream:${type}:${id}:message`);
++        if (_log.enabled) {
++            _log.trace('incoming message', printMessage(message));
+         }
+         // Create a new stream?
+         if (message.type === MessageTypes.NEW_STREAM) {
+             if (this._streams.receivers.size === (this._init.maxInboundStreams ?? MAX_STREAMS_INBOUND_STREAMS_PER_CONNECTION)) {
+-                this.log('too many inbound streams open');
++                _log('too many inbound streams open');
+                 // not going to allow this stream, send the reset message manually
+                 // instead of setting it up just to tear it down
+                 this._source.push({
+\ No newline at end of file
+@@ -230,7 +232,7 @@
+                     await this.rateLimiter.consume('new-stream', 1);
+                 }
+                 catch {
+-                    this.log('rate limit hit when opening too many new streams over the inbound stream limit - closing remote connection');
++                    _log('rate limit hit when opening too many new streams over the inbound stream limit - closing remote connection');
+                     // since there's no backpressure in mplex, the only thing we can really do to protect ourselves is close the connection
+                     this.abort(new Error('Too many open streams'));
+                     return;
+\ No newline at end of file
+@@ -246,7 +248,7 @@
+         const list = (type & 1) === 1 ? this._streams.initiators : this._streams.receivers;
+         const stream = list.get(id);
+         if (stream == null) {
+-            this.log('missing stream %s for message type %s', id, MessageTypeNames[type]);
++            _log('missing stream %s for message type %s', id, MessageTypeNames[type]);
+             // if the remote keeps sending us messages for streams that have been
+             // closed or were never opened they may be attacking us so if they do
+             // this very quickly all we can do is close the connection
+\ No newline at end of file
+@@ -254,7 +256,7 @@
+                 await this.rateLimiter.consume('missing-stream', 1);
+             }
+             catch {
+-                this.log('rate limit hit when receiving messages for streams that do not exist - closing remote connection');
++                _log('rate limit hit when receiving messages for streams that do not exist - closing remote connection');
+                 // since there's no backpressure in mplex, the only thing we can really do to protect ourselves is close the connection
+                 this.abort(new Error('Too many messages for missing streams'));
+                 return;
+\ No newline at end of file
+@@ -289,11 +291,11 @@
+                     stream.reset();
+                     break;
+                 default:
+-                    this.log('unknown message type %s', type);
++                    _log('unknown message type %s', type);
+             }
+         }
+         catch (err) {
+-            this.log.error('error while processing message', err);
++            _log.error('error while processing message', err);
+             stream.abort(err);
+         }
+     }
+\ No newline at end of file

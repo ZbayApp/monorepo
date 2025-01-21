@@ -47,10 +47,12 @@ export class IpfsService {
       const bitstwapInstance = bitswap({
         incomingStreamTimeout: 60_000,
         sendBlocksTimeout: 30_000,
-        sendBlocksDebounce: 100,
+        sendBlocksDebounce: 10,
         // @ts-expect-error This is part of the config interface but it isn't typed that way
         messageReceiveTimeout: 30_000,
         protocol: BITSWAP_PROTOCOL,
+        maxInboundStreams: 512,
+        maxOutboundStreams: 512,
       })
       ipfs = await createHelia({
         start: false,

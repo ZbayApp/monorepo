@@ -1,17 +1,21 @@
 // Forked from:
 // https://github.com/libp2p/js-libp2p/blob/863949482bfa83ac3be2b72a4036ed9315f52d11/packages/transport-websockets/src/socket-to-conn.ts
 
-import { TimeoutError } from '@libp2p/interface'
-import { CLOSE_TIMEOUT } from './constants'
+import { AbortError, TimeoutError } from '@libp2p/interface'
+import { CLOSE_TIMEOUT, SocketCloseCode } from './constants'
 import type { AbortOptions, ComponentLogger, CounterGroup, MultiaddrConnection } from '@libp2p/interface'
 import type { Multiaddr } from '@multiformats/multiaddr'
 import type { DuplexWebSocket } from 'it-ws/duplex'
+import { CloseEvent, ErrorEvent, MessageEvent, WebSocket } from 'ws'
+import { abortableAsyncIterable } from '../common/utils'
+import { Uint8ArrayList } from 'uint8arraylist'
 
 export interface SocketToConnOptions {
   localAddr?: Multiaddr
   logger: ComponentLogger
   metrics?: CounterGroup
   metricPrefix?: string
+  signal?: AbortSignal
 }
 
 // Convert a stream into a MultiaddrConnection
@@ -21,29 +25,35 @@ export function socketToMaConn(
   remoteAddr: Multiaddr,
   options: SocketToConnOptions
 ): MultiaddrConnection {
-  const log = options.logger.forComponent('libp2p:websockets:maconn')
+  const log = options.logger.forComponent(`libp2p:websockets:maconn:${remoteAddr.getPeerId()}`)
   const metrics = options.metrics
   const metricPrefix = options.metricPrefix ?? ''
+  stream.source = abortableAsyncIterable(stream.source, options.signal)
+
+  const generateSink = (
+    source: AsyncGenerator<Uint8Array | Uint8ArrayList, any, unknown>
+  ): AsyncGenerator<Uint8Array, any, unknown> =>
+    (async function* () {
+      for await (const buf of source) {
+        if (buf instanceof Uint8Array) {
+          yield buf
+        } else {
+          yield buf.subarray()
+        }
+      }
+    })()
 
   const maConn: MultiaddrConnection = {
     log,
 
     async sink(source) {
       try {
-        await stream.sink(
-          (async function* () {
-            for await (const buf of source) {
-              if (buf instanceof Uint8Array) {
-                yield buf
-              } else {
-                yield buf.subarray()
-              }
-            }
-          })()
-        )
+        await stream.sink(generateSink(source))
       } catch (err: any) {
         if (err.type !== 'aborted') {
-          log.error(err)
+          log.error(`Stream abort error`, err)
+        } else {
+          log.error(`Stream error`, err)
         }
       }
     },
@@ -78,7 +88,7 @@ export function socketToMaConn(
       try {
         await stream.close()
       } catch (err: any) {
-        log.error('error closing WebSocket gracefully', err)
+        log.error('Error closing WebSocket gracefully', err)
         this.abort(err)
       } finally {
         options.signal?.removeEventListener('abort', listener)
@@ -101,9 +111,25 @@ export function socketToMaConn(
     },
   }
 
+  stream.socket.addEventListener('error', (errorEvent: ErrorEvent) => {
+    log.error(`Error on socket: ${errorEvent.message}`, errorEvent.error)
+  })
+
   stream.socket.addEventListener(
     'close',
-    () => {
+    (closeEvent: CloseEvent) => {
+      switch (closeEvent.code) {
+        case SocketCloseCode.ERROR:
+        case SocketCloseCode.INVALID_DATA:
+          log.error(`Socket is closing with code ${closeEvent.code} due to error`, closeEvent.reason)
+          break
+        case SocketCloseCode.NORMAL:
+        case SocketCloseCode.GO_AWAY:
+        case SocketCloseCode.UNDEFINED:
+        default:
+          break
+      }
+
       metrics?.increment({ [`${metricPrefix}close`]: true })
 
       // In instances where `close` was not explicitly called,

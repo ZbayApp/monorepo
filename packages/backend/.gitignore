@@ -3,5 +3,6 @@
 /coverage
 /testingFixtures/certificates/files
 /testingFixtures/certificates/files2
+/testingFixtures/certificates/files3
 /src/nest/storage/testUtils/large-file*
 /src/ipfs-file-manager/testUtils/large-file*

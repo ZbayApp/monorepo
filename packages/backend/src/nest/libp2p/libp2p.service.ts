@@ -1,9 +1,10 @@
 import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { noise, pureJsCrypto } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
+import { mplex } from '@libp2p/mplex'
 
 import { identify, identifyPush } from '@libp2p/identify'
-import { Stream, type Libp2p } from '@libp2p/interface'
+import { type Libp2p } from '@libp2p/interface'
 import { kadDHT } from '@libp2p/kad-dht'
 import { keychain } from '@libp2p/keychain'
 import { peerIdFromString } from '@libp2p/peer-id'
@@ -55,6 +56,7 @@ export class Libp2pService extends EventEmitter {
   public libp2pDatastore: Libp2pDatastore
   private redialTimeout: NodeJS.Timeout
   private localAddress: string
+  private _connectedPeersInterval: NodeJS.Timer
 
   private logger = createLogger(Libp2pService.name)
 
@@ -272,6 +274,7 @@ export class Libp2pService extends EventEmitter {
           outboundUpgradeTimeout: 30_000,
           protocolNegotiationTimeout: 10_000,
           maxDialQueueLength: 500,
+          reconnectRetries: 25,
         },
         privateKey: params.peerId.privKey,
         addresses: { listen: params.listenAddresses },
@@ -286,11 +289,18 @@ export class Libp2pService extends EventEmitter {
             ? preSharedKey({ psk: params.psk })
             : undefined,
         streamMuxers: [
-          yamux({
-            maxInboundStreams: 3_000,
-            maxOutboundStreams: 3_000,
+          mplex({
+            disconnectThreshold: 20,
+            maxInboundStreams: 1024,
+            maxOutboundStreams: 1024,
+            maxStreamBufferSize: 26214400,
+            maxUnprocessedMessageQueueSize: 104857600,
+            maxMsgSize: 10485760,
+            // @ts-expect-error This is part of the config interface but it isn't typed that way
+            closeTimeout: 15_000,
           }),
         ],
+        // @ts-ignore
         connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
         transports: params.transport
           ? params.transport
@@ -299,13 +309,13 @@ export class Libp2pService extends EventEmitter {
                 filter: filters.all,
                 websocket: {
                   agent: params.agent,
-                  handshakeTimeout: 15_000,
+                  handshakeTimeout: 30_000,
                   ciphers: WEBSOCKET_CIPHER_SUITE,
                   followRedirects: true,
                 },
                 localAddress: params.localAddress,
                 targetPort: params.targetPort,
-                closeOnEnd: true,
+                closeOnEnd: false,
               }),
             ],
         services: {
@@ -319,13 +329,18 @@ export class Libp2pService extends EventEmitter {
             debugName: params.peerId.peerId.toString(),
             doPX: true,
           }),
-          identify: identify({ timeout: 30_000 }),
-          identifyPush: identifyPush({ timeout: 30_000 }),
+          identify: identify({ timeout: 30_000, maxInboundStreams: 128, maxOutboundStreams: 128 }),
+          identifyPush: identifyPush({ timeout: 30_000, maxInboundStreams: 128, maxOutboundStreams: 128 }),
           keychain: keychain(),
           dht: kadDHT({
             allowQueryWithZeroPeers: true,
-            clientMode: false,
+            clientMode: true,
             initialQuerySelfInterval: 500,
+            providers: {
+              cacheSize: 1024,
+            },
+            maxInboundStreams: 128,
+            maxOutboundStreams: 128,
           }),
         },
       })
@@ -352,12 +367,19 @@ export class Libp2pService extends EventEmitter {
 
     this.serverIoProvider.io.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, ConnectionProcessInfo.INITIALIZING_LIBP2P)
 
+    this.libp2pInstance.addEventListener('connection:open', openEvent => {
+      this.logger.info(
+        `Opened connection with ID ${openEvent.detail.id} with peer`,
+        openEvent.detail.remotePeer.toString()
+      )
+    })
+
     this.libp2pInstance.addEventListener('peer:discovery', peer => {
       this.logger.info(`${peerId.peerId.toString()} discovered ${peer.detail.id}`)
     })
 
     this.libp2pInstance.addEventListener('connection:close', event => {
-      this.logger.info(`Connection closing with ${event.detail.remotePeer}`)
+      this.logger.warn(`Connection with ID ${event.detail.id} closing with peer`, event.detail.remotePeer.toString())
     })
 
     this.libp2pInstance.addEventListener('transport:close', event => {
@@ -426,12 +448,28 @@ export class Libp2pService extends EventEmitter {
       this.libp2pInstance.getMultiaddrs().map(addr => addr.toString())
     )
 
+    this._connectedPeersInterval = setInterval(() => {
+      const connections = []
+      for (const [peerId, peer] of this.connectedPeers.entries()) {
+        connections.push({
+          peerId,
+          address: peer.address,
+          connectedAtSeconds: peer.connectedAtSeconds,
+        })
+      }
+      this.logger.info(`Current Connected Peers`, {
+        connectionCount: this.connectedPeers.size,
+        connections,
+      })
+    }, 60_000)
+
     this.logger.info(`Initialized libp2p for peer ${peerId.peerId.toString()}`)
   }
 
   public async close(): Promise<void> {
     this.logger.info('Closing libp2p service')
     clearTimeout(this.redialTimeout)
+    clearInterval(this._connectedPeersInterval)
     await this.hangUpPeers()
     await this.libp2pInstance?.stop()
     await this.libp2pDatastore?.close()

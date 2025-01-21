@@ -1,0 +1,12 @@
+--- packages/backend/node_modules/it-ws/dist/src/sink.js	2025-01-15 16:49:51
++++ packages/backend/patch/sink.js	2025-01-16 14:39:35
+@@ -19,7 +19,7 @@
+             }
+             socket.send(data);
+         }
+-        if (options.closeOnEnd != null && socket.readyState <= 1) {
++        if (!!options.closeOnEnd && socket.readyState <= 1) {
+             await new Promise((resolve, reject) => {
+                 socket.addEventListener('close', event => {
+                     if (event.wasClean || event.code === 1006) {
+\ No newline at end of file
