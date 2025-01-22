@@ -55,7 +55,7 @@ export class Libp2pService extends EventEmitter {
   public dialedPeers: Set<string>
   public libp2pDatastore: Libp2pDatastore
   private redialTimeout: NodeJS.Timeout
-  private localAddress: string
+  public localAddress: string
   private _connectedPeersInterval: NodeJS.Timer
 
   private logger = createLogger(Libp2pService.name)

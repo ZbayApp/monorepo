@@ -1,0 +1,36 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Libp2pAuth intializes chains when peers connect: event timeline after dialing 1`] = `
+[
+  "A peerConnected",
+  "B peerConnected",
+  "A authStateChanged",
+  "B authStateChanged",
+  "B authStateChanged",
+  "A authStateChanged",
+  "A authStateChanged",
+  "B authStateChanged",
+  "B authJoined",
+  "B authStateChanged",
+]
+`;
+
+exports[`Libp2pAuth intializes chains when peers connect: instanceA event timeline after join 1`] = `
+[
+  "A peerConnected",
+  "A authStateChanged",
+  "A authStateChanged",
+  "A authStateChanged",
+]
+`;
+
+exports[`Libp2pAuth intializes chains when peers connect: instanceB event timeline after join 1`] = `
+[
+  "B peerConnected",
+  "B authStateChanged",
+  "B authStateChanged",
+  "B authStateChanged",
+  "B authJoined",
+  "B authStateChanged",
+]
+`;
