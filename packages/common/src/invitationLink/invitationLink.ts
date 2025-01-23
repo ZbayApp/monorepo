@@ -239,6 +239,7 @@ const composeInvitationUrl = (baseUrl: string, data: InvitationDataV1 | Invitati
       url.searchParams.append(PSK_PARAM_KEY, data.psk)
       url.searchParams.append(OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity)
       url.searchParams.append(AUTH_DATA_KEY, encodeAuthData(data.authData))
+      break
   }
   return url.href
 }

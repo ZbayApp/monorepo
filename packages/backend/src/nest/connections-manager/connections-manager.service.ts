@@ -12,7 +12,7 @@ import { getLibp2pAddressesFromCsrs, removeFilesFromDir } from '../common/utils'
 
 import { LazyModuleLoader } from '@nestjs/core'
 import { createLibp2pAddress, filterValidAddresses, isPSKcodeValid } from '@quiet/common'
-import { CertFieldsTypes, createRootCA, getCertFieldValue, loadCertificate } from '@quiet/identity'
+import { CertFieldsTypes, getCertFieldValue, loadCertificate } from '@quiet/identity'
 import {
   ChannelMessageIdsResponse,
   ChannelSubscribedPayload,
@@ -28,8 +28,6 @@ import {
   FileMetadata,
   GetMessagesPayload,
   InitCommunityPayload,
-  InvitationDataV2,
-  InvitationDataVersion,
   MessagesLoadedPayload,
   NetworkDataPayload,
   NetworkInfo,
@@ -62,7 +60,6 @@ import { SocketService } from '../socket/socket.service'
 import { StorageService } from '../storage/storage.service'
 import { StorageEvents } from '../storage/storage.types'
 import { StorageServiceClient } from '../storageServiceClient/storageServiceClient.service'
-import { ServerStoredCommunityMetadata } from '../storageServiceClient/storageServiceClient.types'
 import { Tor } from '../tor/tor.service'
 import { ConfigOptions, GetPorts, ServerIoProviderTypes } from '../types'
 import { ServiceState, TorInitState } from './connections-manager.types'
@@ -71,6 +68,7 @@ import { createLogger } from '../common/logger'
 import { createUserCsr, getPubKey, loadPrivateKey, pubKeyFromCsr } from '@quiet/identity'
 import { config } from '@quiet/state-manager'
 import { SigChainService } from '../auth/sigchain.service'
+import { Base58, InviteResult } from '3rd-party/auth/packages/auth/dist'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -590,7 +588,12 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       this.logger.error('Community name is required to create sigchain')
       return community
     }
-    this.sigChainService.createChain(community.name, identity.nickname, true)
+
+    this.logger.info(`Creating new LFA chain`)
+    await this.sigChainService.createChain(community.name, identity.nickname, true)
+    // this is the forever invite that all users get
+    this.logger.info(`Creating long lived LFA invite code`)
+    this.socketService.emit(SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE)
     return community
   }
 
@@ -909,13 +912,56 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       callback(await this.leaveCommunity())
     })
 
+    // Local First Auth
+
+    this.socketService.on(
+      SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE,
+      async (callback?: (response: InviteResult | undefined) => void) => {
+        this.logger.info(`socketService - ${SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE}`)
+        if (this.sigChainService.activeChainTeamName != null) {
+          const invite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
+          this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, invite)
+          if (callback) callback(invite)
+        } else {
+          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code generation!`)
+          if (callback) callback(undefined)
+        }
+      }
+    )
+
+    this.socketService.on(
+      SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE,
+      async (
+        inviteId: Base58,
+        callback: (response: { isValid: boolean; newInvite?: InviteResult } | undefined) => void
+      ) => {
+        this.logger.info(`socketService - ${SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE}`)
+        if (this.sigChainService.activeChainTeamName != null) {
+          if (this.sigChainService.getActiveChain().invites.isValidLongLivedUserInvite(inviteId)) {
+            this.logger.info(`Invite is a valid long lived LFA invite code!`)
+            callback({ isValid: true })
+          } else {
+            this.logger.info(`Invite is an invalid long lived LFA invite code!  Generating a new code!`)
+            const newInvite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
+            this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, newInvite)
+            callback({ isValid: false, newInvite })
+          }
+        } else {
+          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code validation/generation!`)
+          callback(undefined)
+        }
+      }
+    )
+
     // Username registration
+
     this.socketService.on(SocketActionTypes.ADD_CSR, async (payload: SaveCSRPayload) => {
       this.logger.info(`socketService - ${SocketActionTypes.ADD_CSR}`)
       await this.storageService?.saveCSR(payload)
     })
 
     // Public Channels
+
     this.socketService.on(
       SocketActionTypes.CREATE_CHANNEL,
       async (args: CreateChannelPayload, callback: (response?: CreateChannelResponse) => void) => {
