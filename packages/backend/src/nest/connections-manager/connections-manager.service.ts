@@ -896,7 +896,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         this.serverIoProvider.io.emit(SocketActionTypes.CERTIFICATES_STORED, {
           certificates: await this.storageService?.loadAllCertificates(),
         })
-        await this.storageService?.loadAllChannels()
+        await this.storageService?.channels.loadAllChannels()
       }
     })
     this.socketService.on(
@@ -994,7 +994,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     this.socketService.on(
       SocketActionTypes.CREATE_CHANNEL,
       async (args: CreateChannelPayload, callback: (response?: CreateChannelResponse) => void) => {
-        callback(await this.storageService?.subscribeToChannel(args.channel))
+        callback(await this.storageService?.channels.subscribeToChannel(args.channel))
       }
     )
     this.socketService.on(
@@ -1003,39 +1003,39 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         payload: { channelId: string; ownerPeerId: string },
         callback: (response: DeleteChannelResponse) => void
       ) => {
-        callback(await this.storageService?.deleteChannel(payload))
+        callback(await this.storageService?.channels.deleteChannel(payload))
       }
     )
     this.socketService.on(
       SocketActionTypes.DELETE_FILES_FROM_CHANNEL,
       async (payload: DeleteFilesFromChannelSocketPayload) => {
         this.logger.info(`socketService - ${SocketActionTypes.DELETE_FILES_FROM_CHANNEL}`)
-        await this.storageService?.deleteFilesFromChannel(payload)
+        await this.storageService?.channels.deleteFilesFromChannel(payload)
         // await this.deleteFilesFromTemporaryDir() //crashes on mobile, will be fixes in next versions
       }
     )
     this.socketService.on(SocketActionTypes.SEND_MESSAGE, async (args: SendMessagePayload) => {
-      await this.storageService?.sendMessage(args.message)
+      await this.storageService?.channels.sendMessage(args.message)
     })
     this.socketService.on(
       SocketActionTypes.GET_MESSAGES,
       async (payload: GetMessagesPayload, callback: (response?: MessagesLoadedPayload) => void) => {
-        callback(await this.storageService?.getMessages(payload.channelId, payload.ids))
+        callback(await this.storageService?.channels.getMessages(payload.channelId, payload.ids))
       }
     )
 
     // Files
     this.socketService.on(SocketActionTypes.DOWNLOAD_FILE, async (metadata: FileMetadata) => {
-      await this.storageService?.downloadFile(metadata)
+      await this.storageService?.channels.downloadFile(metadata)
     })
     this.socketService.on(SocketActionTypes.UPLOAD_FILE, async (metadata: FileMetadata) => {
-      await this.storageService?.uploadFile(metadata)
+      await this.storageService?.channels.uploadFile(metadata)
     })
     this.socketService.on(SocketActionTypes.FILE_UPLOADED, async (args: FileMetadata) => {
-      await this.storageService?.uploadFile(args)
+      await this.storageService?.channels.uploadFile(args)
     })
     this.socketService.on(SocketActionTypes.CANCEL_DOWNLOAD, mid => {
-      this.storageService?.cancelDownload(mid)
+      this.storageService?.channels.cancelDownload(mid)
     })
 
     // System
@@ -1058,37 +1058,37 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       this.logger.info(`Storage - ${StorageEvents.CERTIFICATES_STORED}`)
       this.serverIoProvider.io.emit(SocketActionTypes.CERTIFICATES_STORED, payload)
     })
-    this.storageService.on(StorageEvents.CHANNELS_STORED, (payload: ChannelsReplicatedPayload) => {
+    this.storageService.channels.on(StorageEvents.CHANNELS_STORED, (payload: ChannelsReplicatedPayload) => {
       this.serverIoProvider.io.emit(SocketActionTypes.CHANNELS_STORED, payload)
     })
-    this.storageService.on(StorageEvents.MESSAGES_STORED, (payload: MessagesLoadedPayload) => {
+    this.storageService.channels.on(StorageEvents.MESSAGES_STORED, (payload: MessagesLoadedPayload) => {
       this.serverIoProvider.io.emit(SocketActionTypes.MESSAGES_STORED, payload)
     })
-    this.storageService.on(StorageEvents.MESSAGE_IDS_STORED, (payload: ChannelMessageIdsResponse) => {
+    this.storageService.channels.on(StorageEvents.MESSAGE_IDS_STORED, (payload: ChannelMessageIdsResponse) => {
       if (payload.ids.length === 0) {
         return
       }
       this.serverIoProvider.io.emit(SocketActionTypes.MESSAGE_IDS_STORED, payload)
     })
-    this.storageService.on(StorageEvents.CHANNEL_SUBSCRIBED, (payload: ChannelSubscribedPayload) => {
+    this.storageService.channels.on(StorageEvents.CHANNEL_SUBSCRIBED, (payload: ChannelSubscribedPayload) => {
       this.serverIoProvider.io.emit(SocketActionTypes.CHANNEL_SUBSCRIBED, payload)
     })
-    this.storageService.on(StorageEvents.REMOVE_DOWNLOAD_STATUS, (payload: RemoveDownloadStatus) => {
+    this.storageService.channels.on(StorageEvents.REMOVE_DOWNLOAD_STATUS, (payload: RemoveDownloadStatus) => {
       this.serverIoProvider.io.emit(SocketActionTypes.REMOVE_DOWNLOAD_STATUS, payload)
     })
-    this.storageService.on(StorageEvents.FILE_UPLOADED, (payload: UploadFilePayload) => {
+    this.storageService.channels.on(StorageEvents.FILE_UPLOADED, (payload: UploadFilePayload) => {
       this.serverIoProvider.io.emit(SocketActionTypes.FILE_UPLOADED, payload)
     })
-    this.storageService.on(StorageEvents.DOWNLOAD_PROGRESS, (payload: DownloadStatus) => {
+    this.storageService.channels.on(StorageEvents.DOWNLOAD_PROGRESS, (payload: DownloadStatus) => {
       this.serverIoProvider.io.emit(SocketActionTypes.DOWNLOAD_PROGRESS, payload)
     })
-    this.storageService.on(StorageEvents.MESSAGE_MEDIA_UPDATED, (payload: FileMetadata) => {
+    this.storageService.channels.on(StorageEvents.MESSAGE_MEDIA_UPDATED, (payload: FileMetadata) => {
       this.serverIoProvider.io.emit(SocketActionTypes.MESSAGE_MEDIA_UPDATED, payload)
     })
-    this.storageService.on(StorageEvents.COMMUNITY_UPDATED, (payload: Community) => {
+    this.storageService.channels.on(StorageEvents.COMMUNITY_UPDATED, (payload: Community) => {
       this.serverIoProvider.io.emit(SocketActionTypes.COMMUNITY_UPDATED, payload)
     })
-    this.storageService.on(StorageEvents.SEND_PUSH_NOTIFICATION, (payload: PushNotificationPayload) => {
+    this.storageService.channels.on(StorageEvents.SEND_PUSH_NOTIFICATION, (payload: PushNotificationPayload) => {
       this.serverIoProvider.io.emit(SocketActionTypes.PUSH_NOTIFICATION, payload)
     })
     this.storageService.on(StorageEvents.CSRS_STORED, async (payload: { csrs: string[] }) => {
