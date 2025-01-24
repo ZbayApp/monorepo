@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common'
-import { keyObjectFromString, verifySignature } from '@quiet/identity'
 import { stringToArrayBuffer } from 'pvutils'
-import { ChannelMessage, NoCryptoEngineError } from '@quiet/types'
 import EventEmitter from 'events'
 import { getCrypto, ICryptoEngine } from 'pkijs'
 
+import { keyObjectFromString, verifySignature } from '@quiet/identity'
+import { ChannelMessage, NoCryptoEngineError } from '@quiet/types'
+
 import { createLogger } from '../../../common/logger'
+import { EncryptedAndSignedPayload, EncryptedPayload } from '../../../auth/services/crypto/types'
+import { SignedEnvelope } from '3rd-party/auth/packages/auth/dist'
 
 @Injectable()
 export class MessagesService extends EventEmitter {
@@ -39,6 +42,18 @@ export class MessagesService extends EventEmitter {
     }
 
     return await verifySignature(signature, message.message, cryptoKey)
+  }
+
+  // TODO: https://github.com/TryQuiet/quiet/issues/2631
+  // NOTE: the signature here may not be correct
+  public async encryptMessage(message: ChannelMessage): Promise<EncryptedAndSignedPayload> {
+    throw new Error(`MessagesService.encryptMessage is not implemented!`)
+  }
+
+  // TODO: https://github.com/TryQuiet/quiet/issues/2632
+  // NOTE: the signature here may not be correct
+  public async decryptMessage(encrypted: EncryptedPayload, signature: SignedEnvelope): Promise<ChannelMessage> {
+    throw new Error(`MessagesService.decryptMessage is not implemented!`)
   }
 
   /**
