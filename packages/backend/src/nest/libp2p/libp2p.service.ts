@@ -57,6 +57,7 @@ export class Libp2pService extends EventEmitter {
   private redialTimeout: NodeJS.Timeout
   public localAddress: string
   private _connectedPeersInterval: NodeJS.Timer
+  private authService: Libp2pAuth | undefined
 
   private logger = createLogger(Libp2pService.name)
 
@@ -201,6 +202,9 @@ export class Libp2pService extends EventEmitter {
     try {
       const ma = multiaddr(peerAddress)
       const peerId = peerIdFromString(ma.getPeerId()!)
+
+      this.logger.info('Disconnecting auth service gracefully')
+      await this.authService?.closeAuthConnection(peerId)
 
       this.logger.info('Hanging up connection on libp2p')
       await this.libp2pInstance?.hangUp(ma)
@@ -350,6 +354,10 @@ export class Libp2pService extends EventEmitter {
     }
 
     this.libp2pInstance = libp2p
+    const maybeAuth = libp2p.services['auth']
+    if (maybeAuth != null) {
+      this.authService = maybeAuth as Libp2pAuth
+    }
     await this.afterCreation(params.peerId)
     return libp2p
   }

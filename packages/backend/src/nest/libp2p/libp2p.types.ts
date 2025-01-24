@@ -17,6 +17,7 @@ export enum Libp2pEvents {
   AUTH_PEER_INVALID = 'authPeerInvalid',
   AUTH_PEER_CANNOT_ADMIT = 'authPeerCannotAdmit',
   AUTH_DISCONNECTED = 'authDisconnected',
+  AUTH_UPDATED = 'authUpdated',
 }
 
 export interface Libp2pNodeParams {
