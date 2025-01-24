@@ -8,6 +8,7 @@ import { CertificatesStore } from './certificates/certificates.store'
 import { CommunityMetadataStore } from './communityMetadata/communityMetadata.store'
 import { UserProfileStore } from './userProfile/userProfile.store'
 import { IpfsModule } from '../ipfs/ipfs.module'
+import { ChannelsService } from './channels/channels.service'
 
 @Module({
   imports: [LocalDbModule, IpfsModule, IpfsFileManagerModule],
@@ -18,6 +19,7 @@ import { IpfsModule } from '../ipfs/ipfs.module'
     CommunityMetadataStore,
     CertificatesRequestsStore,
     UserProfileStore,
+    ChannelsService,
   ],
   exports: [StorageService],
 })
