@@ -24,7 +24,7 @@ abstract class StoreBase<V, S extends KeyValueType<V> | EventsType<V>> extends E
     logger.info('Closed', this.getAddress())
   }
 
-  abstract init(): Promise<void>
+  abstract init(...args: any[]): Promise<void> | Promise<StoreBase<V, S>>
   abstract clean(): void
 }
 

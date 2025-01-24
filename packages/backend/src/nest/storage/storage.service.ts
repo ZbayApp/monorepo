@@ -112,6 +112,9 @@ export class StorageService extends EventEmitter {
     return `/orbitdb/${db.root}/${db.path}`
   }
 
+  /**
+   * Get the ChannelsService for managing channels and messages
+   */
   public get channels() {
     return this.channelsService
   }
