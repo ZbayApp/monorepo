@@ -7,13 +7,11 @@ import {
   getReqFieldValue,
   keyFromCertificate,
 } from '@quiet/identity'
-import { EventsType, type KeyValueType } from '@orbitdb/core'
 import { EventEmitter } from 'events'
 import { type PeerId } from '@libp2p/interface'
 import {
   CommunityMetadata,
   ConnectionProcessInfo,
-  PublicChannel,
   SaveCSRPayload,
   SaveCertificatePayload,
   SocketActionTypes,
@@ -27,7 +25,6 @@ import fs from 'fs'
 import { IPFS_REPO_PATCH, ORBIT_DB_DIR, QUIET_DIR } from '../const'
 import { LocalDbService } from '../local-db/local-db.service'
 import { createLogger } from '../common/logger'
-import { PublicChannelsRepo } from '../common/types'
 import { removeFiles, removeDirs, createPaths } from '../common/utils'
 import { StorageEvents } from './storage.types'
 import { CertificatesStore } from './certificates/certificates.store'
@@ -42,7 +39,6 @@ import { ChannelsService } from './channels/channels.service'
 @Injectable()
 export class StorageService extends EventEmitter {
   private peerId: PeerId | null = null
-  private certificates: EventsType<string> | null
 
   private readonly logger = createLogger(StorageService.name)
 
@@ -346,8 +342,6 @@ export class StorageService extends EventEmitter {
     this.peerId = null
 
     await this.channelsService.clean()
-
-    this.certificates = null
 
     this.certificatesRequestsStore.clean()
     this.certificatesStore.clean()
