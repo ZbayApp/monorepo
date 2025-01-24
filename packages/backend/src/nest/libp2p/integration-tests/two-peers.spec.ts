@@ -1,77 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing'
-import { TestModule } from '../../common/test.module'
-import { getLocalLibp2pInstanceParams } from '../../common/utils'
-import { Libp2pModule } from '../libp2p.module'
-import { SigChainModule } from '../../auth/sigchain.service.module'
+import { TestingModule } from '@nestjs/testing'
 import { Libp2pService } from '../libp2p.service'
 import { SigChainService } from '../../auth/sigchain.service'
-import { Libp2pEvents, Libp2pNodeParams } from '../libp2p.types'
+import { Libp2pEvents } from '../libp2p.types'
 import { createLogger } from '../../common/logger'
+import { headsAreEqual } from '@localfirst/crdx'
+import { spawnLibp2pInstances, spawnTestModules, attachEventListeners, timelinesInclude } from './test-utils'
 
 const logger = createLogger('libp2p:libp2p.auth.spec')
-
-const attachEventListeners = (libp2pService: Libp2pService, timeline: string[], instanceName: string) => {
-  // loop over all enum Libp2pEvents and attach event listeners
-  for (const event of Object.values(Libp2pEvents)) {
-    if (event === Libp2pEvents.AUTH_STATE_CHANGED) {
-      libp2pService.on(event, (state: any) => {
-        timeline.push(`${event}:${state}`)
-      })
-    } else {
-      libp2pService.on(event, () => {
-        timeline.push(`${event}`)
-      })
-    }
-  }
-}
-
-const spawnTestModules = async (number: number) => {
-  const singlePSK = Libp2pService.generateLibp2pPSK().fullKey
-
-  const modules = []
-  for (let i = 0; i < number; i++) {
-    const module = await Test.createTestingModule({
-      imports: [TestModule, Libp2pModule, SigChainModule],
-    }).compile()
-    modules.push(module)
-  }
-  logger.info(`created ${modules.length} test modules`)
-  return modules
-}
-
-const spawnLibp2pInstances = async (
-  modules: TestingModule[],
-  customLibp2pInstanceParams?: Libp2pNodeParams,
-  sharePsk: boolean = true
-) => {
-  logger.info(`creating ${modules.length} libp2p instances`)
-  const singlePSK = Libp2pService.generateLibp2pPSK().fullKey
-  const libp2pServices = []
-  for (let i = 0; i < modules.length; i++) {
-    logger.info(`creating libp2p instance ${i}`)
-    const libp2pService = await modules[i].resolve(Libp2pService)
-    const params = {
-      ...(await getLocalLibp2pInstanceParams()),
-      ...customLibp2pInstanceParams,
-      instanceName: `instance${i}`,
-    }
-    if (sharePsk) {
-      params.psk = singlePSK
-    }
-    logger.info(`creating libp2p instance with params:`, params)
-    await libp2pService.createInstance(params)
-    libp2pServices.push(libp2pService)
-  }
-  logger.info(`created ${libp2pServices.length} libp2p instances`)
-  return libp2pServices
-}
-
-const timelinesInclude = (timelines: string[][], event: string): boolean => {
-  if (timelines.every(timeline => timeline.includes(event))) {
-    return true
-  }
-  return false
-}
 
 describe('Libp2pAuth', () => {
   const teamName: string = 'team'
@@ -106,6 +41,11 @@ describe('Libp2pAuth', () => {
     const inviteResult = await sigchainServiceA.getActiveChain().invites.createLongLivedUserInvite()
     await sigchainServiceB.createChainFromInvite(userB, teamName, inviteResult.seed, true)
   })
+  afterEach(() => {
+    eventTimeline.length = 0
+    eventTimelineA.length = 0
+    eventTimelineB.length = 0
+  })
 
   afterAll(async () => {
     for (const module of modules) {
@@ -125,33 +65,38 @@ describe('Libp2pAuth', () => {
     expect(libp2pServiceB.libp2pInstance).toBeDefined()
   })
 
-  it(
-    'joins with an invitation',
-    async () => {
-      logger.info('Initializes chains when peers connect')
-      // Wait for chain init event on B
-      await new Promise<void>(resolve => {
-        libp2pServiceB.once(Libp2pEvents.AUTH_JOINED, () => {
-          logger.info('libp2pServiceB initialized chain')
-          expect(eventTimeline).toMatchSnapshot('event timeline after joining')
-          expect(eventTimelineA).toMatchSnapshot('instanceA event timeline after join')
-          expect(eventTimelineB).toMatchSnapshot('instanceB event timeline after join')
-          resolve()
-        })
-        libp2pServiceB.dialPeer(libp2pServiceA.localAddress)
+  it('joins with an invitation', async () => {
+    logger.info('Initializes chains when peers connect')
+    // Wait for chain init event on B
+    await new Promise<void>(resolve => {
+      libp2pServiceB.once(Libp2pEvents.AUTH_JOINED, () => {
+        logger.info('libp2pServiceB initialized chain')
+        expect(eventTimeline).toMatchSnapshot('event timeline after joining')
+        expect(eventTimelineA).toMatchSnapshot('instanceA event timeline after join')
+        expect(eventTimelineB).toMatchSnapshot('instanceB event timeline after join')
+        resolve()
       })
+      libp2pServiceB.dialPeer(libp2pServiceA.localAddress)
+    })
 
-      expect(sigchainServiceA.getActiveChain().team).toBeDefined()
-    },
-    1000 * 60 * 5
-  )
+    expect(sigchainServiceA.getActiveChain().team).toBeDefined()
+    expect(sigchainServiceB.getActiveChain().team).toBeDefined()
+    expect(sigchainServiceA.getActiveChain() !== sigchainServiceB.getActiveChain()).toBeTruthy()
+    // at this point B should have added themselves to the chain, but not yet synced that with A
+    expect(
+      headsAreEqual(
+        sigchainServiceA.getActiveChain().team?.graph.head,
+        sigchainServiceB.getActiveChain().team?.graph.head
+      )
+    ).toBeFalsy()
+  })
   it('emits connected after syncing', async () => {
     logger.info('Emits connected after syncing')
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('PEER_DISCONNECTED events did not occur within expected time.'))
       }, 70_000)
-      const bothConnected = async () => {
+      const resolveIfMet = async () => {
         if (timelinesInclude([eventTimelineA, eventTimelineB], Libp2pEvents.AUTH_CONNECTED)) {
           logger.info('timelines include expected events!')
           expect(eventTimelineA).toMatchSnapshot('instanceA event timeline after connected')
@@ -162,31 +107,33 @@ describe('Libp2pAuth', () => {
       }
       libp2pServiceA.on(Libp2pEvents.AUTH_CONNECTED, async () => {
         logger.info('test listener heard libp2pServiceA connected')
-        await bothConnected()
+        await resolveIfMet()
       })
       libp2pServiceB.on(Libp2pEvents.AUTH_CONNECTED, async () => {
         logger.info('test listener heard libp2pServiceB connected')
-        await bothConnected()
+        await resolveIfMet()
       })
     })
+    // at this point the sync should be complete and the heads should be equal
+    expect(
+      headsAreEqual(
+        sigchainServiceA.getActiveChain().team?.graph.head,
+        sigchainServiceB.getActiveChain().team?.graph.head
+      )
+    ).toBeTruthy()
   })
   it('gracefully disconnects', async () => {
-    const disconnectEventsA: string[] = []
-    const disconnectEventsB: string[] = []
-    attachEventListeners(libp2pServiceA, disconnectEventsA, 'A')
-    attachEventListeners(libp2pServiceB, disconnectEventsB, 'B')
-
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('PEER_DISCONNECTED events did not occur within expected time.'))
       }, 70_000)
-      const bothDisconnected = async () => {
+      const resolveIfMet = async () => {
         if (
-          disconnectEventsA.includes(Libp2pEvents.PEER_DISCONNECTED) &&
-          disconnectEventsB.includes(Libp2pEvents.PEER_DISCONNECTED)
+          eventTimelineA.includes(Libp2pEvents.PEER_DISCONNECTED) &&
+          eventTimelineB.includes(Libp2pEvents.PEER_DISCONNECTED)
         ) {
-          expect(disconnectEventsA).toMatchSnapshot('disconnectEventsA')
-          expect(disconnectEventsB).toMatchSnapshot('disconnectEventsB')
+          expect(eventTimelineA).toMatchSnapshot('disconnectEventsA')
+          expect(eventTimelineB).toMatchSnapshot('disconnectEventsB')
           expect(eventTimeline).toMatchSnapshot('eventTimeline after disconnection')
           clearTimeout(timeout)
           resolve()
@@ -194,11 +141,11 @@ describe('Libp2pAuth', () => {
       }
       libp2pServiceA.once(Libp2pEvents.PEER_DISCONNECTED, () => {
         logger.info('test listener heard libp2pServiceA disconnected')
-        bothDisconnected()
+        resolveIfMet()
       })
       libp2pServiceB.once(Libp2pEvents.PEER_DISCONNECTED, () => {
         logger.info('test listener heard libp2pServiceB disconnected')
-        bothDisconnected()
+        resolveIfMet()
       })
       libp2pServiceB.hangUpPeers()
     })

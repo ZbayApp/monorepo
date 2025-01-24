@@ -258,6 +258,11 @@ export const libp2pInstanceParams = async (): Promise<Libp2pNodeParams> => {
   }
 }
 
+/**
+ * Generates params for use in testing libp2p instances locally
+ * Replaces websocketOverTor with default websockets transport
+ * @returns {Promise<Libp2pNodeParams>}
+ */
 export async function getLocalLibp2pInstanceParams(): Promise<Libp2pNodeParams> {
   const port = await getPort()
   const peerId = await createPeerId()
