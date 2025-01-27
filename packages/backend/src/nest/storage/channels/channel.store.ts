@@ -85,12 +85,11 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
     this.getStore().events.on('update', async (entry: LogEntry<ChannelMessage>) => {
       this.logger.info(`${this.channelData.id} database updated`, entry.hash, entry.payload.value?.channelId)
 
-      const message = entry.payload.value!
-      const verified = await this.messagesService.verifyMessage(message)
+      const message = await this.messagesService.onConsume(entry.payload.value!)
 
       this.emit(StorageEvents.MESSAGES_STORED, {
         messages: [message],
-        isVerified: verified,
+        isVerified: message.verified,
       })
 
       const ids = (await this.getEntries()).map(msg => msg.id)
@@ -110,7 +109,7 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
       //
       // Display push notifications on mobile
       if (process.env.BACKEND === 'mobile') {
-        if (!verified) return
+        if (!message.verified) return
 
         // Do not notify about old messages
         if (message.createdAt < parseInt(process.env.CONNECTION_TIME || '')) return
@@ -169,16 +168,10 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
    * @param ids Message IDs to read from this channel's OrbitDB database
    * @returns Messages read from OrbitDB
    */
-  public async getMessages(ids: string[]): Promise<MessagesLoadedPayload | undefined> {
-    const messages = await this.getEntries()
-    const filteredMessages: ChannelMessage[] = []
-
-    for (const id of ids) {
-      filteredMessages.push(...messages.filter(i => i.id === id))
-    }
-
+  public async getMessages(ids: string[] | undefined = undefined): Promise<MessagesLoadedPayload | undefined> {
+    const messages = await this.getEntries(ids)
     return {
-      messages: filteredMessages,
+      messages,
       isVerified: true,
     }
   }
@@ -197,7 +190,8 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
     }
 
     this.logger.info('Adding message to database')
-    return await this.store.add(message)
+    const processedMessage = await this.messagesService.onSend(message)
+    return await this.store.add(processedMessage)
   }
 
   /**
@@ -205,12 +199,17 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
    *
    * @returns All entries on the event store
    */
-  public async getEntries(): Promise<ChannelMessage[]> {
+  public async getEntries(): Promise<ChannelMessage[]>
+  public async getEntries(ids: string[] | undefined): Promise<ChannelMessage[]>
+  public async getEntries(ids?: string[] | undefined): Promise<ChannelMessage[]> {
     this.logger.info(`Getting all messages for channel`, this.channelData.id, this.channelData.name)
     const messages: ChannelMessage[] = []
 
     for await (const x of this.getStore().iterator()) {
-      messages.push(x.value)
+      if (ids == null || ids?.includes(x.id)) {
+        const processedMessage = await this.messagesService.onConsume(x.value, false)
+        messages.push(processedMessage)
+      }
     }
 
     return messages

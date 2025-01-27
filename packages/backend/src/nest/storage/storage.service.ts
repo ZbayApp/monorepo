@@ -321,14 +321,6 @@ export class StorageService extends EventEmitter {
     await this.userProfileStore.setEntry(profile.pubKey, profile)
   }
 
-  public async checkIfFileExist(filepath: string): Promise<boolean> {
-    return await new Promise(resolve => {
-      fs.access(filepath, fs.constants.F_OK, error => {
-        resolve(!error)
-      })
-    })
-  }
-
   public async setIdentity(identity: Identity) {
     await this.localDbService.setIdentity(identity)
     this.emit(SocketActionTypes.IDENTITY_STORED, identity)

@@ -366,7 +366,10 @@ export class ChannelsService extends EventEmitter {
    * @param ids IDS of messages to read
    * @returns Payload containing messages read
    */
-  public async getMessages(channelId: string, messageIds: string[]): Promise<MessagesLoadedPayload | undefined> {
+  public async getMessages(
+    channelId: string,
+    messageIds: string[] | undefined = undefined
+  ): Promise<MessagesLoadedPayload | undefined> {
     const repo = this.publicChannelsRepos.get(channelId)
     if (repo == null) {
       this.logger.error(`Could not read messages. No '${channelId}' channel in saved public channels`)
@@ -488,15 +491,12 @@ export class ChannelsService extends EventEmitter {
   /**
    * Check if the file with the supplied path exists on the file system
    *
-   * @param filepath Path to file
+   * @param filePath Path to file
    * @returns True if file exists at the path
    */
-  public async checkIfFileExist(filepath: string): Promise<boolean> {
-    return await new Promise(resolve => {
-      fs.access(filepath, fs.constants.F_OK, error => {
-        resolve(!error)
-      })
-    })
+  public async checkIfFileExist(filePath: string): Promise<boolean> {
+    this.logger.info(`Checking if ${filePath} exists`)
+    return fs.existsSync(filePath)
   }
 
   // Close Logic
