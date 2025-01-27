@@ -4,7 +4,7 @@
   "version": "2.0.2-alpha.0",
   "private": true,
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "6.7.4",
+    "@typescript-eslint/eslint-plugin": "6.21.0",
     "@typescript-eslint/parser": "6.7.4",
     "eslint": "^8.50.0",
     "eslint-config-prettier": "^9.0.0",
