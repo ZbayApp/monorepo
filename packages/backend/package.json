@@ -175,6 +175,7 @@
     "socket.io-client": "^4.7.5",
     "string-replace-loader": "3.1.0",
     "ts-jest-resolver": "^2.0.0",
+    "uint8arraylist": "^2.4.8",
     "uint8arrays": "^5.1.0",
     "utf-8-validate": "^5.0.2",
     "validator": "^13.11.0",
