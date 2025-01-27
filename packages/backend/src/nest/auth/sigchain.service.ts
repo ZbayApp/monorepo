@@ -61,13 +61,12 @@ export class SigChainService implements OnModuleInit {
    * @returns Whether the chain was set as active
    */
   addChain(chain: SigChain, setActive: boolean, teamName?: string): boolean {
-    const name = teamName || chain.team!.teamName
-    if (this.chains.has(name)) {
+    if (this.chains.has(chain.team.teamName)) {
       throw new Error(`Chain for team ${teamName} already exists`)
     }
-    this.chains.set(name, chain)
+    this.chains.set(chain.team.teamName, chain)
     if (setActive) {
-      this.setActiveChain(name)
+      this.setActiveChain(chain.team.teamName)
       return true
     }
     return false
@@ -120,7 +119,7 @@ export class SigChainService implements OnModuleInit {
   ): Promise<SigChain> {
     this.logger.info('Deserializing chain')
     const sigChain = SigChain.load(serializedTeam, context, teamKeyRing)
-    this.addChain(sigChain, setActive, sigChain.team?.teamName)
+    this.addChain(sigChain, setActive)
     return sigChain
   }
 
