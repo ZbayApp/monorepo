@@ -256,12 +256,12 @@ describe('UsernameRegistration', () => {
         registeredUsers={{
           'BCidRGCBqBPNGNrZ1oml99/qtHjZ6ZtliVzJPpReZk9YC6+aQ1zeooOlpyzv7rNG6nMX2R5ffaVkZZFgEMdNEBg=': {
             onionAddress: 'zpu47hphczcuyt3auu5pr2knvimf3adm76gt3g7zbspungjbm3tsy3ad.onion',
-            peerId: 'QmPrgB2jSFvr7yP3vbLKMLW4JS9hoA9kj2fhN8VjE2NWvJ',
+            peerId: '12D3KooWHgLdRMqkepNiYnrur21cyASUNk1f9NZ5tuGa9He8QXNa',
             username: 'owner',
           },
           'BJ50trLih9tvIznBAi69dLNpBV5YiQHCU610UfH3Qm9t3cki9QHWAAhvrfOX+763BH1fwqkOU3JsoBAEF1+USvM=': {
             onionAddress: 'lr5d3d64p4hx4mw3uue3ufews23jhl6bfqnsimt7j52igjqdv2zrmsyd.onion',
-            peerId: 'QmWwMev68izPUKB1PGxkG3UHHXiappQQAnkvUwPSTzrUyy',
+            peerId: '12D3KooWPYjyHnYYwe3kzEESMVbpAUHkQyEQpRHehH8QYtGRntVn',
             username: 'johnny',
           },
         }}

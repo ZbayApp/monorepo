@@ -1,4 +1,5 @@
 import { getCrypto } from 'pkijs'
+import { type EventsType, IPFSAccessController, type LogEntry } from '@orbitdb/core'
 import { StorageEvents } from '../storage.types'
 import { CommunityMetadata, NoCryptoEngineError } from '@quiet/types'
 import {
@@ -11,10 +12,11 @@ import {
 import { ConnectionProcessInfo, SocketActionTypes, UserData } from '@quiet/types'
 import { validate } from 'class-validator'
 import { CertificateData } from '../../registration/registration.functions'
-import { OrbitDb } from '../orbitDb/orbitDb.service'
+import { OrbitDbService } from '../orbitDb/orbitDb.service'
 import { Injectable } from '@nestjs/common'
 import { createLogger } from '../../common/logger'
 import { EventStoreBase } from '../base.store'
+import { EventsWithStorage } from '../orbitDb/eventsWithStorage'
 
 @Injectable()
 export class CertificatesStore extends EventStoreBase<string> {
@@ -24,7 +26,7 @@ export class CertificatesStore extends EventStoreBase<string> {
   private filteredCertificatesMapping: Map<string, Partial<UserData>>
   private usernameMapping: Map<string, string>
 
-  constructor(private readonly orbitDbService: OrbitDb) {
+  constructor(private readonly orbitDbService: OrbitDbService) {
     super()
     this.filteredCertificatesMapping = new Map()
     this.usernameMapping = new Map()
@@ -33,32 +35,26 @@ export class CertificatesStore extends EventStoreBase<string> {
   public async init() {
     this.logger.info('Initializing certificates log store')
 
-    this.store = await this.orbitDbService.orbitDb.log<string>('certificates', {
-      replicate: false,
-      accessController: {
-        write: ['*'],
-      },
+    this.store = await this.orbitDbService.orbitDb.open<EventsType<string>>('certificates', {
+      type: 'events',
+      sync: false,
+      Database: EventsWithStorage(),
+      AccessController: IPFSAccessController({ write: ['*'] }),
     })
 
-    this.store.events.on('ready', async () => {
-      this.logger.info('Loaded certificates to memory')
-      this.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, ConnectionProcessInfo.CERTIFICATES_STORED)
-    })
-
-    this.store.events.on('write', async () => {
-      this.logger.info('Saved certificate locally')
-      await this.loadedCertificates()
-    })
-
-    this.store.events.on('replicated', async () => {
-      this.logger.info('REPLICATED: Certificates')
+    this.store.events.on('update', async (event: LogEntry) => {
+      this.logger.info('Database update')
       this.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, ConnectionProcessInfo.CERTIFICATES_STORED)
       await this.loadedCertificates()
     })
 
-    await this.store.load()
+    this.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, ConnectionProcessInfo.CERTIFICATES_STORED)
 
     this.logger.info('Initialized')
+  }
+
+  public async startSync() {
+    await this.getStore().sync.start()
   }
 
   public async loadedCertificates() {
@@ -94,7 +90,7 @@ export class CertificatesStore extends EventStoreBase<string> {
       await this.validateCertificateAuthority(certificate)
       await this.validateCertificateFormat(certificate)
     } catch (err) {
-      this.logger.error('Failed to validate user certificate:', certificate, err?.message)
+      this.logger.error('Failed to validate user certificate:', certificate, err)
       return false
     }
     return true
@@ -132,12 +128,15 @@ export class CertificatesStore extends EventStoreBase<string> {
    */
   public async getEntries(): Promise<string[]> {
     this.logger.info('Getting certificates')
-    const allCertificates = this.getStore()
-      .iterator({ limit: -1 })
-      .collect()
-      .map(e => e.payload.value)
+
+    const allCertificates: string[] = []
+
+    for await (const x of this.getStore().iterator()) {
+      allCertificates.push(x.value)
+    }
 
     this.logger.info(`All certificates: ${allCertificates.length}`)
+
     const validCertificates = await Promise.all(
       allCertificates.map(async certificate => {
         if (this.filteredCertificatesMapping.has(certificate)) {

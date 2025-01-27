@@ -1,4 +1,4 @@
-import { peerIdFromKeys } from '@libp2p/peer-id'
+import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common'
 import { Crypto } from '@peculiar/webcrypto'
 import { EventEmitter } from 'events'
@@ -6,13 +6,21 @@ import fs from 'fs'
 import getPort from 'get-port'
 import { Agent } from 'https'
 import path from 'path'
-import PeerId from 'peer-id'
 import { CryptoEngine, setEngine } from 'pkijs'
-import { getLibp2pAddressesFromCsrs, removeFilesFromDir } from '../common/utils'
+import { createPeerId, getUsersFromCsrs, removeFilesFromDir } from '../common/utils'
 
-import { LazyModuleLoader } from '@nestjs/core'
 import { createLibp2pAddress, filterValidAddresses, isPSKcodeValid } from '@quiet/common'
-import { CertFieldsTypes, createRootCA, getCertFieldValue, loadCertificate } from '@quiet/identity'
+import {
+  CertFieldsTypes,
+  createRootCA,
+  createUserCsr,
+  configCrypto,
+  getCertFieldValue,
+  getPubKey,
+  loadCertificate,
+  loadPrivateKey,
+  pubKeyFromCsr,
+} from '@quiet/identity'
 import {
   ChannelMessageIdsResponse,
   ChannelSubscribedPayload,
@@ -49,10 +57,11 @@ import {
   CreateUserCsrPayload,
   InitUserCsrPayload,
   UserCsr,
+  PeerId as QuietPeerId,
 } from '@quiet/types'
 import { CONFIG_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { Libp2pService } from '../libp2p/libp2p.service'
-import { Libp2pEvents, Libp2pNodeParams, Libp2pPeerInfo } from '../libp2p/libp2p.types'
+import { CreatedLibp2pPeerId, Libp2pEvents, Libp2pNodeParams, Libp2pPeerInfo } from '../libp2p/libp2p.types'
 import { LocalDbService } from '../local-db/local-db.service'
 import { LocalDBKeys } from '../local-db/local-db.types'
 import { RegistrationService } from '../registration/registration.service'
@@ -68,15 +77,15 @@ import { ConfigOptions, GetPorts, ServerIoProviderTypes } from '../types'
 import { ServiceState, TorInitState } from './connections-manager.types'
 import { DateTime } from 'luxon'
 import { createLogger } from '../common/logger'
-import { createUserCsr, getPubKey, loadPrivateKey, pubKeyFromCsr } from '@quiet/identity'
-import { config } from '@quiet/state-manager'
+import { peerIdFromString } from '@libp2p/peer-id'
+import { PeerId } from '@libp2p/interface'
+import { privateKeyFromRaw } from '@libp2p/crypto/keys'
 import { SigChainService } from '../auth/sigchain.service'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
   public communityId: string
   public communityState: ServiceState
-  public libp2pService: Libp2pService
   private ports: GetPorts
   isTorInit: TorInitState = TorInitState.NOT_STARTED
   private peerInfo: Libp2pPeerInfo | undefined = undefined
@@ -89,21 +98,23 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     @Inject(SOCKS_PROXY_AGENT) public readonly socksProxyAgent: Agent,
     private readonly socketService: SocketService,
     private readonly registrationService: RegistrationService,
+    public readonly libp2pService: Libp2pService,
     private readonly storageServerProxyService: StorageServiceClient,
     private readonly localDbService: LocalDbService,
     private readonly storageService: StorageService,
     private readonly tor: Tor,
-    private readonly lazyModuleLoader: LazyModuleLoader,
     private readonly sigChainService: SigChainService
   ) {
     super()
   }
 
   async onModuleInit() {
-    process.on('unhandledRejection', error => {
-      this.logger.error(error)
-      throw new Error()
+    process.on('unhandledRejection', reason => {
+      // console.log(`why won't this log rejection`, (reason as any).message)
+      this.logger.error(`Unhandled rejection`, reason)
+      throw new Error(`Unhandled Rejection`)
     })
+
     // process.on('SIGINT', function () {
     //   // This is not graceful even in a single percent. we must close services first, not just kill process %
     //   // this.logger.info('\nGracefully shutting down from SIGINT (Ctrl-C)')
@@ -246,35 +257,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     await this.launchCommunity(community)
   }
 
-  public async closeAllServices(options: { saveTor: boolean } = { saveTor: false }) {
-    this.logger.info('Saving active sigchain')
-    await this.saveActiveChain()
-    await this.sigChainService.deleteChain(this.sigChainService.activeChainTeamName!, false)
-
-    this.logger.info('Closing services')
-
-    await this.closeSocket()
-
-    if (this.tor && !options.saveTor) {
-      this.logger.info('Killing tor')
-      await this.tor.kill()
-    } else if (options.saveTor) {
-      this.logger.info('Saving tor')
-    }
-    if (this.storageService) {
-      this.logger.info('Stopping OrbitDB')
-      await this.storageService?.stopOrbitDb()
-    }
-    if (this.libp2pService) {
-      this.logger.info('Stopping libp2p')
-      await this.libp2pService.close()
-    }
-    if (this.localDbService) {
-      this.logger.info('Closing local DB')
-      await this.localDbService.close()
-    }
-  }
-
   public async closeSocket() {
     await this.socketService.close()
   }
@@ -323,10 +305,45 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     await this.socketService.init()
   }
 
+  public async closeAllServices(options: { saveTor: boolean } = { saveTor: false }) {
+    this.logger.info('Saving active sigchain')
+    await this.saveActiveChain()
+    await this.sigChainService.deleteChain(this.sigChainService.activeChainTeamName!, false)
+
+    this.logger.info('Closing services')
+
+    await this.closeSocket()
+
+    if (this.tor && !options.saveTor) {
+      this.logger.info('Killing tor')
+      await this.tor.kill()
+    } else if (options.saveTor) {
+      this.logger.info('Saving tor')
+    }
+    if (this.storageService) {
+      this.logger.info('Stopping StorageService')
+      await this.storageService?.stop()
+    }
+    if (this.libp2pService) {
+      this.logger.info('Stopping libp2p')
+      await this.libp2pService.close()
+    }
+    if (this.localDbService) {
+      this.logger.info('Closing local DB')
+      await this.localDbService.close()
+    }
+  }
+
   public async leaveCommunity(): Promise<boolean> {
     this.logger.info('Running leaveCommunity')
 
     await this.closeAllServices({ saveTor: true })
+
+    this.logger.info('Cleaning libp2p datastore')
+    await this.libp2pService.libp2pDatastore.clean()
+
+    this.logger.info('Resetting StorageService')
+    await this.storageService.clean()
 
     this.logger.info('Purging data')
     await this.purgeData()
@@ -358,7 +375,12 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       .readdirSync(this.quietDir)
       .filter(
         i =>
-          i.startsWith('Ipfs') || i.startsWith('OrbitDB') || i.startsWith('backendDB') || i.startsWith('Local Storage')
+          i.startsWith('Ipfs') ||
+          i.startsWith('OrbitDB') ||
+          i.startsWith('backendDB') ||
+          i.startsWith('Local Storage') ||
+          i.startsWith('libp2pDatastore') ||
+          i.startsWith('databases')
       )
     for (const dir of dirsToRemove) {
       const dirPath = path.join(this.quietDir, dir)
@@ -379,8 +401,12 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     // TODO: Do we want to create the PeerId here? It doesn't necessarily have
     // anything to do with Tor.
     this.logger.info('Getting peer ID')
-    const peerId: PeerId = await PeerId.create()
-    const peerIdJson = peerId.toJSON()
+    const peerId = await createPeerId()
+    const peerIdJson: QuietPeerId = {
+      id: peerId.peerId.toString(),
+      privKey: uint8ArrayToString(peerId.privKey.raw, 'base64'),
+      noiseKey: uint8ArrayToString(peerId.noiseKey, 'base64'),
+    }
     this.logger.info(`Created network for peer ${peerId.toString()}. Address: ${hiddenService.onionAddress}`)
 
     return {
@@ -455,31 +481,32 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       }
       const _pubKey = await pubKeyFromCsr(identity.userCsr.userCsr)
       const publicKey = await getPubKey(_pubKey)
-      const privateKey = await loadPrivateKey(identity.userCsr.userKey, config.signAlg)
+      const privateKey = await loadPrivateKey(identity.userCsr.userKey, configCrypto.signAlg)
 
       const existingKeyPair: CryptoKeyPair = { privateKey, publicKey }
 
       createUserCsrPayload = {
-        nickname: nickname,
+        nickname,
         commonName: identity.hiddenService.onionAddress,
         peerId: identity.peerId.id,
-        signAlg: config.signAlg,
-        hashAlg: config.hashAlg,
+        signAlg: configCrypto.signAlg,
+        hashAlg: configCrypto.hashAlg,
         existingKeyPair,
       }
     } else {
       this.logger.info('Creating new user CSR')
       createUserCsrPayload = {
-        nickname: nickname,
+        nickname,
         commonName: identity.hiddenService.onionAddress,
         peerId: identity.peerId.id,
-        signAlg: config.signAlg,
-        hashAlg: config.hashAlg,
+        signAlg: configCrypto.signAlg,
+        hashAlg: configCrypto.hashAlg,
       }
     }
 
     let userCsr: UserCsr
     try {
+      this.logger.info(`Creating user csr for username ${createUserCsrPayload.nickname}`)
       userCsr = await createUserCsr(createUserCsrPayload)
     } catch (e) {
       emitError(this.serverIoProvider.io, {
@@ -490,9 +517,10 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    identity = { ...identity, userCsr: userCsr, nickname: nickname }
+    identity = { ...identity, userCsr, nickname }
     this.logger.info('Created user CSR')
     await this.storageService.setIdentity(identity)
+    this.logger.info(`Current identity in storage: ${await this.storageService.getIdentity(identity.id)}`)
     if (payload.isUsernameTaken) {
       await this.storageService.saveCSR({ csr: userCsr.userCsr })
     }
@@ -528,7 +556,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     let ownerCertResult: SavedOwnerCertificatePayload
 
     try {
-      this.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, ConnectionProcessInfo.REGISTERING_OWNER_CERTIFICATE)
       ownerCertResult = await this.registrationService.registerOwnerCertificate({
         communityId: payload.id,
         userCsr: identity.userCsr,
@@ -756,31 +783,29 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     const onionAddress = await this.spawnTorHiddenService(community.id, identity)
 
-    const { Libp2pModule } = await import('../libp2p/libp2p.module')
-    const moduleRef = await this.lazyModuleLoader.load(() => Libp2pModule)
-    const { Libp2pService } = await import('../libp2p/libp2p.service')
-    const lazyService = moduleRef.get(Libp2pService)
-    this.libp2pService = lazyService
-
-    const restoredRsa = await PeerId.createFromJSON(identity.peerId)
-    const peerId = await peerIdFromKeys(restoredRsa.marshalPubKey(), restoredRsa.marshalPrivKey())
+    this.logger.info(JSON.stringify(identity.peerId, null, 2))
+    const peerIdData: CreatedLibp2pPeerId = {
+      peerId: peerIdFromString(identity.peerId.id),
+      privKey: privateKeyFromRaw(Buffer.from(identity.peerId.privKey, 'base64')),
+      noiseKey: Buffer.from(identity.peerId.noiseKey, 'base64'),
+    }
+    this.logger.info(peerIdData.peerId.toString())
     const peers = filterValidAddresses(community.peerList ? community.peerList : [])
-    const localAddress = createLibp2pAddress(onionAddress, peerId.toString())
+    const localAddress = createLibp2pAddress(onionAddress, peerIdData.peerId.toString())
 
     const params: Libp2pNodeParams = {
-      peerId,
+      peerId: peerIdData,
       listenAddresses: [this.libp2pService.createLibp2pListenAddress(onionAddress)],
       agent: this.socksProxyAgent,
       localAddress: localAddress,
       targetPort: this.ports.libp2pHiddenService,
-      peers: peers.filter(p => p !== localAddress),
       psk: Libp2pService.generateLibp2pPSK(community.psk).fullKey,
     }
     await this.libp2pService.createInstance(params)
 
     // Libp2p event listeners
     this.libp2pService.on(Libp2pEvents.PEER_CONNECTED, async (payload: { peers: string[] }) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.PEER_CONNECTED, payload)
+      this.logger.info(`Handling ${Libp2pEvents.PEER_CONNECTED} event - adding network stats`, payload)
       for (const peer of payload.peers) {
         const peerStats: NetworkStats = {
           peerId: peer,
@@ -791,10 +816,17 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         await this.localDbService.update(LocalDBKeys.PEERS, {
           [peer]: peerStats,
         })
+
+        this.serverIoProvider.io.emit(SocketActionTypes.PEER_CONNECTED, {
+          peer: peerStats.peerId,
+          lastSeen: peerStats.lastSeen,
+          connectionDuration: 0,
+        })
       }
     })
 
     this.libp2pService.on(Libp2pEvents.PEER_DISCONNECTED, async (payload: NetworkDataPayload) => {
+      this.logger.info(`Handling ${Libp2pEvents.PEER_DISCONNECTED} event - updating connection time`, payload)
       const peerPrevStats = await this.localDbService.find(LocalDBKeys.PEERS, payload.peer)
       const prev = peerPrevStats?.connectionTime || 0
 
@@ -807,17 +839,17 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       await this.localDbService.update(LocalDBKeys.PEERS, {
         [payload.peer]: peerStats,
       })
-      // BARTEK: Potentially obsolete to send this to state-manager
+
       this.serverIoProvider.io.emit(SocketActionTypes.PEER_DISCONNECTED, payload)
     })
 
-    await this.storageService.init(peerId)
+    await this.storageService.init(peerIdData.peerId)
     // We can use Nest for dependency injection, but I think since the
     // registration service depends on the storage service being
     // initialized, this is helpful to manually inject the storage
     // service for now. Both object construction and object
     // initialization need to happen in order based on dependencies.
-    await this.registrationService.init(this.storageService)
+    this.registrationService.init(this.storageService)
 
     if (community.CA) {
       this.registrationService.setPermsData({
@@ -825,6 +857,10 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         privKey: community.CA.rootKeyString,
       })
     }
+
+    // FIXME: Don't await this
+    // FIXME: Wait until Tor is bootstrapped to dial peers
+    this.libp2pService.dialPeers(peers ?? [])
 
     this.logger.info('Storage initialized')
     this.serverIoProvider.io.emit(
@@ -841,8 +877,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     })
     this.tor.on(SocketActionTypes.REDIAL_PEERS, async data => {
       this.logger.info(`Socket - ${SocketActionTypes.REDIAL_PEERS}`)
-      const peerInfo = this.libp2pService?.getCurrentPeerInfo()
-      await this.libp2pService?.redialPeers([...peerInfo.connected, ...peerInfo.dialed])
+      await this.libp2pService?.redialPeers()
     })
     this.socketService.on(SocketActionTypes.CONNECTION_PROCESS_INFO, data => {
       this.serverIoProvider.io.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, data)
@@ -934,7 +969,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     this.socketService.on(
       SocketActionTypes.DELETE_FILES_FROM_CHANNEL,
       async (payload: DeleteFilesFromChannelSocketPayload) => {
-        this.logger.info(`socketService - ${SocketActionTypes.DELETE_FILES_FROM_CHANNEL}`, payload)
+        this.logger.info(`socketService - ${SocketActionTypes.DELETE_FILES_FROM_CHANNEL}`)
         await this.storageService?.deleteFilesFromChannel(payload)
         // await this.deleteFilesFromTemporaryDir() //crashes on mobile, will be fixes in next versions
       }
@@ -1018,8 +1053,10 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     })
     this.storageService.on(StorageEvents.CSRS_STORED, async (payload: { csrs: string[] }) => {
       this.logger.info(`Storage - ${StorageEvents.CSRS_STORED}`)
-      this.libp2pService.emit(Libp2pEvents.DIAL_PEERS, await getLibp2pAddressesFromCsrs(payload.csrs))
+      const users = await getUsersFromCsrs(payload.csrs)
+      this.logger.info(`CSRS => Users`, payload.csrs, users)
       this.serverIoProvider.io.emit(SocketActionTypes.CSRS_STORED, payload)
+      this.libp2pService.dialUsers(users)
       this.registrationService.emit(RegistrationEvents.REGISTER_USER_CERTIFICATE, payload)
     })
     this.storageService.on(StorageEvents.COMMUNITY_METADATA_STORED, async (meta: CommunityMetadata) => {

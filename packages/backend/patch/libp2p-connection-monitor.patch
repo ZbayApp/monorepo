@@ -1,0 +1,49 @@
+--- packages/backend/node_modules/libp2p/dist/src/connection-monitor.js	2024-10-07 09:12:19
++++ packages/backend/patch/patch.js	2024-10-07 09:15:58
+@@ -7,6 +7,7 @@
+ const PROTOCOL_NAME = 'ping';
+ const PROTOCOL_PREFIX = 'ipfs';
+ const PING_LENGTH = 32;
++const DEFAULT_ABORT_CONN_ON_PING_FAILURE = true
+ export class ConnectionMonitor {
+     protocol;
+     components;
+\ No newline at end of file
+@@ -15,6 +16,7 @@
+     pingIntervalMs;
+     abortController;
+     timeout;
++    abortConnectionOnPingFailure;
+     constructor(components, init = {}) {
+         this.components = components;
+         this.protocol = `/${init.protocolPrefix ?? PROTOCOL_PREFIX}/${PROTOCOL_NAME}/${PROTOCOL_VERSION}`;
+\ No newline at end of file
+@@ -25,6 +27,7 @@
+             metrics: components.metrics,
+             metricName: 'libp2p_connection_monitor_ping_time_milliseconds'
+         });
++        this.abortConnectionOnPingFailure = init.abortConnectionOnPingFailure ?? DEFAULT_ABORT_CONN_ON_PING_FAILURE
+     }
+     [Symbol.toStringTag] = '@libp2p/connection-monitor';
+     [serviceCapabilities] = [
+\ No newline at end of file
+@@ -70,9 +73,16 @@
+                         conn.rtt = (Date.now() - start) / 2;
+                     }
+                 })
++                    // #PATCH: This behavior is pulled from libp2p v2.1.5 (the latest as of writing this) as the original didn't actually honor this flag
+                     .catch(err => {
+-                    this.log.error('error during heartbeat, aborting connection', err);
+-                    conn.abort(err);
++                        this.log.error('error during heartbeat', err)
++
++                        if (this.abortConnectionOnPingFailure) {
++                            this.log.error('aborting connection due to ping failure')
++                            conn.abort(err)
++                        } else {
++                            this.log('connection ping failed, but not aborting due to abortConnectionOnPingFailure flag')
++                        }
+                 });
+             });
+         }, this.pingIntervalMs);
+\ No newline at end of file

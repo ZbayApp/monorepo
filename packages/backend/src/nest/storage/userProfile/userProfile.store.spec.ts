@@ -1,15 +1,13 @@
-import { jest, beforeEach, describe, it, expect, afterEach, beforeAll, test } from '@jest/globals'
-import { IdentityProvider } from 'orbit-db-identity-provider'
 import * as Block from 'multiformats/block'
 import { sha256 } from 'multiformats/hashes/sha2'
 import * as dagCbor from '@ipld/dag-cbor'
 import { arrayBufferToString } from 'pvutils'
 import { getCrypto, PublicKeyInfo } from 'pkijs'
 
-import { ChannelMessage, NoCryptoEngineError, PublicChannel, UserProfile } from '@quiet/types'
+import { NoCryptoEngineError, UserProfile } from '@quiet/types'
 import { configCrypto, generateKeyPair, sign } from '@quiet/identity'
 
-import { UserProfileStore, UserProfileKeyValueIndex } from './userProfile.store'
+import { UserProfileStore } from './userProfile.store'
 
 const getUserProfile = async ({
   pngByteArray,
@@ -124,30 +122,21 @@ describe('UserProfileStore/validateUserProfileEntry', () => {
     const pngByteArray = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82])
     const userProfile = await getUserProfile({ pngByteArray })
     const userProfileEntry = {
-      payload: { key: 'incorrect key', value: userProfile },
-      // These fields are not checked currently
-      hash: '',
       id: '',
+      payload: { op: 'PUT', key: 'incorrect key', value: userProfile },
       next: [''],
-      v: 1,
+      refs: [''],
       clock: {
-        // Not sure why this type is defined like this:
-        // https://github.com/orbitdb/orbit-db-types/blob/ed41369e64c054952c1e47505d598342a4967d4c/LogEntry.d.ts#L8C9-L8C17
-        id: '' as 'string',
+        id: '',
         time: 1,
       },
+      v: 1,
       key: '',
-      identity: {
-        id: '',
-        publicKey: '',
-        signatures: { id: '', publicKey: '' },
-        type: '',
-      },
+      identity: '',
       sig: '',
+      hash: '',
     }
-    expect(
-      await UserProfileStore.validateUserProfileEntry(undefined as unknown as typeof IdentityProvider, userProfileEntry)
-    ).toBeFalsy()
+    expect(await UserProfileStore.validateUserProfileEntry(userProfileEntry)).toBeFalsy()
   })
 
   test('returns true if user profile entry is valid', async () => {
@@ -155,95 +144,20 @@ describe('UserProfileStore/validateUserProfileEntry', () => {
     const pngByteArray = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82])
     const userProfile = await getUserProfile({ pngByteArray })
     const userProfileEntry = {
-      payload: { key: userProfile.pubKey, value: userProfile },
-      // These fields are not checked currently
-      hash: '',
       id: '',
-      next: [''],
-      v: 1,
-      clock: {
-        // Not sure why this type is defined like this:
-        // https://github.com/orbitdb/orbit-db-types/blob/ed41369e64c054952c1e47505d598342a4967d4c/LogEntry.d.ts#L8C9-L8C17
-        id: '' as 'string',
-        time: 1,
-      },
-      key: '',
-      identity: {
-        id: '',
-        publicKey: '',
-        signatures: { id: '', publicKey: '' },
-        type: '',
-      },
-      sig: '',
-    }
-    expect(
-      await UserProfileStore.validateUserProfileEntry(undefined as unknown as typeof IdentityProvider, userProfileEntry)
-    ).toBeTruthy()
-  })
-})
-
-describe('UserProfileStore/UserProfileKeyValueIndex', () => {
-  test('updateIndex skips entry if it is invalid', async () => {
-    // Valid PNG
-    const pngByteArray = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82])
-    const userProfile = await getUserProfile({ pngByteArray })
-    const userProfileEntry = {
-      payload: { op: 'PUT', key: 'incorrect key', value: userProfile },
-      // These fields are not checked currently
-      hash: '',
-      id: '',
-      next: [''],
-      v: 1,
-      clock: {
-        // Not sure why this type is defined like this:
-        // https://github.com/orbitdb/orbit-db-types/blob/ed41369e64c054952c1e47505d598342a4967d4c/LogEntry.d.ts#L8C9-L8C17
-        id: '' as 'string',
-        time: 1,
-      },
-      key: '',
-      identity: {
-        id: '',
-        publicKey: '',
-        signatures: { id: '', publicKey: '' },
-        type: '',
-      },
-      sig: '',
-    }
-
-    const index = new UserProfileKeyValueIndex(undefined as unknown as typeof IdentityProvider)
-    await index.updateIndex({ values: [userProfileEntry] })
-    expect(index.get('incorrect key')).toEqual(undefined)
-  })
-
-  test('updateIndex adds entry if it is valid', async () => {
-    // Valid PNG
-    const pngByteArray = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82])
-    const userProfile = await getUserProfile({ pngByteArray })
-    const userProfileEntry = {
       payload: { op: 'PUT', key: userProfile.pubKey, value: userProfile },
-      // These fields are not checked currently
-      hash: '',
-      id: '',
       next: [''],
-      v: 1,
+      refs: [''],
       clock: {
-        // Not sure why this type is defined like this:
-        // https://github.com/orbitdb/orbit-db-types/blob/ed41369e64c054952c1e47505d598342a4967d4c/LogEntry.d.ts#L8C9-L8C17
-        id: '' as 'string',
+        id: '',
         time: 1,
       },
+      v: 1,
       key: '',
-      identity: {
-        id: '',
-        publicKey: '',
-        signatures: { id: '', publicKey: '' },
-        type: '',
-      },
+      identity: '',
       sig: '',
+      hash: '',
     }
-
-    const index = new UserProfileKeyValueIndex(undefined as unknown as typeof IdentityProvider)
-    await index.updateIndex({ values: [userProfileEntry] })
-    expect(index.get(userProfile.pubKey)).toEqual(userProfile)
+    expect(await UserProfileStore.validateUserProfileEntry(userProfileEntry)).toBeTruthy()
   })
 })

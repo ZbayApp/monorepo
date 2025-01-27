@@ -25,7 +25,6 @@ export function* createNetworkSaga(
   logger.info('Creating network')
 
   const payload = action.payload
-  logger.info('Payload:', payload)
 
   // Community IDs are only local identifiers
   logger.info('Generating community ID')

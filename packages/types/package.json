@@ -31,7 +31,8 @@
   },
   "dependencies": {
     "cross-env": "^5.2.0",
-    "debug": "^4.3.1"
+    "debug": "^4.3.1",
+    "multiformats": "13.1.0"
   },
   "jest": {
     "transform": {
@@ -48,5 +49,8 @@
   "license": "GPL-3.0-or-later",
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "npm run lint:no-fix"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

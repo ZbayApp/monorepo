@@ -1,3 +1,5 @@
+import { jest } from '@jest/globals'
+
 import { Test, TestingModule } from '@nestjs/testing'
 import { defaultConfigForTest, TestModule } from '../common/test.module'
 import { createTmpDir, tmpQuietDirPath } from '../common/utils'
@@ -6,7 +8,6 @@ import { QUIET_DIR, TOR_CONTROL_PARAMS, TOR_PARAMS_PROVIDER, TOR_PASSWORD_PROVID
 import { TorModule } from './tor.module'
 import { Tor } from './tor.service'
 import { type DirResult } from 'tmp'
-import { jest } from '@jest/globals'
 import { TorControlAuthType } from './tor.types'
 import { TorControl } from './tor-control.service'
 import { sleep } from '../common/sleep'

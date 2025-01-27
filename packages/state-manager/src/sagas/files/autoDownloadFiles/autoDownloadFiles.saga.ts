@@ -25,14 +25,14 @@ export function* autoDownloadFilesSaga(
 
   for (const message of messages) {
     // Proceed for images and files only
-    if (!message.media || (message.type !== MessageType.Image && message.type !== MessageType.File)) return
+    if (!message.media || (message.type !== MessageType.Image && message.type !== MessageType.File)) continue
 
     const channelMessages = yield* select(messagesSelectors.publicChannelMessagesEntities(message.channelId))
 
     const draft = channelMessages[message.id]
 
     // Do not download if already present in local file system
-    if (draft?.media?.path) return
+    if (draft?.media?.path) continue
 
     // Do not autodownload above certain size
     const messageMediaSize = message.media.size || 0
@@ -44,7 +44,7 @@ export function* autoDownloadFilesSaga(
           downloadState: DownloadState.Ready,
         })
       )
-      return
+      continue
     }
 
     yield* put(

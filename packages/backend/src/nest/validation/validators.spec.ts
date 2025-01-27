@@ -1,6 +1,5 @@
 import { ChannelMessage, PublicChannel } from '@quiet/types'
 import { isUser, isMessage, isConversation, isDirectMessage, isChannel } from './validators'
-import { jest, beforeEach, describe, it, expect, afterEach, beforeAll, test } from '@jest/globals'
 
 describe('Validators - Users', () => {
   test('publicKey and halfKey are valid', () => {

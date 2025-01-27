@@ -18,8 +18,7 @@
   "exclude": [
     "node_modules",
     "**/__tests__/*",
-    "src/renderer",
     "src/rtl-tests",
-    
+    "src/renderer"
   ]
 }

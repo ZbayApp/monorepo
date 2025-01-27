@@ -1,12 +1,9 @@
-import { LazyModuleLoader } from '@nestjs/core'
 import { Test, TestingModule } from '@nestjs/testing'
-import PeerId from 'peer-id'
 import { TestModule } from '../common/test.module'
 import { libp2pInstanceParams } from '../common/utils'
 import { Libp2pModule } from '../libp2p/libp2p.module'
 import { Libp2pService } from '../libp2p/libp2p.service'
 import { LocalDbModule } from '../local-db/local-db.module'
-import { LocalDbService } from '../local-db/local-db.service'
 import { SocketModule } from '../socket/socket.module'
 import { IpfsModule } from './ipfs.module'
 import { IpfsService } from './ipfs.service'
@@ -15,28 +12,19 @@ describe('IpfsService', () => {
   let module: TestingModule
   let ipfsService: IpfsService
   let libp2pService: Libp2pService
-  let lazyModuleLoader: LazyModuleLoader
-  let peerId: PeerId
-  let localDbService: LocalDbService
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
       imports: [TestModule, IpfsModule, SocketModule, Libp2pModule, LocalDbModule],
     }).compile()
 
-    ipfsService = await module.resolve(IpfsService)
-    localDbService = await module.resolve(LocalDbService)
-
-    lazyModuleLoader = await module.resolve(LazyModuleLoader)
-    const { Libp2pModule: Module } = await import('../libp2p/libp2p.module')
-    const moduleRef = await lazyModuleLoader.load(() => Module)
-    const { Libp2pService } = await import('../libp2p/libp2p.service')
-    libp2pService = moduleRef.get(Libp2pService)
+    libp2pService = await module.resolve(Libp2pService)
     const params = await libp2pInstanceParams()
+
     await libp2pService.createInstance(params)
     expect(libp2pService.libp2pInstance).not.toBeNull()
 
-    peerId = params.peerId
+    ipfsService = await module.resolve(IpfsService)
   })
 
   afterEach(async () => {
@@ -46,13 +34,13 @@ describe('IpfsService', () => {
   })
 
   it('Create IPFS instance', async () => {
-    await ipfsService.createInstance(peerId)
+    await ipfsService.createInstance()
     const ipfsInstance = ipfsService.ipfsInstance
     expect(ipfsInstance).not.toBeNull()
   })
 
   it('destory instance IPFS', async () => {
-    await ipfsService.createInstance(peerId)
+    await ipfsService.createInstance()
     await ipfsService.destoryInstance()
     expect(ipfsService.ipfsInstance).toBeNull()
   })

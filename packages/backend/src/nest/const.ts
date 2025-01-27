@@ -44,6 +44,8 @@ export const LEVEL_DB = 'levelDb'
 
 export const DB_PATH = 'DB_PATH'
 
+export const LIBP2P_DB_PATH = 'LIBP2P_DB_PATH'
+
 export const SOCKS_PROXY_AGENT = 'socksProxyAgent'
 
 export const ORBIT_DB_PROVIDER = 'orbitDbProvider'

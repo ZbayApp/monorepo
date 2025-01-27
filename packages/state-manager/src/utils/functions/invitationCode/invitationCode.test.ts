@@ -6,7 +6,7 @@ const getUrlParamsPart = (url: string) => url.split(QUIET_JOIN_PAGE + '?')[1]
 
 describe('Invitation link helper', () => {
   const address = 'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad'
-  const peerId = 'QmZoiJNAvCffeEHBjk766nLuKVdkxkAT7wfFJDPPLsbKSE'
+  const peerId = '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx'
   const data: InvitationDataV1 = {
     ...validInvitationDatav1[0],
     pairs: [...validInvitationDatav1[0].pairs, { peerId: peerId, onionAddress: address }],

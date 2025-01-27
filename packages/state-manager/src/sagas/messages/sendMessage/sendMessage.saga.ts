@@ -3,7 +3,6 @@ import { type PayloadAction } from '@reduxjs/toolkit'
 import { sign, loadPrivateKey, pubKeyFromCsr } from '@quiet/identity'
 import { call, select, apply, put, delay, take } from 'typed-redux-saga'
 import { arrayBufferToString } from 'pvutils'
-import { config } from '../../users/const/certFieldTypes'
 import { identitySelectors } from '../../identity/identity.selectors'
 import { publicChannelsActions } from '../../publicChannels/publicChannels.slice'
 import { publicChannelsSelectors } from '../../publicChannels/publicChannels.selectors'
@@ -11,6 +10,7 @@ import { messagesActions } from '../messages.slice'
 import { generateMessageId, getCurrentTime } from '../utils/message.utils'
 import { type ChannelMessage, MessageType, SendingStatus, SocketActionTypes } from '@quiet/types'
 import { createLogger } from '../../../utils/logger'
+import { configCrypto } from '@quiet/identity'
 
 const logger = createLogger('sendMessageSaga')
 
@@ -37,7 +37,7 @@ export function* sendMessageSaga(
   logger.info(`Sending message ${id} to channel ${channelId}`)
 
   const pubKey = yield* call(pubKeyFromCsr, identity.userCsr.userCsr)
-  const keyObject = yield* call(loadPrivateKey, identity.userCsr.userKey, config.signAlg)
+  const keyObject = yield* call(loadPrivateKey, identity.userCsr.userKey, configCrypto.signAlg)
   const signatureArrayBuffer = yield* call(sign, action.payload.message, keyObject)
   const signature = yield* call(arrayBufferToString, signatureArrayBuffer)
   const createdAt = yield* call(getCurrentTime)
@@ -72,7 +72,7 @@ export function* sendMessageSaga(
   )
 
   // Display sent message immediately, to improve user experience
-  logger.info('Adding message to Redux store')
+  logger.info('Adding message to Redux store on send', message.id)
   yield* put(
     messagesActions.addMessages({
       messages: [message],

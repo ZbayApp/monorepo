@@ -15,7 +15,7 @@ describe('FileComponent', () => {
           isRegistered: true,
           pubKey: 'string',
           media: {
-            cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+            cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
             message: {
               channelId: 'general',
               id: 'wgtlstx3u7',
@@ -34,7 +34,7 @@ describe('FileComponent', () => {
         }}
         downloadStatus={{
           mid: '32',
-          cid: 'QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs',
+          cid: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
           downloadState: DownloadState.Ready,
           downloadProgress: undefined,
         }}
@@ -44,8 +44,8 @@ describe('FileComponent', () => {
       <body>
         <div>
           <div
-            class="css-7vq9um"
-            data-testid="QmWUCSApiy76nW9DAk5M9QbH1nkW5XCYwxUHRSULjATyqs-fileComponent"
+            class="css-bnw0xg"
+            data-testid="12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY-fileComponent"
           >
             <span>
               <div
@@ -67,7 +67,7 @@ describe('FileComponent', () => {
                 >
                   <h5
                     class="MuiTypography-root MuiTypography-h5 css-11l3dv4-MuiTypography-root"
-                    style="line-height: 20px;"
+                    style="line-height: 20px; color: rgb(0, 0, 0);"
                   >
                     my-file-name-goes-here-an-isnt-truncated
                     .zip

@@ -1,0 +1,50 @@
+--- packages/backend/node_modules/@libp2p/kad-dht/dist/src/providers.js	2024-10-03 13:05:48
++++ packages/backend/patch/providers-patch.js	2024-10-03 13:03:15
+@@ -43,7 +43,9 @@
+      * Start the provider cleanup service
+      */
+     async start() {
++        this.log('Starting kaddht providers')
+         if (this.started) {
++            this.log('Kaddht providers already started')
+             return;
+         }
+         this.started = true;
+\ No newline at end of file
+@@ -129,9 +131,12 @@
+      */
+     async _getProvidersMap(cid) {
+         const cacheKey = makeProviderKey(cid);
++        this.log(`Getting providers for CID ${cid} using cacheKey ${cacheKey}`)
+         let provs = this.cache.get(cacheKey);
++        this.log(`Got cached providers:`, provs)
+         if (provs == null) {
+-            provs = await loadProviders(this.datastore, cid);
++            this.log(`No cached providers, loading...`)
++            provs = await loadProviders(this.datastore, cid, this.log);
+             this.cache.set(cacheKey, provs);
+         }
+         return provs;
+\ No newline at end of file
+@@ -205,12 +210,17 @@
+ /**
+  * Load providers for the given CID from the store
+  */
+-async function loadProviders(store, cid) {
++async function loadProviders(store, cid, log) {
+     const providers = new Map();
+-    const query = store.query({ prefix: makeProviderKey(cid) });
++    const provKey = makeProviderKey(cid)
++    log(`Loading map of providers for CID ${cid} using provider key ${provKey}`)
++    const query = store.query({ prefix: provKey });
+     for await (const entry of query) {
++        log(`Got entry from query`, entry)
+         const { peerId } = parseProviderKey(entry.key);
+-        providers.set(peerId, readTime(entry.value));
++        const readtime = readTime(entry.value)
++        log(`Setting`, peerId, readtime)
++        providers.set(peerId, readtime);
+     }
+     return providers;
+ }
+\ No newline at end of file

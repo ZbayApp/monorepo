@@ -15,7 +15,8 @@
         "@typescript-eslint/*",
         "prettier*",
         "lerna",
-        "husky"
+        "husky",
+        "pnpm"
       ]
     }
   }

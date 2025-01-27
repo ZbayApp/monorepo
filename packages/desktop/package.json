@@ -80,13 +80,13 @@
   },
   "homepage": "https://github.com/TryQuiet",
   "@comment version": "To build new version for specific platform, just replace platform in version tag to one of following linux, mac, windows",
-  "version": "2.3.3",
+  "version": "3.0.0",
   "description": "Decentralized team chat",
   "main": "dist/main/main.js",
   "scripts": {
     "version": "echo $npm_package_version",
-    "copyBinaries": "cp -R ../../3rd-party/tor/$SOURCE_PATH/ ./tor/ && chmod 775 ./tor/tor",
-    "copyBinariesDarwin": "cp -R ../../3rd-party/tor/$SOURCE_PATH/ ./tor/ && chmod 775 ./tor/arm64/tor ./tor/x64/tor",
+    "copyBinaries": "cp -R ../../3rd-party/tor/linux/ ./tor/ && chmod 775 ./tor/tor",
+    "copyBinariesDarwin": "cp -R ../../3rd-party/tor/darwin/ ./tor/ && chmod 775 ./tor/arm64/tor ./tor/x64/tor",
     "copyBinariesWin": "xcopy ..\\..\\3rd-party\\tor\\win32 .\\tor\\",
     "pullLibs": "wget -N https://zbay-binaries.s3.us-east-2.amazonaws.com/$SOURCE_PATH/libssl.so -P ./ && chmod 775 ./libssl.so",
     "distMac:local": "export DEBUG=* SOURCE_PATH=darwin TEST_MODE=true IS_LOCAL=true && npm run copyBinariesDarwin && npm run build:dev:dist && electron-builder --mac -p never -c.mac.type=development -c.mac.identity=null",
@@ -102,9 +102,10 @@
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll",
     "rtl-test": "jest ./src/rtl-tests",
-    "regression-test:update": "cypress install && ./node_modules/.bin/cypress run --component --env type=base --config screenshotsFolder=cypress/snapshots/base-local",
+    "regression-test:update": "cypress install && ./node_modules/.bin/cypress run --component --env type=base,SNAPSHOT_BASE_DIRECTORY=cypress/snapshots/base-local --config screenshotsFolder=cypress/snapshots/base-local",
+    "regression-test:update:ci": "cypress install && ./node_modules/.bin/cypress run --component --env type=base,SNAPSHOT_BASE_DIRECTORY=cypress/snapshots/base --config screenshotsFolder=cypress/snapshots/base",
     "regression-test": "./node_modules/.bin/cypress run --component --env type=actual,SNAPSHOT_BASE_DIRECTORY=cypress/snapshots/base-local",
-    "regression-test:ci": "cypress install && ./node_modules/.bin/cypress run --component --env type=actual",
+    "regression-test:ci": "cypress install --force && ./node_modules/.bin/cypress run --component --env type=actual,SNAPSHOT_BASE_DIRECTORY=cypress/snapshots/base",
     "cypress:open": "cypress open --env type=actual,SNAPSHOT_BASE_DIRECTORY=$PWD/cypress/snapshots/base-local",
     "prepare": "npm run build:main",
     "build:prod": "concurrently \"npm run build:main:prod\" \"npm run build:renderer:prod\"",
@@ -116,7 +117,7 @@
     "build:renderer:prod": "webpack --config webpack/webpack.config.renderer.prod.js",
     "postBuild": "node scripts/postBuild.js",
     "prestart": "npm run build:main",
-    "start": "cross-env DEBUG='backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,libp2p:websockets:listener:backend,libp2p:connection-manager:auto-dialler' npm run start:renderer",
+    "start": "cross-env DEBUG='backend*,quiet*,state-manager*,desktop*,utils*,identity*,common*,libp2p:connection-manager:auto-dial' npm run start:renderer",
     "start:main": "cross-env COLORIZE=true NODE_ENV=development electron .",
     "start:renderer": "cross-env COLORIZE=true NODE_ENV=development webpack-dev-server --config webpack/webpack.config.renderer.dev.js",
     "storybook": "export NODE_OPTIONS=--openssl-legacy-provider && start-storybook -p 6006",
@@ -301,10 +302,13 @@
     ]
   },
   "engines": {
-    "node": "18.12.1",
-    "npm": "8.19.2"
+    "node": "18.20.4",
+    "npm": "10.7.0"
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": "npm run lint:no-fix"
+  },
+  "volta": {
+    "extends": "../../package.json"
   }
 }

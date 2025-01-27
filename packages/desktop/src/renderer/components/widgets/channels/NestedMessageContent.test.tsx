@@ -219,7 +219,7 @@ describe('NestedMessageContent', () => {
               data-testid="messagesGroupContent-0"
             >
               <div
-                class="css-7vq9um"
+                class="css-bnw0xg"
                 data-testid="abcd1234-fileComponent"
               >
                 <span>
@@ -235,7 +235,7 @@ describe('NestedMessageContent', () => {
                         aria-valuenow="100"
                         class="MuiCircularProgress-root MuiCircularProgress-determinate MuiCircularProgress-colorPrimary css-1036n7b-MuiCircularProgress-root"
                         role="progressbar"
-                        style="width: 18px; height: 18px; transform: rotate(-90deg); position: absolute; color: rgb(231, 231, 231);"
+                        style="width: 18px; height: 18px; transform: rotate(-90deg); position: absolute; color: rgb(178, 178, 178);"
                       >
                         <svg
                           class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
@@ -256,7 +256,7 @@ describe('NestedMessageContent', () => {
                         aria-valuenow="50"
                         class="MuiCircularProgress-root MuiCircularProgress-determinate MuiCircularProgress-colorPrimary css-1036n7b-MuiCircularProgress-root"
                         role="progressbar"
-                        style="width: 18px; height: 18px; transform: rotate(-90deg); color: rgb(178, 178, 178);"
+                        style="width: 18px; height: 18px; transform: rotate(-90deg); color: rgb(82, 28, 116);"
                       >
                         <svg
                           class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
@@ -279,7 +279,7 @@ describe('NestedMessageContent', () => {
                     >
                       <h5
                         class="MuiTypography-root MuiTypography-h5 css-11l3dv4-MuiTypography-root"
-                        style="line-height: 20px;"
+                        style="line-height: 20px; color: rgb(0, 0, 0);"
                       >
                         test
                         .png

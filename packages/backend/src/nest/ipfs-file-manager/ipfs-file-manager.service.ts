@@ -3,33 +3,46 @@ import { EventEmitter, setMaxListeners } from 'events'
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import PQueue, { AbortError } from 'p-queue'
-import { decode, PBNode } from '@ipld/dag-pb'
-import * as base58 from 'multiformats/bases/base58'
-import type { IPFS } from 'ipfs-core'
+import { AddPinEvents, GetBlockProgressEvents, type Helia } from 'helia'
+import { AddEvents, CatOptions, GetEvents, StatOptions, unixfs, UnixFSStats, type UnixFS } from '@helia/unixfs'
 import { promisify } from 'util'
 import sizeOf from 'image-size'
 import { CID } from 'multiformats/cid'
 import { DownloadProgress, DownloadState, DownloadStatus, FileMetadata, imagesExtensions } from '@quiet/types'
 import { QUIET_DIR } from '../const'
-import { FilesData, IpfsFilesManagerEvents } from './ipfs-file-manager.types'
-import { StorageEvents } from '../storage/storage.types'
 import {
-  QUEUE_CONCURRENCY,
+  BlockStat,
+  DownloadBlocksOptions,
+  ExportProgress,
+  ExportWalk,
+  FilesData,
+  GetBlocksOptions,
+  GetStatsOptions,
+  IpfsFilesManagerEvents,
+  PinBlocksOptions,
+} from './ipfs-file-manager.types'
+import { StorageEvents, UnixFSEvents } from '../storage/storage.types'
+import {
+  DEFAULT_CAT_BLOCK_CHUNK_SIZE,
   MAX_EVENT_LISTENERS,
   TRANSFER_SPEED_SPAN,
-  UPDATE_STATUS_INTERVAL,
-  BLOCK_FETCH_TIMEOUT,
+  TRANSFER_SPEED_SPAN_MS,
+  UPDATE_STATUS_INTERVAL_MS,
 } from './ipfs-file-manager.const'
-import { LazyModuleLoader } from '@nestjs/core'
 import { sleep } from '../common/sleep'
 const sizeOfPromisified = promisify(sizeOf)
 const { createPaths, compare } = await import('../common/utils')
 import { createLogger } from '../common/logger'
+import { IpfsService } from '../ipfs/ipfs.service'
+import { CustomProgressEvent } from 'progress-events'
+import { DateTime } from 'luxon'
+import { QuietLogger } from '@quiet/logger'
+import { abortableAsyncIterable } from '../common/utils'
 
 @Injectable()
 export class IpfsFileManagerService extends EventEmitter {
-  public ipfs: IPFS
+  public ipfs: Helia
+  public ufs: UnixFS
   public controllers: Map<
     string,
     {
@@ -38,31 +51,26 @@ export class IpfsFileManagerService extends EventEmitter {
   > = new Map()
 
   public cancelledDownloads: Set<string> = new Set()
-  public queue: PQueue
   public files: Map<string, FilesData> = new Map()
   private readonly logger = createLogger(IpfsFileManagerService.name)
   constructor(
     @Inject(QUIET_DIR) public readonly quietDir: string,
-    private readonly lazyModuleLoader: LazyModuleLoader
+    private readonly ipfsService: IpfsService
   ) {
     super()
 
-    this.queue = new PQueue({ concurrency: QUEUE_CONCURRENCY })
     this.attachIncomingEvents()
   }
 
   public async init() {
-    const { IpfsModule } = await import('../ipfs/ipfs.module')
-    const moduleRef = await this.lazyModuleLoader.load(() => IpfsModule)
-    const { IpfsService } = await import('../ipfs/ipfs.service')
-    const ipfsService = moduleRef.get(IpfsService)
+    const ipfsInstance = this.ipfsService?.ipfsInstance
 
-    const ipfsInstance = ipfsService?.ipfsInstance
     if (!ipfsInstance) {
       this.logger.error('no ipfs instance')
       throw new Error('no ipfs instance')
     }
     this.ipfs = ipfsInstance
+    this.ufs = unixfs(this.ipfs)
   }
 
   private attachIncomingEvents() {
@@ -70,8 +78,13 @@ export class IpfsFileManagerService extends EventEmitter {
       await this.uploadFile(fileMetadata)
     })
     this.on(IpfsFilesManagerEvents.DOWNLOAD_FILE, async (fileMetadata: FileMetadata) => {
-      this.logger.info('Downloading file:', fileMetadata.cid, fileMetadata.size)
-      if (this.files.get(fileMetadata.cid)) return
+      const _logger = createLogger(`${IpfsFileManagerService.name}:eventHandler:download:${fileMetadata.cid}`)
+      _logger.info('Downloading file', fileMetadata.size)
+      if (this.files.get(fileMetadata.cid)) {
+        _logger.warn(`Download is already running for this CID`)
+        return
+      }
+
       this.files.set(fileMetadata.cid, {
         size: fileMetadata.size || 0,
         downloadedBytes: 0,
@@ -79,33 +92,50 @@ export class IpfsFileManagerService extends EventEmitter {
         cid: fileMetadata.cid,
         message: fileMetadata.message,
       })
-      await this.downloadBlocks(fileMetadata)
+      this.controllers.delete(fileMetadata.cid)
+
+      try {
+        await this.downloadFile(fileMetadata)
+      } catch (e) {
+        _logger.error(`Error while downloading file`, e)
+      }
     })
-    this.on(IpfsFilesManagerEvents.CANCEL_DOWNLOAD, async mid => {
-      const fileDownloaded = Array.from(this.files.values()).find(e => e.message.id === mid)
+    this.on(IpfsFilesManagerEvents.CANCEL_DOWNLOAD, async cid => {
+      const _logger = createLogger(`${IpfsFileManagerService.name}:eventHandler:cancel:${cid}`)
+      const fileDownloaded = Array.from(this.files.values()).find(e => e.message.id === cid)
       if (fileDownloaded) {
-        await this.cancelDownload(fileDownloaded.cid)
+        try {
+          await this.cancelDownload(fileDownloaded.cid)
+        } catch (e) {
+          _logger.error(`Error while cancelling download`, e)
+        }
       } else {
-        this.logger.error(`downloading ${mid} has already been canceled or never started`)
+        _logger.warn(`Download for this file was already canceled or never started`)
       }
     })
   }
 
   public async deleteBlocks(fileMetadata: FileMetadata) {
-    const localBlocks = await this.getLocalBlocks()
-    const hasBlockBeenDownloaded = localBlocks.includes(`z${fileMetadata.cid.toString()}`)
-    if (!hasBlockBeenDownloaded) return
+    const _logger = createLogger(`${IpfsFileManagerService.name}:delete:${fileMetadata.cid}`)
+    const cid = CID.parse(fileMetadata.cid)
+    const hasBlockBeenDownloaded = await this.ipfs.blockstore.has(cid)
+    if (!hasBlockBeenDownloaded) {
+      _logger.warn(`File wasn't downloaded, can't delete`)
+      return
+    }
 
     try {
-      const result = await this.ipfs.pin.rm(fileMetadata.cid, { recursive: true })
+      _logger.info(`Unpinning all blocks for file`)
+      for await (const pinnedCid of abortableAsyncIterable(this.ipfs.pins.rm(cid))) {
+        _logger.debug(`Unpinning ${pinnedCid.toString()}`)
+      }
+      _logger.info('Unpinning complete')
     } catch (e) {
-      this.logger.error('file removing error', e)
+      this.logger.error('File removing error', e)
     }
 
-    const gcresult = this.ipfs.repo.gc()
-    for await (const res of gcresult) {
-      this.logger.info('garbage collector result', res)
-    }
+    _logger.info(`Removing unpinned blocks`)
+    await this.ipfs.gc()
   }
 
   public async stop() {
@@ -154,6 +184,7 @@ export class IpfsFileManagerService extends EventEmitter {
   }
 
   public async uploadFile(metadata: FileMetadata) {
+    const _logger = createLogger(`${IpfsFileManagerService.name}:upload`)
     let width: number | undefined
     let height: number | undefined
     if (!metadata.path) {
@@ -164,14 +195,31 @@ export class IpfsFileManagerService extends EventEmitter {
       try {
         imageSize = await sizeOfPromisified(metadata.path)
       } catch (e) {
-        this.logger.error(`Couldn't get image dimensions (${metadata.path})`, e)
+        _logger.error(`Couldn't get image dimensions (${metadata.path})`, e)
         throw new Error(`Couldn't get image dimensions (${metadata.path}). Error: ${e.message}`)
       }
       width = imageSize?.width
       height = imageSize?.height
     }
 
-    const stream = fs.createReadStream(metadata.path, { highWaterMark: 64 * 1024 * 10 })
+    // Create directory for file
+    const dir = `/uploads`
+    await this.ufs.addDirectory({ path: dir })
+
+    // Write file to IPFS
+    const randomBytes = crypto.randomBytes(16).toString('hex')
+    const uuid = `${Date.now()}_${randomBytes}`
+    const filename = `${uuid}_${metadata.name}${metadata.ext}`
+
+    // Save copy to separate directory
+    const filePath = this.copyFile(metadata.path, filename)
+    _logger.time(`Writing ${filename} to ipfs`)
+
+    const handleUploadProgressEvents = (event: AddEvents): void => {
+      _logger.info(`Upload progress`, event)
+    }
+
+    const stream = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 * 10 })
     const uploadedFileStreamIterable = {
       // eslint-disable-next-line prettier/prettier, generator-star-spacing
       async *[Symbol.asyncIterator]() {
@@ -181,28 +229,20 @@ export class IpfsFileManagerService extends EventEmitter {
       },
     }
 
-    // Create directory for file
-    const dirname = 'uploads'
-    await this.ipfs.files.mkdir(`/${dirname}`, { parents: true })
+    const fileCid = await this.ufs.addByteStream(uploadedFileStreamIterable, {
+      wrapWithDirectory: true,
+      onProgress: handleUploadProgressEvents,
+    })
 
-    // Write file to IPFS
-    const uuid = `${Date.now()}_${Math.random().toString(36).substr(2.9)}`
-    const filename = `${uuid}_${metadata.name}${metadata.ext}`
-
-    // Save copy to separate directory
-    const filePath = this.copyFile(metadata.path, filename)
-    this.logger.time(`Writing ${filename} to ipfs`)
-    const newCid = await this.ipfs.add(uploadedFileStreamIterable)
-
-    this.logger.timeEnd(`Writing ${filename} to ipfs`)
+    _logger.timeEnd(`Writing ${filename} to ipfs`)
 
     this.emit(StorageEvents.REMOVE_DOWNLOAD_STATUS, { cid: metadata.cid })
     const fileMetadata: FileMetadata = {
       ...metadata,
       tmpPath: undefined,
       path: filePath,
-      cid: newCid.cid.toString(),
-      size: newCid.size,
+      cid: fileCid.toString(),
+      size: Number((await this.ufs.stat(fileCid)).fileSize),
       width,
       height,
     }
@@ -228,90 +268,216 @@ export class IpfsFileManagerService extends EventEmitter {
   }
 
   private async cancelDownload(cid: string) {
-    const queueController = this.controllers.get(cid)
+    const _logger = createLogger(`${IpfsFileManagerService.name}:cancel:${cid}`)
+    let abortController = this.controllers.get(cid)
     const downloadInProgress = this.files.get(cid)
     if (!downloadInProgress) return
     // In case download is cancelled right after start and queue is not yet initialized.
-    if (!queueController) {
+    while (abortController == null) {
+      _logger.info(`Waiting for abort controller to be created...`)
       await sleep(1000)
-      await this.cancelDownload(cid)
-    } else {
-      const controller = queueController.controller
-      this.cancelledDownloads.add(cid)
-      controller.abort()
+      abortController = this.controllers.get(cid)
     }
-  }
 
-  private async getLocalBlocks(): Promise<string[]> {
-    const blocks: string[] = []
-
-    const refs = this.ipfs.refs.local()
-
-    for await (const ref of refs) {
-      const cid = CID.parse(ref.ref)
-      const base58Encoded = base58.base58btc.encode(cid.multihash.bytes)
-      blocks.push(base58Encoded.toString())
-    }
-    return blocks
-  }
-
-  public async downloadBlocks(fileMetadata: FileMetadata) {
-    const block = CID.parse(fileMetadata.cid)
-    const localBlocks = await this.getLocalBlocks()
-    const processedBlocks: PBNode[] = [] // TODO: Should it be CID or PBNode?
-    const controller = new AbortController()
-
-    setMaxListeners(MAX_EVENT_LISTENERS, controller.signal)
-
-    this.controllers.set(fileMetadata.cid, { controller })
-
-    // Add try catch and return downloadBlocks with timeout
-    const stat = await this.ipfs.files.stat(block)
-    if (fileMetadata.size && !compare(fileMetadata.size, stat.size, 0.05)) {
-      await this.updateStatus(fileMetadata.cid, DownloadState.Malicious)
+    if (abortController.controller.signal.aborted) {
+      _logger.warn(`Download already canceled, skipping...`)
       return
     }
 
-    const addToQueue = async (link: CID) => {
-      try {
-        await this.queue.add(async () => {
-          try {
-            await processBlock(link, controller.signal)
-          } catch (e) {
-            if (!(e instanceof AbortError)) {
-              this.logger.error('Failed to process block. Re-adding to queue', link.toString())
-              void addToQueue(link)
-            }
-          }
-        })
-      } catch (e) {
-        this.logger.error(e)
-      }
-    }
+    _logger.info(`Aborting download`)
+    const controller = abortController.controller
+    controller.abort()
+  }
 
-    interface BlockStat {
-      fetchTime: number
-      byteLength: number
+  public async downloadFile(fileMetadata: FileMetadata): Promise<void> {
+    const _logger = createLogger(`${IpfsFileManagerService.name}:download:${fileMetadata.cid}`)
+    const finalStatus = await this._downloadFile(fileMetadata, _logger)
+    switch (finalStatus) {
+      case DownloadState.Completed:
+        await this.updateStatus(fileMetadata.cid, DownloadState.Completed)
+        this.files.delete(fileMetadata.cid)
+        this.controllers.delete(fileMetadata.cid)
+        break
+      case DownloadState.Canceled:
+        await this.updateStatus(fileMetadata.cid, DownloadState.Canceled)
+        this.files.delete(fileMetadata.cid)
+        break
+      case DownloadState.Malicious:
+        await this.updateStatus(fileMetadata.cid, DownloadState.Malicious)
+        this.files.delete(fileMetadata.cid)
+        break
     }
+  }
+
+  private async _downloadFile(
+    fileMetadata: FileMetadata,
+    _logger: QuietLogger
+  ): Promise<DownloadState.Completed | DownloadState.Canceled | DownloadState.Malicious> {
+    _logger.info(`Initializing download of ${fileMetadata.name}${fileMetadata.ext}`)
+
+    const fileCid: CID = CID.parse(fileMetadata.cid)
+    let downloadedBlocks: number = 0
+    const pendingBlocks: Set<string> = new Set()
+
+    const controller = new AbortController()
+    setMaxListeners(MAX_EVENT_LISTENERS, controller.signal)
+    this.controllers.set(fileMetadata.cid, { controller })
 
     // Transfer speed
     const blocksStats: BlockStat[] = []
 
-    const updateTransferSpeed = setInterval(async () => {
-      const bytesDownloaded = blocksStats.reduce((previousValue, currentValue) => {
-        if (Math.floor(Date.now() / 1000) - currentValue.fetchTime < TRANSFER_SPEED_SPAN)
-          return previousValue + currentValue.byteLength
-        return 0
-      }, 0)
-      const uniqueProcessedBlocks = [...new Set(processedBlocks)]
-      const totalBytesDownloaded = uniqueProcessedBlocks.reduce((prev, curr) => {
-        if (curr.Data) {
-          return prev + curr.Data.byteLength
-        } else {
-          return prev
+    const handleDownloadProgressEvents = async (
+      event: GetEvents | GetBlockProgressEvents | CustomProgressEvent<any> | AddPinEvents
+    ) => {
+      // if we don't have an event type there's nothing useful to do
+      if (event.type === null) {
+        return
+      }
+
+      // handler for events where we have the block stored locally and we are fetching it from the blockstore
+      const handleGetBlock = async (cid: CID) => {
+        const cidStr = cid.toString()
+        const fileCidStr = fileCid.toString()
+        if (cidStr === fileCidStr) {
+          _logger.info(`Download pending`)
+          return
         }
-      }, 0)
-      const transferSpeed = bytesDownloaded === 0 ? 0 : bytesDownloaded / TRANSFER_SPEED_SPAN
+
+        if (pendingBlocks.has(cidStr)) {
+          pendingBlocks.delete(cidStr)
+        }
+
+        _logger.info(`Getting block ${cidStr} from local blockstore`)
+      }
+
+      // handler for events where we are walking the file to get all child blocks
+      // NOTE: this happens at the beginning of the download process AND when we have all of the blocks are we are walking through them to get the contents
+      const handleWalkFile = async (event: CustomProgressEvent<ExportWalk>) => {
+        const cidStr = event.detail.cid.toString()
+        if (downloadedBlocks === 0 && pendingBlocks.size === 0) {
+          // this is the first time we've seen this event so it means we are just starting the download process
+          _logger.info(`Download started, walking`)
+          await this.updateStatus(cidStr, DownloadState.Downloading)
+          return
+        }
+
+        _logger.info(`Walking ${cidStr}`)
+      }
+
+      // handler for events where we have found the block on the network and are adding it to our local blockstore
+      const handleDownloadBlock = async (event: CustomProgressEvent<ExportProgress>) => {
+        const { bytesRead, totalBytes } = event.detail
+        _logger.info(`Block found and downloaded to local blockstore`, event.detail)
+
+        const blockStat = {
+          fetchTimeMs: DateTime.utc().toMillis(),
+          byteLength: Number(totalBytes) - Number(bytesRead),
+        }
+        blocksStats.push(blockStat)
+        downloadedBlocks += 1
+      }
+
+      // handler for events where we are asking for the block on the network because we don't have it stored locally
+      const handleWantBlock = async (event: CustomProgressEvent<CID>) => {
+        const cidStr = event.detail.toString()
+        if (event.type === UnixFSEvents.GET_BLOCK_PROVIDERS) {
+          _logger.info(`Checking for presence of block ${cidStr}`)
+        } else {
+          _logger.info(`Asking peers for block ${cidStr}`)
+        }
+
+        pendingBlocks.add(cidStr)
+      }
+
+      const handlePutBlock = async (event: GetBlockProgressEvents) => {
+        const cidStr = event.detail.toString()
+        if (pendingBlocks.has(cidStr)) {
+          pendingBlocks.delete(cidStr)
+        }
+
+        _logger.info(`Putting block ${cidStr} into local blockstore`)
+      }
+
+      this.logger.info(`Event with type`, event.type)
+      switch (event.type) {
+        case UnixFSEvents.WALK_FILE:
+          await handleWalkFile(event as CustomProgressEvent<ExportWalk>)
+          break
+        case UnixFSEvents.GET_BLOCK_PROVIDERS:
+        case UnixFSEvents.WANT_BLOCK:
+          await handleWantBlock(event as CustomProgressEvent<CID>)
+          break
+        case UnixFSEvents.GET_BLOCK:
+          await handleGetBlock((event as GetBlockProgressEvents).detail)
+          break
+        case UnixFSEvents.DOWNLOAD_BLOCK:
+          await handleDownloadBlock(event as CustomProgressEvent<ExportProgress>)
+          break
+        case UnixFSEvents.PUT_BLOCK:
+          await handlePutBlock(event as GetBlockProgressEvents)
+          break
+        default:
+          break
+      }
+
+      return
+    }
+
+    const initialStats: UnixFSStats | DownloadState = await this.validateDownload(fileCid, fileMetadata.size, {
+      logger: _logger,
+      signal: controller.signal,
+      statOptions: {
+        onProgress: handleDownloadProgressEvents,
+        signal: controller.signal,
+      },
+    })
+
+    if (typeof initialStats === 'string') {
+      if (initialStats == DownloadState.Canceled) {
+        _logger.warn(`Cancelling download because initial stat check threw an error`)
+        return DownloadState.Canceled
+      } else if (initialStats == DownloadState.Malicious) {
+        return DownloadState.Malicious
+      }
+    }
+
+    const writeStream = this.prepFileStream(fileMetadata.ext)
+
+    this.files.set(fileMetadata.cid, {
+      ...this.files.get(fileMetadata.cid)!,
+      downloadedBytes: Number(initialStats.localFileSize),
+    })
+
+    const updateDownloadStatusWithTransferSpeed = setInterval(async () => {
+      if (controller.signal.aborted) {
+        _logger.warn(`Cancelling update status interval due to cancellation`)
+        clearInterval(updateDownloadStatusWithTransferSpeed)
+        return
+      }
+
+      const currentStats = await this.getFileStats(fileCid, {
+        logger: _logger,
+        signal: controller.signal,
+        statOptions: {
+          signal: controller.signal,
+        },
+      })
+
+      if (currentStats == null) {
+        return
+      }
+
+      const totalDownloadedBytes = Number(currentStats.localFileSize)
+      let recentlyDownloadedBytes = 0
+      const thresholdTimestamp = DateTime.utc().toMillis() - TRANSFER_SPEED_SPAN_MS
+      blocksStats.forEach((blockStat: BlockStat) => {
+        if (blockStat.fetchTimeMs >= thresholdTimestamp) {
+          recentlyDownloadedBytes += blockStat.byteLength
+        }
+      })
+      this.logger.info(`Current downloaded bytes`, recentlyDownloadedBytes, totalDownloadedBytes)
+
+      const transferSpeed = recentlyDownloadedBytes === 0 ? 0 : recentlyDownloadedBytes / TRANSFER_SPEED_SPAN
       const fileState = this.files.get(fileMetadata.cid)
       if (!fileState) {
         this.logger.error(`No saved data for file cid ${fileMetadata.cid}`)
@@ -320,165 +486,110 @@ export class IpfsFileManagerService extends EventEmitter {
       this.files.set(fileMetadata.cid, {
         ...fileState,
         transferSpeed: transferSpeed,
-        downloadedBytes: totalBytesDownloaded,
+        downloadedBytes: totalDownloadedBytes,
       })
-      await this.updateStatus(fileMetadata.cid)
-    }, UPDATE_STATUS_INTERVAL * 1000)
+      await this.updateStatus(fileMetadata.cid, DownloadState.Downloading)
 
-    const remainingBlocks = new Set()
-    remainingBlocks.add(block)
+      _logger.info(`Downloaded ${downloadedBlocks} blocks (${pendingBlocks.size} blocks pending)`)
+    }, UPDATE_STATUS_INTERVAL_MS)
 
-    const downloadCompletedOrCanceled = new Promise((resolve, reject) => {
-      const interval = setInterval(() => {
-        if (remainingBlocks.size === 0) {
-          clearInterval(interval)
-          resolve('No more blocks to fetch, download is completed or canceled')
-        }
-      }, 1000)
+    const baseCatOptions: CatOptions = {
+      onProgress: handleDownloadProgressEvents,
+    }
+
+    const statOptions: StatOptions = {
+      signal: controller.signal,
+    }
+
+    const finishedDownloading = await this.downloadBlocks(fileCid, initialStats, {
+      catOptions: baseCatOptions,
+      statOptions,
+      signal: controller.signal,
+      logger: _logger,
     })
 
-    const processBlock = async (block: CID, signal: AbortSignal) => {
-      // eslint-disable-next-line
-      return await new Promise(async (resolve, reject) => {
-        const onAbort = () => {
-          remainingBlocks.delete(block)
-          reject(new AbortError('download cancelation'))
-        }
-
-        if (signal.aborted) onAbort()
-        signal.addEventListener('abort', onAbort, { once: true })
-
-        // @ts-ignore FIXME
-        if (processedBlocks.includes(block)) {
-          remainingBlocks.delete(block)
-          resolve(block)
-          return
-        }
-
-        const hasBlockBeenDownloaded = localBlocks.includes(`z${block.toString()}`)
-
-        let fetchedBlock
-
-        try {
-          fetchedBlock = await this.ipfs.block.get(block, { timeout: BLOCK_FETCH_TIMEOUT * 1000 })
-        } catch (e) {
-          this.logger.error('Failed to fetch block', block.toString(), e)
-          signal.removeEventListener('abort', onAbort)
-          reject(new Error("couldn't fetch block"))
-          return
-        }
-
-        const decodedBlock: PBNode = decode(fetchedBlock)
-
-        const fileState = this.files.get(fileMetadata.cid)
-
-        if (!fileState) {
-          reject(new Error('Downloading has been cancelled'))
-          return
-        }
-
-        processedBlocks.push(decodedBlock)
-
-        if (!hasBlockBeenDownloaded) {
-          blocksStats.push({
-            fetchTime: Math.floor(Date.now() / 1000),
-            byteLength: decodedBlock.Data?.byteLength || 0,
-          })
-        }
-
-        for (const link of decodedBlock.Links) {
-          // @ts-ignore
-          void addToQueue(link.Hash)
-          remainingBlocks.add(link.Hash)
-        }
-
-        signal.removeEventListener('abort', onAbort)
-        remainingBlocks.delete(block)
-        resolve(fetchedBlock)
-      })
+    if (!finishedDownloading) {
+      if (!controller.signal.aborted) {
+        _logger.warn(`Failed to finish downloading blocks for file, canceling download`)
+        await this.cancelDownload(fileCid.toString())
+      }
+      return DownloadState.Canceled
     }
 
-    void addToQueue(block)
-
-    await downloadCompletedOrCanceled
-
-    clearInterval(updateTransferSpeed)
-
-    const fileState = this.files.get(fileMetadata.cid)
-    if (!fileState) {
-      this.logger.error(`No saved data for file cid ${fileMetadata.cid}`)
-      return
-    }
-
-    if (this.cancelledDownloads.has(fileMetadata.cid)) {
-      this.files.set(fileMetadata.cid, {
-        ...fileState,
-        downloadedBytes: 0,
-        transferSpeed: 0,
-      })
-      this.cancelledDownloads.delete(fileMetadata.cid)
-      this.controllers.delete(fileMetadata.cid)
-      await this.updateStatus(fileMetadata.cid, DownloadState.Canceled)
-      this.files.delete(fileMetadata.cid)
-    } else {
-      this.files.set(fileMetadata.cid, {
-        ...fileState,
-        transferSpeed: 0,
-      })
-      await this.ipfs.pin.add(block, { recursive: true })
-      await this.assemblyFile(fileMetadata)
-    }
-  }
-
-  private async assemblyFile(fileMetadata: FileMetadata) {
-    const _CID = CID.parse(fileMetadata.cid)
-
-    const downloadDirectory = path.join(this.quietDir, 'downloads')
-    createPaths([downloadDirectory])
-
-    // As a quick fix, using a UUID for filename ensures that we never
-    // save a file with a malicious filename. Perhaps it's also
-    // possible to use the CID, however let's verify that first.
-    let fileName: string
-    let filePath: string
-    do {
-      fileName = crypto.randomUUID()
-      filePath = `${path.join(downloadDirectory, fileName)}`
-    } while (fs.existsSync(filePath))
-
-    const writeStream = fs.createWriteStream(filePath, { flags: 'wx' })
-
-    const entries = this.ipfs.cat(_CID)
-
-    for await (const entry of entries) {
-      await new Promise<void>((resolve, reject) => {
-        writeStream.write(entry, err => {
-          if (err) {
-            this.logger.error(`${fileMetadata.name} writing to file error`, err)
-            reject(err)
-          }
-        })
-        resolve()
-      })
-    }
-
+    const finishedWriting = await this.writeBlocksToFilesystem(fileCid, writeStream, {
+      logger: _logger,
+      signal: controller.signal,
+      catOptions: baseCatOptions,
+    })
     writeStream.end()
 
-    await this.updateStatus(fileMetadata.cid, DownloadState.Completed)
-    this.files.delete(fileMetadata.cid)
-    this.controllers.delete(fileMetadata.cid)
+    try {
+      clearInterval(updateDownloadStatusWithTransferSpeed)
+    } catch (e) {
+      _logger.error(`Error while clearing status update interval`, e)
+    }
+
+    if (!finishedWriting && !controller.signal.aborted) {
+      _logger.warn(`Failed to finish writing blocks to filesystem, canceling download`)
+      await this.cancelDownload(fileCid.toString())
+      return DownloadState.Canceled
+    }
+
+    const fileState = this.files.get(fileMetadata.cid)
+    if (fileState == null) {
+      _logger.error(`No saved data for file`)
+      return DownloadState.Canceled
+    }
+
+    const finalStats = await this.getFileStats(fileCid, {
+      logger: _logger,
+      signal: controller.signal,
+      statOptions,
+    })
+
+    if (finalStats == null) {
+      if (!controller.signal.aborted) await this.cancelDownload(fileCid.toString())
+
+      return DownloadState.Canceled
+    }
+
+    this.files.set(fileMetadata.cid, {
+      ...fileState,
+      transferSpeed: 0,
+      downloadedBytes: Number(finalStats.localFileSize),
+    })
+
+    const isPinned = await this.pinBlocks(fileCid, {
+      logger: _logger,
+      signal: controller.signal,
+      addOptions: {
+        signal: controller.signal,
+        onProgress: handleDownloadProgressEvents,
+      },
+    })
+
+    if (!isPinned) {
+      if (!controller.signal.aborted) {
+        await this.cancelDownload(fileCid.toString())
+      }
+
+      return DownloadState.Canceled
+    }
 
     const messageMedia: FileMetadata = {
       ...fileMetadata,
-      path: filePath,
+      path: writeStream.path.toString(),
     }
 
     this.emit(IpfsFilesManagerEvents.MESSAGE_MEDIA_UPDATED, messageMedia)
+    return DownloadState.Completed
   }
 
   private async updateStatus(cid: string, downloadState = DownloadState.Downloading) {
+    this.logger.info(`Updating status for file`, cid, downloadState)
     const metadata = this.files.get(cid)
     if (!metadata) {
+      this.logger.warn(`No file metadata found for file`, cid)
       // TODO: emit error?
       return
     }
@@ -499,5 +610,264 @@ export class IpfsFileManagerService extends EventEmitter {
     }
 
     this.emit(IpfsFilesManagerEvents.DOWNLOAD_PROGRESS, status)
+  }
+
+  // UnixFS helpers
+
+  private async getFileStats(cid: CID, options: GetStatsOptions): Promise<UnixFSStats | undefined> {
+    options.logger.info(`Getting file stats`)
+    try {
+      return await this.ufs.stat(cid, options.statOptions)
+    } catch (e) {
+      if (options.signal.aborted) {
+        options.logger.warn(`Cancelled stat due to download cancellation`)
+      } else {
+        options.logger.error(`Error while getting file stats`, e)
+      }
+
+      if (options.onError) {
+        await options.onError(cid, e)
+      }
+      return undefined
+    }
+  }
+
+  private async getBlocks(
+    cid: CID,
+    options: GetBlocksOptions,
+    timeoutMs?: number
+  ): Promise<AsyncIterable<Uint8Array> | undefined> {
+    options.logger.info(`Getting blocks for file`)
+    try {
+      const entries = this.ufs.cat(cid, { ...options.catOptions, signal: undefined })
+      return abortableAsyncIterable(entries, options.signal, timeoutMs) // this allows us to abort without causing an unhandled rejection error
+    } catch (e) {
+      if (options.signal.aborted) {
+        options.logger.warn(`Cancelled cat due to download cancellation`)
+      } else {
+        options.logger.error(`Error while getting blocks for file`, e)
+      }
+
+      if (options.onError) {
+        await options.onError(cid, e)
+      }
+      return undefined
+    }
+  }
+
+  private async pinBlocks(fileCid: CID, options: PinBlocksOptions): Promise<boolean> {
+    options.logger.info(`Pinning all blocks for file`)
+    try {
+      if (await this.ipfs.pins.isPinned(fileCid, options.addOptions)) {
+        options.logger.warn(`Already pinned - this file has probably already been uploaded/downloaded previously`)
+      } else {
+        for await (const cid of abortableAsyncIterable(
+          this.ipfs.pins.add(fileCid, options.addOptions),
+          options.signal
+        )) {
+          options.logger.debug(`Pinning ${cid.toString()}`)
+        }
+        options.logger.info(`Pinning complete`)
+      }
+
+      return true
+    } catch (e) {
+      if (options.signal.aborted) {
+        options.logger.warn(`Cancelled block pinning due to download cancellation`)
+      } else {
+        options.logger.error(`Error while pinning blocks for file`, e)
+      }
+
+      if (options.onError != null) {
+        await options.onError(fileCid, e)
+      }
+
+      return false
+    }
+  }
+
+  // Download helpers
+
+  private async downloadBlocks(cid: CID, initialStats: UnixFSStats, options: DownloadBlocksOptions): Promise<boolean> {
+    let downloading = initialStats.fileSize !== initialStats.localFileSize
+    let offset = 0
+
+    if (!downloading) {
+      options.logger.info(`File is already downloaded, skipping block fetch!`)
+      return true
+    }
+
+    while (downloading && !options.signal.aborted) {
+      options.logger.info(`Checking current download stats`)
+      const stat: UnixFSStats | undefined = await this.getFileStats(cid, {
+        logger: options.logger,
+        signal: options.signal,
+        statOptions: options.statOptions,
+      })
+
+      if (stat == null) {
+        if (!options.signal.aborted) continue
+
+        return false
+      }
+
+      const totalSize = Number(stat.fileSize)
+      const downloadedSize = Number(stat.localFileSize)
+      if (offset >= totalSize) {
+        options.logger.info(`Done downloading`)
+        downloading = false
+        return true
+      }
+
+      // we have to break apart the cat operation into chunks because for big files you end up overstressing the block broker and it fails to download
+      const catOptions: CatOptions = {
+        ...options.catOptions,
+        offset: downloadedSize,
+        length: DEFAULT_CAT_BLOCK_CHUNK_SIZE,
+      }
+
+      options.logger.info(
+        `Getting blocks totalling ${DEFAULT_CAT_BLOCK_CHUNK_SIZE} bytes with offset ${downloadedSize} (total bytes: ${totalSize})`
+      )
+
+      try {
+        const entries = await this.getBlocks(
+          cid,
+          {
+            logger: options.logger,
+            signal: options.signal,
+            catOptions,
+          },
+          120_000
+        )
+        if (entries == null) {
+          if (options.signal.aborted) {
+            options.logger.warn(`Download aborted, skipping processing of block...`)
+            return false
+          }
+
+          options.logger.warn(`Error occurred while getting blocks, retrying...`)
+          await sleep(500)
+          continue
+        }
+
+        for await (const entry of entries) {
+          options.logger.info(`Got block with size (in bytes)`, entry.byteLength)
+        }
+      } catch (e) {
+        if (options.signal.aborted) {
+          options.logger.warn(`Cancelling download during block fetch operation`, e)
+          downloading = false
+          return false
+        }
+
+        options.logger.error(`Error while catting file, retrying...`, e)
+        await sleep(500)
+        continue
+      }
+      offset += DEFAULT_CAT_BLOCK_CHUNK_SIZE
+    }
+
+    return true
+  }
+
+  private async writeBlocksToFilesystem(
+    cid: CID,
+    writeStream: fs.WriteStream,
+    options: GetBlocksOptions
+  ): Promise<boolean> {
+    options.logger.info(`Writing blocks to filesystem`)
+    if (options.signal?.aborted) {
+      options.logger.info(`Skipping filesystem write because the download has been cancelled`)
+      return false
+    }
+
+    try {
+      const entries = await this.getBlocks(
+        cid,
+        {
+          logger: options.logger,
+          signal: options.signal,
+          catOptions: options.catOptions,
+        },
+        120_000
+      )
+      if (entries == null) {
+        if (options.signal?.aborted) {
+          options.logger.warn(`Download aborted, skipping writing of block...`)
+          return false
+        }
+
+        options.logger.warn(`Error occurred while getting blocks for writing to the filesystem`)
+        return false
+      }
+
+      for await (const entry of entries) {
+        options.logger.info(`Writing block with size (in bytes)`, entry.byteLength)
+
+        await new Promise<void>((resolve, reject) => {
+          writeStream.write(entry, err => {
+            if (err) {
+              this.logger.error(`${cid.toString()} writing to file error`, err)
+              reject(err)
+            }
+          })
+          resolve()
+        })
+      }
+    } catch (e) {
+      if (options.signal?.aborted) {
+        options.logger.warn(`Cancelling download while writing block data to filesystem`, e)
+      } else {
+        options.logger.error(`Error while catting to write blocks out to local file`, e)
+      }
+      return false
+    }
+
+    return true
+  }
+
+  private async validateDownload(
+    cid: CID,
+    metadataSize: number | undefined,
+    options: GetStatsOptions
+  ): Promise<UnixFSStats | DownloadState.Canceled | DownloadState.Malicious> {
+    options.logger.info(`Validating download at start`)
+    const initialStats: UnixFSStats | undefined = await this.getFileStats(cid, {
+      ...options,
+      onError: async (cid: CID, error: Error) => {
+        options.logger.error(`Cancelling download due to error during initial stat`, error)
+        await this.cancelDownload(cid.toString())
+      },
+    })
+
+    if (initialStats == null) {
+      return DownloadState.Canceled
+    }
+
+    const fileSize = initialStats.fileSize
+    if (metadataSize != null && !compare(metadataSize, fileSize, 0.05)) {
+      options.logger.warn(`File was flagged as malicious due to discrepancies in file size`)
+      return DownloadState.Malicious
+    }
+
+    return initialStats
+  }
+
+  private prepFileStream(ext: string): fs.WriteStream {
+    const downloadDirectory = path.join(this.quietDir, 'downloads')
+    createPaths([downloadDirectory])
+
+    // As a quick fix, using a UUID for filename ensures that we never
+    // save a file with a malicious filename. Perhaps it's also
+    // possible to use the CID, however let's verify that first.
+    let fileName: string
+    let filePath: string
+    do {
+      fileName = `${crypto.randomUUID()}${ext}`
+      filePath = `${path.join(downloadDirectory, fileName)}`
+    } while (fs.existsSync(filePath))
+
+    return fs.createWriteStream(filePath, { flags: 'wx' })
   }
 }

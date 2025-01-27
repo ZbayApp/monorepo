@@ -24,7 +24,7 @@ describe('users selectors', () => {
 
   const aliceCertificateData = {
     onionAddress: 'nqnw4kc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion',
-    peerId: 'Qmf3ySkYqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6',
+    peerId: '12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY',
     username: 'alice',
   }
 
@@ -47,6 +47,8 @@ describe('users selectors', () => {
       },
       peerId: {
         id: aliceCertificateData.peerId,
+        privKey: 'foobar',
+        noiseKey: 'barbaz',
       },
     })
 
@@ -78,7 +80,7 @@ describe('users selectors', () => {
     expect(usersData[alicePublicKey]).toMatchInlineSnapshot(`
       Object {
         "onionAddress": "nqnw4kc4c77fb47lk52m5l57h4tcxceo7ymxekfn7yh5m66t4jv2olad.onion",
-        "peerId": "Qmf3ySkYqLET9xtAtDzvAr5Pp3egK1H3C5iJAZm1SpLEp6",
+        "peerId": "12D3KooWSYQf8zzr5rYnUdLxYyLzHruQHPaMssja1ADifGAcN3qY",
         "username": "alice",
       }
     `)

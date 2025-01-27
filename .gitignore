@@ -7,3 +7,4 @@ c4/workspace.json
 .vscode
 packages/.DS_Store
 .idea
+*.log

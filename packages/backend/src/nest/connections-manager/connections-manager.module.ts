@@ -6,11 +6,13 @@ import { StorageModule } from '../storage/storage.module'
 import { TorModule } from '../tor/tor.module'
 import { ConnectionsManagerService } from './connections-manager.service'
 import { StorageServiceClientModule } from '../storageServiceClient/storageServiceClient.module'
+import { Libp2pModule } from '../libp2p/libp2p.module'
 import { SigChainModule } from '../auth/sigchain.service.module'
 
 @Module({
   imports: [
     RegistrationModule,
+    Libp2pModule,
     StorageModule,
     TorModule,
     SocketModule,

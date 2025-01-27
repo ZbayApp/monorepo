@@ -1,5 +1,3 @@
-import { describe, expect, test } from '@jest/globals'
-
 import { isPng, base64DataURLToByteArray, isGif, isJpeg, validatePhoto } from './userProfile.utils'
 import { LARGE_IMG_URI, VALID_GIF_URI, VALID_JPEG_URI, VALID_PNG_URI } from './userProfile.utils.spec.const'
 

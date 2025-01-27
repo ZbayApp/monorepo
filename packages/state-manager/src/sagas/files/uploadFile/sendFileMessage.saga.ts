@@ -26,7 +26,7 @@ export function* sendFileMessageSaga(
     filePath = decodeURIComponent(filePath.startsWith(fileProtocol) ? filePath.slice(fileProtocol.length) : filePath)
     tmpPath = tmpPath ? decodeURIComponent(tmpPath.slice(fileProtocol.length)) : undefined
   } catch (e) {
-    logger.error(`Can't send file with path ${filePath}, Details: ${e.message}`)
+    logger.error(`Can't send file with path ${filePath}`, e)
     return
   }
 

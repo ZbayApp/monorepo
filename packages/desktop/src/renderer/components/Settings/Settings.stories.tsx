@@ -15,11 +15,11 @@ import { composeInvitationShareUrl } from '@quiet/common'
 const invitationLink = composeInvitationShareUrl({
   pairs: [
     {
-      peerId: 'QmVTkUad2Gq3MkCa8gf12R1gsWDfk2yiTEqb6YGXDG2iQ3',
+      peerId: '12D3KooWSZxWV6DmmTNf9sUgcTQqpN3CTuRiJFY4VthXr4yYxXxi',
       onionAddress: 'p3oqdr53dkgg3n5nuezlzyawhxvit5efxzlunvzp7n7lmva6fj3i43ad',
     },
     {
-      peerId: 'Qmd2Un9AynokZrcZGsMuaqgupTtidHGQnUkNVfFFAef97C',
+      peerId: '12D3KooWHgLdRMqkepNiYnrur21cyASUNk1f9NZ5tuGa9He8QXNa',
       onionAddress: 'vnywuiyl7p7ig2murcscdyzksko53e4k3dpdm2yoopvvu25p6wwjqbad',
     },
   ],

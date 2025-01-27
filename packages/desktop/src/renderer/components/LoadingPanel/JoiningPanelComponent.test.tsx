@@ -101,7 +101,7 @@ describe('Create JoiningPanelComponent', () => {
                       <p
                         class="MuiTypography-root MuiTypography-body2 css-16d47hw-MuiTypography-root"
                       >
-                        Initialized backend modules
+                        Initializing backend
                       </p>
                     </div>
                     <p
@@ -237,7 +237,7 @@ describe('Create JoiningPanelComponent', () => {
                       <p
                         class="MuiTypography-root MuiTypography-body2 css-16d47hw-MuiTypography-root"
                       >
-                        Initialized backend modules
+                        Initializing backend
                       </p>
                     </div>
                     <p

@@ -2,6 +2,8 @@ import debug from 'debug'
 import { Console } from 'console'
 import { DateTime } from 'luxon'
 
+import { ANY_KEY, findAllByKeyAndReplace } from './utils'
+
 const colors = require('ansi-colors')
 
 const COLORIZE = process.env['COLORIZE'] === 'true'
@@ -265,20 +267,73 @@ export class QuietLogger {
    */
   private formatObject(param: any, overrideColorKey: string | undefined = undefined): string {
     if (param instanceof Error) {
-      let formattedError = param.stack || `${param.name}: ${param.message}`
-      if (COLORIZE) {
-        formattedError = colors[overrideColorKey || 'object_error'](formattedError)
+      const colorizeError = (stringifiedError: string): string => {
+        //@ts-ignore
+        return COLORIZE ? colors[overrideColorKey || 'object_error'](stringifiedError) : stringifiedError
       }
-      return formattedError
-    } else if (['string', 'number', 'boolean', 'bigint'].includes(typeof param)) {
-      return COLORIZE ? colors[overrideColorKey || 'object'](param) : param
+
+      const stringifyError = (err: Error) => {
+        return err.stack || `${err.name}: ${err.message}`
+      }
+
+      let formattedErrors: string = stringifyError(param)
+      if ((param as any).errors != null) {
+        formattedErrors += ` - Errors:\n`
+        formattedErrors += (param as any).errors.map((err: Error) => stringifyError(err)).join('\n')
+      }
+
+      return colorizeError(formattedErrors)
     }
 
-    let formattedObject = JSON.stringify(param, null, 2)
-    if (COLORIZE) {
-      formattedObject = colors[overrideColorKey || 'object'](formattedObject)
+    const colorize = (stringifiedParam: string): string => {
+      //@ts-ignore
+      return COLORIZE ? colors[overrideColorKey || 'object'](stringifiedParam) : stringifiedParam
     }
-    return formattedObject
+
+    let formatted: string
+    if (['string', 'number', 'boolean', 'bigint'].includes(typeof param)) {
+      formatted = param
+    } else if (param == null) {
+      formatted = 'undefined'
+    } else {
+      try {
+        let truncatedOrNot: string
+        if ((param as ArrayLike<any>).length != undefined) {
+          truncatedOrNot = param
+        } else {
+          truncatedOrNot = this.truncateMessageForLogging(param)
+        }
+        formatted = JSON.stringify(truncatedOrNot, null, 2)
+      } catch (e) {
+        formatted = param.toString()
+        if (formatted.startsWith('[object')) {
+          formatted = param
+        }
+      }
+    }
+
+    return colorize(formatted)
+  }
+
+  private truncateMessageForLogging(obj: any): string {
+    return findAllByKeyAndReplace(obj, [
+      {
+        key: ANY_KEY,
+        replace: {
+          replacerFunc: (value: any) => {
+            if (value != null && typeof value === 'bigint') {
+              return (value as bigint).toString()
+            } else if (value != null && (value.toV1 != null || value.toV0 != null)) {
+              return value.toString()
+            } else if (value != null && value instanceof Uint8Array) {
+              return Buffer.from(value).toString('base64')
+            }
+
+            return value
+          },
+        },
+      },
+    ])
   }
 }
 

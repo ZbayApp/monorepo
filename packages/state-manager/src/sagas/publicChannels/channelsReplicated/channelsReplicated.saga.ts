@@ -1,11 +1,10 @@
 import { type PayloadAction } from '@reduxjs/toolkit'
-import { select, put, take, putResolve } from 'typed-redux-saga'
+import { select, take, putResolve } from 'typed-redux-saga'
 import { publicChannelsSelectors } from '../publicChannels.selectors'
 import { publicChannelsActions } from '../publicChannels.slice'
 import { messagesSelectors } from '../../messages/messages.selectors'
 import { messagesActions } from '../../messages/messages.slice'
 import { communitiesSelectors } from '../../communities/communities.selectors'
-import { type PublicChannel } from '@quiet/types'
 import { createLogger } from '../../../utils/logger'
 
 const logger = createLogger('channelsReplicatedSaga')
@@ -15,14 +14,13 @@ export function* channelsReplicatedSaga(
 ): Generator {
   // TODO: Refactor to use QuietLogger
   logger.info(`Syncing channels: ${JSON.stringify(action.payload, null, 2)}`)
+
   const { channels } = action.payload
   const _locallyStoredChannels = yield* select(publicChannelsSelectors.publicChannels)
   const locallyStoredChannels = _locallyStoredChannels.map(channel => channel.id)
-
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-  const databaseStoredChannels = Object.values(channels) as PublicChannel[]
-
+  const databaseStoredChannels = channels
   const databaseStoredChannelsIds = databaseStoredChannels.map(channel => channel.id)
+
   logger.info({ locallyStoredChannels, databaseStoredChannelsIds })
 
   // Upserting channels to local storage

@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common'
 import express from 'express'
 import getPort from 'get-port'
-import createHttpsProxyAgent from 'https-proxy-agent'
+import { HttpsProxyAgent } from 'https-proxy-agent'
 import { Level } from 'level'
 import {
   EXPRESS_PROVIDER,
@@ -15,6 +15,7 @@ import {
   DB_PATH,
   LEVEL_DB,
   TEST_DATA_PORT,
+  LIBP2P_DB_PATH,
 } from '../const'
 import { ConfigOptions } from '../types'
 import path from 'path'
@@ -86,16 +87,17 @@ export const defaultConfigForTest = {
         if (!configOptions.httpTunnelPort) {
           configOptions.httpTunnelPort = await getPort()
         }
-        return createHttpsProxyAgent({
-          port: configOptions.httpTunnelPort,
-          host: '127.0.0.1',
-        })
+        return new HttpsProxyAgent(`http://127.0.0.1:${configOptions.httpTunnelPort}`)
       },
       inject: [CONFIG_OPTIONS],
     },
     {
       provide: DB_PATH,
       useFactory: () => path.join(createTmpDir().name, 'testDB-nest'),
+    },
+    {
+      provide: LIBP2P_DB_PATH,
+      useFactory: () => path.join(createTmpDir().name, 'testDB-libp2p'),
     },
     {
       provide: LEVEL_DB,
@@ -112,6 +114,7 @@ export const defaultConfigForTest = {
     SOCKS_PROXY_AGENT,
     LEVEL_DB,
     EXPRESS_PROVIDER,
+    LIBP2P_DB_PATH,
   ],
 })
 export class TestModule {}

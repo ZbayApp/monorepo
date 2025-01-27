@@ -196,7 +196,7 @@ export class Tor extends EventEmitter implements OnModuleInit {
       try {
         process.kill(Number(id.trim()))
       } catch (e) {
-        this.logger.error(`Tried killing hanging tor process with id ${id}. Failed. Reason: ${e.message}`)
+        this.logger.error(`Tried killing hanging tor process with id ${id}. Failed`, e)
       }
     }
   }
@@ -273,7 +273,7 @@ export class Tor extends EventEmitter implements OnModuleInit {
       })
 
       this.process.on('error', err => {
-        this.logger.error(`Tor process. Error occurred: ${err.message}`)
+        this.logger.error(`Tor process. Error occurred`, err)
       })
 
       this.process.stdout.on('data', (data: any) => {

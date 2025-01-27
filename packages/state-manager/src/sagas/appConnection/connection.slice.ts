@@ -23,6 +23,14 @@ export const connectionSlice = createSlice({
     updateUptime: (state, action) => {
       state.uptime = state.uptime + action.payload
     },
+    setNetworkData: (state, action: PayloadAction<NetworkDataPayload>) => {
+      const _peerStats = state.peersStats || peersStatsAdapter.getInitialState()
+      peersStatsAdapter.upsertOne(_peerStats, {
+        peerId: action.payload.peer,
+        lastSeen: action.payload.lastSeen,
+        connectionTime: 0,
+      })
+    },
     updateNetworkData: (state, action: PayloadAction<NetworkDataPayload>) => {
       const prev = state.peersStats?.entities[action.payload.peer]?.connectionTime || 0
       const _peerStats = state.peersStats || peersStatsAdapter.getInitialState()
@@ -35,15 +43,6 @@ export const connectionSlice = createSlice({
     setLastConnectedTime: (state, action: PayloadAction<number>) => {
       state.lastConnectedTime = action.payload
     },
-    setTorBootstrapProcess: (state, action: PayloadAction<string>) => {
-      const info = action.payload
-      if (info.includes('Bootstrapped')) {
-        const firstChar = info.indexOf(']') + 1
-        const lastChar = info.indexOf(')') + 1
-        const formattedInfo = info.slice(firstChar, lastChar).trim()
-        state.torBootstrapProcess = formattedInfo
-      }
-    },
     torBootstrapped: (state, _action: PayloadAction<any>) => state,
     setTorInitialized: state => {
       state.isTorInitialized = true
@@ -51,26 +50,25 @@ export const connectionSlice = createSlice({
     setSocketIOSecret: (state, action: PayloadAction<string>) => {
       state.socketIOSecret = action.payload
     },
-    setConnectionProcess: (state, action: PayloadAction<string>) => {
-      const info = action.payload
+    onConnectionProcessInfo: (state, _action: PayloadAction<string>) => state,
+    setConnectionProcess: (state, action: PayloadAction<{ info: string; isOwner: boolean }>) => {
+      const { info, isOwner } = action.payload
 
-      switch (info) {
-        case ConnectionProcessInfo.REGISTERING_OWNER_CERTIFICATE:
-          state.connectionProcess = { number: 50, text: ConnectionProcessInfo.REGISTERING_OWNER_CERTIFICATE }
-          break
-        case ConnectionProcessInfo.INITIALIZING_IPFS:
-          if (state.connectionProcess.number > 30) break
-          state.connectionProcess = { number: 30, text: ConnectionProcessInfo.BACKEND_MODULES }
-          break
-        case ConnectionProcessInfo.CONNECTING_TO_COMMUNITY:
-          if (state.connectionProcess.number == 50) break
+      if (info === ConnectionProcessInfo.INITIALIZING_IPFS) {
+        if (state.connectionProcess.number > 30) return
+        state.connectionProcess = { number: 30, text: ConnectionProcessInfo.BACKEND_MODULES }
+      } else if (!isOwner) {
+        if (info === ConnectionProcessInfo.CONNECTING_TO_COMMUNITY) {
+          if (state.connectionProcess.number == 50) return
           state.connectionProcess = { number: 50, text: ConnectionProcessInfo.CONNECTING_TO_COMMUNITY }
-          break
-        case ConnectionProcessInfo.CHANNELS_STORED || ConnectionProcessInfo.CERTIFICATES_STORED:
+        } else if (
+          info === ConnectionProcessInfo.CHANNELS_STORED ||
+          info === ConnectionProcessInfo.CERTIFICATES_STORED
+        ) {
           let number = 90
           if (state.connectionProcess.number == 90) number = 95
           state.connectionProcess = { number, text: ConnectionProcessInfo.LOADING_MESSAGES }
-          break
+        }
       }
     },
   },

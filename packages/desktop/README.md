@@ -5,7 +5,7 @@ Here are the steps:
 
 1. Install `patch` (e.g. via your Linux package manager)
 
-2. Use `Node 18.12.1` and `npm 8.19.2`. We recommend [nvm](https://github.com/nvm-sh/nvm) for easily switching Node versions, and if this README gets out of date you can see the actual version used by CI [here](https://github.com/TryQuiet/quiet/blob/master/.github/actions/setup-env/action.yml). If you are using nvm, you can run `nvm use` in the project's root to switch to the correct version.
+2. Use `Node 18.20.4` and `npm 10.7.0`. We recommend [nvm](https://github.com/nvm-sh/nvm) or [volta](https://volta.sh/) for easily switching Node versions, and if this README gets out of date you can see the actual version used by CI [here](https://github.com/TryQuiet/quiet/blob/master/.github/actions/setup-env/action.yml). If you are using nvm, you can run `nvm use` in the project's root to switch to the correct version.
 
 3. Initialize submodules in the project's root:
 

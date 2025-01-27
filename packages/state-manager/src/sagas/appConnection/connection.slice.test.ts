@@ -87,22 +87,10 @@ describe('connectionReducer', () => {
     expect(userDataPerPeerId[alice.peerId.id]).toEqual(aliceCertData)
   })
 
-  it('setTorBootstrapProcess', () => {
-    const payload = 'Mar 29 15:15:38.000 [notice] Bootstrapped 10% (conn_done): Connected to a relay'
-
-    store.dispatch(connectionActions.setTorBootstrapProcess(payload))
-
-    const torBootstrapInfo = connectionSelectors.torBootstrapProcess(store.getState())
-
-    const expectedTorBootstrapInfo = 'Bootstrapped 10% (conn_done)'
-
-    expect(torBootstrapInfo).toEqual(expectedTorBootstrapInfo)
-  })
-
   it('set connectionProcess', () => {
     const payload2 = ConnectionProcessInfo.INITIALIZING_IPFS
 
-    store.dispatch(connectionActions.setConnectionProcess(payload2))
+    store.dispatch(connectionActions.setConnectionProcess({ info: payload2, isOwner: false }))
 
     const { number, text } = connectionSelectors.connectionProcess(store.getState())
 

@@ -57,7 +57,9 @@ describe('Joining process', () => {
     const processText = screen.getByTestId('connection-process-text')
     expect(processText.props.children).toEqual(ConnectionProcessInfo.CONNECTION_STARTED)
 
-    store.dispatch(connection.actions.setConnectionProcess(ConnectionProcessInfo.INITIALIZING_IPFS))
+    store.dispatch(
+      connection.actions.setConnectionProcess({ info: ConnectionProcessInfo.INITIALIZING_IPFS, isOwner: true })
+    )
     await act(async () => {})
 
     const processText2 = screen.getByTestId('connection-process-text')

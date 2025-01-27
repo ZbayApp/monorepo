@@ -16,9 +16,11 @@ export const processInvitationCode = (mainWindow: BrowserWindow, code: string | 
 
 export const updateDesktopFile = (isDev: boolean) => {
   if (isDev || process.platform !== 'linux') return
+  logger.info(`Updating desktop file and setting default scheme handler`)
 
-  const appDesktopFile = path.join(os.homedir(), '.local/share/applications/quiet.desktop')
-  const resource = path.join(process.resourcesPath, 'quiet.desktop')
+  const desktopName = 'quiet.desktop'
+  const appDesktopFile = path.join(os.homedir(), `.local/share/applications/${desktopName}`)
+  const resource = path.join(process.resourcesPath, desktopName)
 
   try {
     if (!fs.existsSync(appDesktopFile)) {
@@ -35,9 +37,17 @@ export const updateDesktopFile = (isDev: boolean) => {
   }
 
   try {
-    execSync('xdg-settings set default-url-scheme-handler quiet quiet.desktop')
+    const scheme = 'x-scheme-handler/quiet'
+    logger.info(execSync(`xdg-mime default ${desktopName} ${scheme}`).toString())
+    logger.info(execSync(`xdg-mime query default ${scheme}`).toString())
   } catch (e) {
-    logger.error("Couldn't set default scheme handler", e)
+    logger.error("Couldn't set default scheme handler via xdg-mime", e)
+  }
+
+  try {
+    logger.info(execSync('xdg-settings set default-url-scheme-handler quiet quiet.desktop').toString())
+  } catch (e) {
+    logger.error("Couldn't update default scheme handler via xdg-settings", e)
   }
 }
 

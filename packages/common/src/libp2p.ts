@@ -29,5 +29,5 @@ export const isPSKcodeValid = (psk: string): boolean => {
 }
 
 export const filterValidAddresses = (addresses: string[]) => {
-  return addresses.filter(add => add.match(/^\/dns4\/[a-z0-9]{56}.onion\/tcp\/(443|80)\/ws\/p2p\/[a-zA-Z0-9]{46}$/g))
+  return addresses.filter(add => add.match(/^\/dns4\/[a-z0-9]{56}.onion\/tcp\/(443|80)\/ws\/p2p\/[a-zA-Z0-9]{52}$/g))
 }

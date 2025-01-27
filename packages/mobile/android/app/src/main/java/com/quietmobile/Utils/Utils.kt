@@ -24,7 +24,7 @@ object Utils {
     }
 
     fun createDirectory(context: Context): String {
-        val dataDirectory = File(context.filesDir, "backend/files2")
+        val dataDirectory = File(context.filesDir, "backend/files3")
         dataDirectory.mkdirs()
 
         return dataDirectory.absolutePath

@@ -1,5 +1,8 @@
 import { type NetworkStats } from '@quiet/types'
 import { filterValidAddresses } from './libp2p'
+import { createLogger } from './logger'
+
+const logger = createLogger(`sortPeers`)
 
 /**
 This is the very simple algorithm for evaluating the most wanted peers.

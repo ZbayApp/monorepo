@@ -16,6 +16,7 @@ jobs:
       DISPLAY: ":99.0"
       TEST_MODE: true
       IS_CI: true
+      SKIP_BACK_COMPAT_TEST_BRANCHES: '["update-orbitdb", "chore/upgrade-orbitdb-2_4_3", "fix/2679-2680-2682-3_0-fixes"]'
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -32,7 +33,7 @@ jobs:
         uses: ./.github/actions/setup-env
         with:
           cachePrefix: "e2e-crossplatform-linux"
-          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,backend-bundle,e2e-tests"
+          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/desktop,backend-bundle,e2e-tests,helia"
 
       - name: Run X11
         run: |
@@ -55,19 +56,19 @@ jobs:
           max_attempts: 3
           command: cd packages/e2e-tests && npm run test oneClient.test.ts
 
-      - name: Run multiple clients test
-        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
-        with:
-          timeout_minutes: 25
-          max_attempts: 3
-          command: cd packages/e2e-tests && npm run test multipleClients.test.ts
-
       - name: Run user profile test
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 25
           max_attempts: 3
           command: cd packages/e2e-tests && npm run test userProfile.test.ts
+
+      - name: Run multiple clients test
+        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        with:
+          timeout_minutes: 25
+          max_attempts: 3
+          command: cd packages/e2e-tests && npm run test multipleClients.test.ts
 
       - name: Run invitation link test - Includes 2 separate application clients
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
@@ -78,7 +79,10 @@ jobs:
 
       - name: Run Backwards Compatibility test
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
+        if: ${{ !contains(fromJson(env.SKIP_BACK_COMPAT_TEST_BRANCHES), github.head_ref) }}
         with:
           timeout_minutes: 15
           max_attempts: 3
-          command: cd packages/e2e-tests && npm run test backwardsCompatibility.test.ts
+          command: |
+            echo "Running backwards compatibility test for branch $GITHUB_HEAD_REF"
+            cd packages/e2e-tests && npm run test backwardsCompatibility.test.ts

@@ -20,7 +20,7 @@ describe('LocalDbService', () => {
     }).compile()
 
     localDbService = await module.resolve(LocalDbService)
-    peer1ID = 'QmaEvCkpUG7GxhgvMkk8wxurfi1ehjHhSUNRksWTmXN2ix'
+    peer1ID = '12D3KooWEHzmff5kZAvyU6Diq5uJG8QkWJxFNUcBLuWjxUGvxaqw'
     peer1Stats = {
       [peer1ID]: {
         peerId: peer1ID,
@@ -28,7 +28,7 @@ describe('LocalDbService', () => {
         lastSeen: 1000,
       },
     }
-    peer2ID = 'QmZB6pVafcvAQfy5R5LxvDXvB8xcDifD39Lp3XGDM9XDuQ'
+    peer2ID = '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx'
     peer2Stats = {
       [peer2ID]: {
         peerId: peer2ID,
@@ -72,7 +72,7 @@ describe('LocalDbService', () => {
     const peers = [
       createLibp2pAddress(
         'zl37gnntp64dhnisddftypxbt5cqx6cum65vdv6oeaffrbqmemwc52ad.onion',
-        'QmPGdGDUV1PXaJky4V53KSvFszdqEcM7KCoDpF2uFPf5w6'
+        '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
       ),
     ]
     const sortedPeers = await localDbService.getSortedPeers(peers)

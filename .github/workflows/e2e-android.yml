@@ -5,7 +5,7 @@ on: workflow_dispatch
 jobs:
   detox-android:
     timeout-minutes: 25
-    runs-on: [macos-14-xlarge]
+    runs-on: [macos-13-xlarge]
 
     steps:
       - uses: actions/checkout@v4
@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-node@master
         with:
-          node-version: 18.12.1
+          node-version: 18.20.4
 
       - name: Install dependencies
         run: |

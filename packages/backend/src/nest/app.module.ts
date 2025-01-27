@@ -6,6 +6,7 @@ import { IpfsFileManagerModule } from './ipfs-file-manager/ipfs-file-manager.mod
 import path from 'path'
 import fs from 'fs'
 
+// @ts-ignore
 import cors from 'cors'
 import {
   CONFIG_OPTIONS,
@@ -19,13 +20,14 @@ import {
   SOCKS_PROXY_AGENT,
   LEVEL_DB,
   DB_PATH,
+  LIBP2P_DB_PATH,
 } from './const'
 import { ConfigOptions, ConnectionsManagerOptions, ConnectionsManagerTypes } from './types'
 import { LocalDbModule } from './local-db/local-db.module'
 import { Libp2pModule } from './libp2p/libp2p.module'
 import { TorModule } from './tor/tor.module'
 import express from 'express'
-import createHttpsProxyAgent from 'https-proxy-agent'
+import { HttpsProxyAgent } from 'https-proxy-agent'
 import getPort from 'get-port'
 import { createServer } from 'http'
 import { Server as SocketIO } from 'socket.io'
@@ -41,14 +43,14 @@ const logger = createLogger('appModule')
 @Module({
   imports: [
     SocketModule,
-    ConnectionsManagerModule,
-    RegistrationModule,
-    IpfsFileManagerModule,
     LocalDbModule,
     Libp2pModule,
-    TorModule,
-    StorageModule,
     IpfsModule,
+    IpfsFileManagerModule,
+    StorageModule,
+    ConnectionsManagerModule,
+    RegistrationModule,
+    TorModule,
   ],
   providers: [
     {
@@ -105,6 +107,7 @@ export class AppModule {
               pingInterval: 1000_000,
               pingTimeout: 1000_000,
             })
+            // @ts-ignore
             io.engine.use((req, res, next) => {
               const authHeader = req.headers['authorization']
               if (!authHeader) {
@@ -137,14 +140,11 @@ export class AppModule {
         },
         {
           provide: SOCKS_PROXY_AGENT,
-          useFactory: async (configOptions: ConfigOptions) => {
+          useFactory: async (configOptions: ConfigOptions): Promise<HttpsProxyAgent<string>> => {
             if (!configOptions.httpTunnelPort) {
               configOptions.httpTunnelPort = await getPort()
             }
-            return createHttpsProxyAgent({
-              port: configOptions.httpTunnelPort,
-              host: '127.0.0.1',
-            })
+            return new HttpsProxyAgent(`http://127.0.0.1:${configOptions.httpTunnelPort}`)
           },
           inject: [CONFIG_OPTIONS],
         },
@@ -154,8 +154,19 @@ export class AppModule {
           inject: [QUIET_DIR],
         },
         {
+          provide: LIBP2P_DB_PATH,
+          useFactory: (baseDir: string) => path.join(baseDir, 'libp2pDatastore'),
+          inject: [QUIET_DIR],
+        },
+        {
           provide: LEVEL_DB,
-          useFactory: (dbPath: string) => new Level<string, unknown>(dbPath, { valueEncoding: 'json' }),
+          useFactory: (dbPath: string) =>
+            new Level<string, any>(dbPath, {
+              valueEncoding: 'json',
+              createIfMissing: true,
+              errorIfExists: false,
+              keyEncoding: 'utf-8',
+            }),
           inject: [DB_PATH],
         },
       ],
@@ -164,6 +175,7 @@ export class AppModule {
         QUIET_DIR,
         ORBIT_DB_DIR,
         IPFS_REPO_PATCH,
+        LIBP2P_DB_PATH,
         SERVER_IO_PROVIDER,
         SOCKS_PROXY_AGENT,
         LEVEL_DB,

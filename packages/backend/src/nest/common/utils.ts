@@ -3,18 +3,19 @@ import getPort from 'get-port'
 import path from 'path'
 import { Server } from 'socket.io'
 import { UserData } from '@quiet/types'
-import createHttpsProxyAgent from 'https-proxy-agent'
-import PeerId from 'peer-id'
+import { HttpsProxyAgent } from 'https-proxy-agent'
+import { generateKeyPair } from '@libp2p/crypto/keys'
+import { peerIdFromPrivateKey } from '@libp2p/peer-id'
 import tmp from 'tmp'
-import crypto, { sign } from 'crypto'
+import crypto from 'crypto'
 import { type PermsData } from '@quiet/types'
 import { TestConfig } from '../const'
-import { Libp2pNodeParams } from '../libp2p/libp2p.types'
+import { CreatedLibp2pPeerId, Libp2pNodeParams } from '../libp2p/libp2p.types'
 import { createLibp2pAddress, createLibp2pListenAddress, isDefined } from '@quiet/common'
 import { Libp2pService } from '../libp2p/libp2p.service'
 import { CertFieldsTypes, getReqFieldValue, loadCSR } from '@quiet/identity'
-import { execFile } from 'child_process'
 import { createLogger } from './logger'
+import { pureJsCrypto } from '@chainsafe/libp2p-noise'
 
 const logger = createLogger('utils')
 
@@ -176,18 +177,18 @@ export const getUsersAddresses = async (users: UserData[]): Promise<string[]> =>
   return await Promise.all(peers)
 }
 
-export const getLibp2pAddressesFromCsrs = async (csrs: string[]): Promise<string[]> => {
-  const addresses = await Promise.all(
+export const getUsersFromCsrs = async (csrs: string[]): Promise<UserData[]> => {
+  const users = await Promise.all(
     csrs.map(async csr => {
       const parsedCsr = await loadCSR(csr)
+      const username = getReqFieldValue(parsedCsr, CertFieldsTypes.nickName)
       const peerId = getReqFieldValue(parsedCsr, CertFieldsTypes.peerId)
       const onionAddress = getReqFieldValue(parsedCsr, CertFieldsTypes.commonName)
-      if (!peerId || !onionAddress) return
 
-      return createLibp2pAddress(onionAddress, peerId)
+      return username && peerId && onionAddress ? { username, onionAddress, peerId } : undefined
     })
   )
-  return addresses.filter(isDefined)
+  return users.filter(isDefined)
 }
 
 /**
@@ -195,11 +196,17 @@ export const getLibp2pAddressesFromCsrs = async (csrs: string[]): Promise<string
  *
  * @param tolerance In percentage (0.0 - 1.0)
  */
-export const compare = (given: number, base: number, tolerance = 0) => {
-  const margin = base * tolerance
-  const min = base - margin
-  const max = base + margin
-  return given >= min && given <= max
+export const compare = (given: number | bigint, base: number | bigint, tolerance: number = 0) => {
+  // convert all of our values to bigint for consistency
+  const biBase: bigint = typeof base === 'bigint' ? base : BigInt(base)
+  const biGiven: bigint = typeof given === 'bigint' ? given : BigInt(given)
+  const biTolerance: bigint = typeof tolerance === 'bigint' ? tolerance : BigInt(tolerance * 100)
+
+  // perform the comparison
+  const margin = (biBase * biTolerance) / BigInt(100)
+  const min = biBase - margin
+  const max = biBase + margin
+  return biGiven >= min && biGiven <= max
 }
 
 export const getCors = () => {
@@ -223,23 +230,19 @@ export const rootPermsData: PermsData = {
 tmp.setGracefulCleanup()
 
 export const testBootstrapMultiaddrs = [
-  createLibp2pAddress(generateRandomOnionAddress(56), 'QmfLUJcDSLVYnNqSPSRK4mKG8MGw51m9K2v59k3yq1C8s4'),
+  createLibp2pAddress(generateRandomOnionAddress(56), '12D3KooWKCWstmqi5gaQvipT7xVneVGfWV7HYpCbmUu626R92hXx'),
 ]
 
 export const libp2pInstanceParams = async (): Promise<Libp2pNodeParams> => {
   const port = await getPort()
   const peerId = await createPeerId()
-  const address = '0.0.0.0'
-  const peerIdRemote = await createPeerId()
-  const remoteAddress = createLibp2pAddress(address, peerIdRemote.toString())
   const libp2pKey = Libp2pService.generateLibp2pPSK().fullKey
   return {
     peerId,
     listenAddresses: [createLibp2pListenAddress('localhost')],
-    agent: createHttpsProxyAgent({ port: 1234, host: 'localhost' }),
+    agent: new HttpsProxyAgent('http://localhost:1234'),
     localAddress: createLibp2pAddress('localhost', peerId.toString()),
     targetPort: port,
-    peers: [remoteAddress],
     psk: libp2pKey,
   }
 }
@@ -247,27 +250,96 @@ export const libp2pInstanceParams = async (): Promise<Libp2pNodeParams> => {
 export const createTmpDir = (prefix = 'quietTestTmp_'): tmp.DirResult => {
   return tmp.dirSync({ mode: 0o750, prefix, unsafeCleanup: true })
 }
+
 export const tmpQuietDirPath = (name: string): string => {
   return path.join(name, TestConfig.QUIET_DIR)
 }
 
-export function createFile(filePath: string, size: number) {
+export async function createPeerId(): Promise<CreatedLibp2pPeerId> {
+  const privKey = await generateKeyPair('Ed25519', 32)
+  const noiseKey = pureJsCrypto.generateX25519KeyPair().privateKey
+  const peerId = peerIdFromPrivateKey(privKey)
+  return {
+    peerId,
+    privKey,
+    noiseKey,
+  }
+}
+
+export const createArbitraryFile = (filePath: string, sizeBytes: number) => {
   const stream = fs.createWriteStream(filePath)
   const maxChunkSize = 1048576 // 1MB
-  if (size < maxChunkSize) {
-    stream.write(crypto.randomBytes(size))
-  } else {
-    const chunks = Math.floor(size / maxChunkSize)
-    for (let i = 0; i < chunks; i++) {
-      stream.write(crypto.randomBytes(Math.min(size, maxChunkSize)))
-      size -= maxChunkSize
-    }
+
+  let remainingSize = sizeBytes
+
+  while (remainingSize > 0) {
+    const chunkSize = Math.min(maxChunkSize, remainingSize)
+    stream.write(crypto.randomBytes(chunkSize))
+    remainingSize -= chunkSize
   }
+
   stream.end()
 }
 
-export async function createPeerId(): Promise<PeerId> {
-  const { peerIdFromKeys } = await eval("import('@libp2p/peer-id')")
-  const peerId = await PeerId.create()
-  return peerIdFromKeys(peerId.marshalPubKey(), peerId.marshalPrivKey())
+export async function* asyncGeneratorFromIterator<T>(asyncIterator: AsyncIterable<T>): AsyncGenerator<T> {
+  for await (const value of asyncIterator) {
+    yield value
+  }
+}
+
+// Shamelessly stolen from https://github.com/whatwg/streams/issues/1255#issuecomment-2442964298
+// This is necessary because AsyncIterators are fickle and if you just wrap them in a try/catch or try to use
+// catch/then/finally on a wrapper promise it ultimately generates an unhandled rejection.  JS is so much fun.
+export function abortableAsyncIterable<
+  T,
+  TReturn,
+  TNext,
+  IterType = AsyncIterable<T> | AsyncGenerator<T, TReturn, TNext>,
+>(iter: IterType, signal?: AbortSignal, timeoutMs?: number): IterType {
+  const abortedPromise = new Promise<IteratorResult<T, TReturn>>((resolve, reject) => {
+    const ABORT_MESSAGE = 'Operation aborted'
+    const TIMEOUT_MESSAGE = `Operation exceeded timeout of ${timeoutMs}ms`
+    const ABORT_ERROR_NAME = 'AbortError'
+    const TIMEOUT_ERROR_NAME = 'TimeoutError'
+
+    let timeoutSignal: AbortSignal | undefined = undefined
+    if (timeoutMs != null) {
+      timeoutSignal = AbortSignal.timeout(timeoutMs)
+    }
+
+    if (signal?.aborted) {
+      reject(new DOMException(ABORT_MESSAGE, ABORT_ERROR_NAME))
+    }
+
+    if (timeoutSignal?.aborted) {
+      reject(new DOMException(TIMEOUT_MESSAGE, TIMEOUT_ERROR_NAME))
+    }
+
+    if (signal != null) {
+      signal.addEventListener('abort', () => reject(new DOMException(ABORT_MESSAGE, ABORT_ERROR_NAME)))
+    }
+
+    if (timeoutSignal != null) {
+      timeoutSignal.addEventListener('abort', () => reject(new DOMException(TIMEOUT_MESSAGE, TIMEOUT_ERROR_NAME)))
+    }
+  })
+  abortedPromise.catch(() => {})
+
+  const abortableIterable: AsyncIterable<T> = {
+    [Symbol.asyncIterator]: () => {
+      const inner = (iter as AsyncIterable<T>)[Symbol.asyncIterator]()
+      const { return: _return, throw: _throw } = inner
+      return {
+        next: (...args) => Promise.race([inner.next(...args), abortedPromise]),
+        return: _return ? (...args) => _return.apply(inner, args) : undefined,
+        throw: _throw ? (...args) => _throw.apply(inner, args) : undefined,
+      }
+    },
+  }
+
+  if (Object.prototype.toString.call(iter) === '[object AsyncGenerator]') {
+    return asyncGeneratorFromIterator(abortableIterable) as IterType
+  }
+
+  return abortableIterable as IterType
 }

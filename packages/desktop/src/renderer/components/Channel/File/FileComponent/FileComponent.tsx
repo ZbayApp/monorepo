@@ -30,7 +30,7 @@ const FileComponentStyled = styled('div')(({ theme }) => ({
   padding: '16px',
   backgroundColor: theme.palette.colors.white,
   borderRadius: '8px',
-  border: `1px solid ${theme.palette.colors.border01}`,
+  border: `1px solid ${theme.palette.colors.border02}`,
 
   [`& .${classes.icon}`]: {
     minWidth: '40px',
@@ -167,14 +167,14 @@ export const FileComponent: React.FC<FileComponentProps & FileActionsProps> = ({
               size={18}
               thickness={4}
               value={100}
-              style={{ position: 'absolute', color: theme.palette.colors.gray }}
+              style={{ position: 'absolute', color: theme.palette.colors.lightGray }}
             />
             <CircularProgress
               variant='determinate'
               size={18}
               thickness={4}
               value={downloadProgress?.size && (downloadProgress.downloaded / downloadProgress.size) * 100}
-              style={{ color: theme.palette.colors.lightGray }}
+              style={{ color: theme.palette.colors.purple }}
             />
           </>
         )
@@ -347,7 +347,7 @@ export const FileComponent: React.FC<FileComponentProps & FileActionsProps> = ({
         <div style={{ display: 'flex', width: 'fit-content' }}>
           <div className={classes.icon}>{renderIcon()}</div>
           <div className={classes.filename}>
-            <Typography variant={'h5'} style={{ lineHeight: '20px' }}>
+            <Typography variant={'h5'} style={{ lineHeight: '20px', color: theme.palette.colors.trueBlack }}>
               {name}
               {ext}
             </Typography>
