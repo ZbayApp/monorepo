@@ -10,9 +10,10 @@ import { UserProfileStore } from './userProfile/userProfile.store'
 import { IpfsModule } from '../ipfs/ipfs.module'
 import { ChannelsService } from './channels/channels.service'
 import { MessagesService } from './channels/messages/messages.service'
+import { SigChainModule } from '../auth/sigchain.service.module'
 
 @Module({
-  imports: [LocalDbModule, IpfsModule, IpfsFileManagerModule],
+  imports: [LocalDbModule, IpfsModule, IpfsFileManagerModule, SigChainModule],
   providers: [
     StorageService,
     OrbitDbService,
