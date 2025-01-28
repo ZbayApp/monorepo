@@ -130,7 +130,9 @@ export class ChannelsService extends EventEmitter {
       'Channels names:',
       channels.map(x => x.name)
     )
-    channels.forEach(channel => this.subscribeToChannel(channel))
+    for (const channel of channels.values()) {
+      await this.subscribeToChannel(channel)
+    }
   }
 
   /**
@@ -260,12 +262,12 @@ export class ChannelsService extends EventEmitter {
         return
       }
       repo = this.publicChannelsRepos.get(channelData.id)
+    }
 
-      if (repo && !repo.eventsAttached) {
-        this.handleMessageEventsOnChannelStore(channelData.id, repo)
-        await repo.store.subscribe()
-        repo.eventsAttached = true
-      }
+    if (repo && !repo.eventsAttached && !repo.store.isSubscribing) {
+      this.handleMessageEventsOnChannelStore(channelData.id, repo)
+      await repo.store.subscribe()
+      repo.eventsAttached = true
     }
 
     this.logger.info(`Subscribed to channel ${channelData.id}`)
@@ -287,17 +289,14 @@ export class ChannelsService extends EventEmitter {
   private handleMessageEventsOnChannelStore(channelId: string, repo: PublicChannelsRepo): void {
     this.logger.info(`Subscribing to channel updates`, channelId)
     repo.store.on(StorageEvents.MESSAGE_IDS_STORED, (payload: ChannelMessageIdsResponse) => {
-      this.logger.info(`Emitting ${StorageEvents.MESSAGE_IDS_STORED}`)
       this.emit(StorageEvents.MESSAGE_IDS_STORED, payload)
     })
 
     repo.store.on(StorageEvents.MESSAGES_STORED, (payload: MessagesLoadedPayload) => {
-      this.logger.info(`Emitting ${StorageEvents.MESSAGES_STORED}`)
       this.emit(StorageEvents.MESSAGES_STORED, payload)
     })
 
     repo.store.on(StorageEvents.SEND_PUSH_NOTIFICATION, (payload: PushNotificationPayload) => {
-      this.logger.info(`Emitting ${StorageEvents.SEND_PUSH_NOTIFICATION}`)
       this.emit(StorageEvents.SEND_PUSH_NOTIFICATION, payload)
     })
   }
