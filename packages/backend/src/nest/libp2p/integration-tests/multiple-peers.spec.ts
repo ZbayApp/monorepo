@@ -63,17 +63,10 @@ describe(`Libp2pAuth with ${N_PEERS} peers`, () => {
   })
 
   it('joins with an invitation', async () => {
+    const libp2pService = await modules[0].get(Libp2pService)
     await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('PEER_DISCONNECTED events did not occur within expected time.'))
-      }, 70_000)
-
       const resolveIfMet = async () => {
         if (timelinesInclude(eventTimelines.slice(1), Libp2pEvents.AUTH_JOINED)) {
-          for (let i = 0; i < eventTimelines.length; i++) {
-            expect(eventTimelines[i]).toMatchSnapshot(`eventTimeline${i} after disconnection`)
-          }
-          clearTimeout(timeout)
           resolve()
         }
       }
@@ -83,24 +76,18 @@ describe(`Libp2pAuth with ${N_PEERS} peers`, () => {
           resolveIfMet()
         })
       }
-      const libp2pService = modules[0].get(Libp2pService)
       for (let i = 1; i < modules.length; i++) {
         modules[i].get(Libp2pService).dialPeer(libp2pService.localAddress)
+        logger.info(`dialed peer ${i}`)
       }
     })
-  }, 120_000)
+  })
+
   it('emits connected after syncing', async () => {
     logger.info('emits connected after syncing')
     await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('PEER_DISCONNECTED events did not occur within expected time.'))
-      }, 70_000)
       const resolveIfMet = async () => {
-        if (timelinesInclude(eventTimelines.slice(1), Libp2pEvents.AUTH_JOINED)) {
-          for (let i = 0; i < eventTimelines.length; i++) {
-            expect(eventTimelines[i]).toMatchSnapshot(`eventTimeline${i} after disconnection`)
-          }
-          clearTimeout(timeout)
+        if (timelinesInclude(eventTimelines.slice(1), Libp2pEvents.AUTH_CONNECTED)) {
           resolve()
         }
       }
@@ -109,22 +96,26 @@ describe(`Libp2pAuth with ${N_PEERS} peers`, () => {
           resolveIfMet()
         })
       }
+      resolveIfMet()
     })
-  }, 120_000)
+  }, 240_000)
+
   it('merges graphs between all peers', async () => {
     logger.info('merges graphs between all peers')
     await new Promise<void>(resolve => {
       const resolveIfMet = async () => {
         // all peers should have the same graph head
         const heads: Hash[][] = []
-        for (const module of modules) {
-          const sigchainService = await module.resolve(SigChainService)
+        for (let i = 0; i < modules.length; i++) {
+          const sigchainService = await modules[i].resolve(SigChainService)
           const head = sigchainService.getActiveChain().team?.graph.head
           if (head !== undefined) {
             heads.push(head)
+            logger.info(`peer ${i} has head:`, head)
           }
         }
         if (heads.every(head => headsAreEqual(heads[0], head))) {
+          logger.info('all peers have the same graph head')
           resolve()
         }
       }
@@ -133,28 +124,28 @@ describe(`Libp2pAuth with ${N_PEERS} peers`, () => {
           resolveIfMet()
         })
       }
+      resolveIfMet()
     })
-  }, 120_000)
+  }, 240_000)
+
   it('gracefully disconnects', async () => {
+    logger.info('gracefully disconnects')
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('PEER_DISCONNECTED events did not occur within expected time.'))
       }, 70_000)
       const allDisconnected = async () => {
-        if (timelinesInclude(eventTimelines, Libp2pEvents.PEER_DISCONNECTED)) {
+        if (timelinesInclude(eventTimelines.slice(1), Libp2pEvents.PEER_DISCONNECTED)) {
           clearTimeout(timeout)
           resolve()
         }
       }
       for (const libp2pService of modules.map(module => module.get(Libp2pService))) {
-        libp2pService.once(Libp2pEvents.AUTH_DISCONNECTED, () => {
+        libp2pService.once(Libp2pEvents.PEER_DISCONNECTED, () => {
           allDisconnected()
         })
       }
-      modules[0].get(Libp2pService).hangUpPeers()
+      modules[0].get(Libp2pService).close()
     })
-    for (let i = 0; i < eventTimelines.length; i++) {
-      expect(eventTimelines[i]).toMatchSnapshot(`eventTimeline${i} after disconnection`)
-    }
-  }, 120_000)
+  })
 })

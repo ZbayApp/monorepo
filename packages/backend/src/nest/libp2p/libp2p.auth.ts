@@ -88,6 +88,7 @@ export class Libp2pAuth {
 
     pipe(this.outboundStreamQueue, async source => {
       for await (const { peerId, connection } of source) {
+        this.logger.info(`Outbound stream queue received connection to ${peerId.toString()}`)
         await this.openOutboundStream(peerId, connection)
       }
     }).catch(e => {
@@ -144,7 +145,7 @@ export class Libp2pAuth {
       await this.closeAuthConnection(peerId)
     }
     // End the outbound stream queue to prevent further pushes
-    this.outboundStreamQueue.end(Error('Service stopped'))
+    this.outboundStreamQueue.end()
 
     this.logger.info('Libp2pAuth service stopped')
   }
@@ -157,6 +158,7 @@ export class Libp2pAuth {
   }
 
   private async openOutboundStream(peerId: PeerId, connection: Connection) {
+    this.logger.info(`Opening outbound stream to ${peerId.toString()}`)
     if (this.outboundStreams.has(peerId.toString())) {
       return
     }
@@ -176,37 +178,19 @@ export class Libp2pAuth {
       this.logger.error(`Error in outbound stream to ${peerId}`, e)
     )
 
-    if (connection.direction === 'outbound') {
-      await this.openInboundStream(peerId, connection)
-    }
-
     this.authConnections.get(peerId.toString())?.start()
-  }
-
-  private async openInboundStream(peerId: PeerId, connection: Connection) {
-    this.logger.info(`Opening inbound stream on ${connection.id.toString()} to ${peerId.toString()}`)
-    if (this.inboundStreams.has(peerId.toString())) {
-      return
-    }
-
-    this.logger.info('Opening new inbound stream for peer', peerId.toString())
-    const inboundStream = await connection.newStream(this.protocol, {
-      runOnLimitedConnection: false,
-      negotiateFully: true,
-    } as NewStreamOptions)
-
-    this.handleIncomingMessages(peerId, inboundStream)
-    this.inboundStreams.set(peerId.toString(), inboundStream)
   }
 
   private async onIncomingStream({ stream, connection }: IncomingStreamData) {
     const peerId = connection.remotePeer
-    this.logger.info(`Handling existing incoming stream ${connection.id} from ${peerId.toString()}`)
+    this.logger.info(`Handling incoming stream ${connection.id} from ${peerId.toString()}`)
 
     const oldStream = this.inboundStreams.get(peerId.toString())
     if (oldStream) {
       this.logger.info(`Old inbound stream found!`)
-      await this.closeInboundStream(peerId, true)
+      this.logger.debug('Old stream info:', oldStream)
+      this.logger.debug('New stream info:', stream)
+      return
     }
 
     this.handleIncomingMessages(peerId, stream)
@@ -236,11 +220,20 @@ export class Libp2pAuth {
 
   private sendMessage(peerId: PeerId, message: Uint8Array) {
     if (!this.outboundStreams.has(peerId.toString())) {
-      this.logger.error(`No outbound stream available for peer ${peerId.toString()}`)
+      this.logger.warn(`No outbound stream available for peer ${peerId.toString()}`)
       return
     }
     try {
       this.logger.info(`Sending auth message to ${peerId.toString()}`)
+      const outboundStream = this.outboundStreams.get(peerId.toString())
+      if (outboundStream == null) {
+        this.logger.error(`No outbound stream available for peer ${peerId.toString()}`)
+        return
+      }
+      if (outboundStream.stream.status !== 'open') {
+        this.logger.warn(`Outbound stream to ${peerId.toString()} is closed`)
+        return
+      }
       this.outboundStreams.get(peerId.toString())?.pushable.push(
         // length-prefix encoded
         encode.single(message)
@@ -292,13 +285,13 @@ export class Libp2pAuth {
     } as ConnectionParams)
 
     authConnection.on('connected', () => {
-      // if (this.sigChainService.activeChainTeamName != null) {
-      //   this.logger.debug(`Sending sync message because our chain is intialized`)
-      //   const sigChain = this.sigChainService.getActiveChain()
-      //   const team = sigChain.team
-      //   const user = sigChain.localUserContext.user
-      //   authConnection.emit('sync', { team, user })
-      // }
+      if (this.sigChainService.activeChainTeamName != null) {
+        this.logger.debug(`Sending sync message because our chain is intialized`)
+        const sigChain = this.sigChainService.getActiveChain()
+        const team = sigChain.team
+        const user = sigChain.localUserContext.user
+        authConnection.emit('sync', { team, user })
+      }
       this.emit(Libp2pEvents.AUTH_CONNECTED)
     })
 
@@ -449,11 +442,11 @@ export class Libp2pAuth {
     }
     this.logger.warn(`Closing auth connection with ${peerId.toString()}`)
 
-    this.authConnections.get(peerId.toString())?.stop()
-    this.authConnections.delete(peerId.toString())
-
     await this.closeOutboundStream(peerId, true)
     await this.closeInboundStream(peerId, true)
+
+    this.authConnections.get(peerId.toString())?.stop()
+    this.authConnections.delete(peerId.toString())
   }
 }
 
