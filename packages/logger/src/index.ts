@@ -284,6 +284,9 @@ export class QuietLogger {
       if ((param as any).errors != null) {
         formattedErrors += ` - Errors:\n`
         formattedErrors += (param as any).errors.map((err: Error) => stringifyError(err)).join('\n')
+      } else if ((param as any).originalError != null) {
+        formattedErrors += ` - Original Error:\n`
+        formattedErrors += stringifyError((param as any).originalError)
       }
 
       return colorizeError(formattedErrors)
