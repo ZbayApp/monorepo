@@ -22,7 +22,8 @@ import { CertificatesStore } from '../certificates/certificates.store'
 @Injectable()
 export class ChannelStore extends EventStoreBase<ChannelMessage> {
   private channelData: PublicChannel
-  private initialized: boolean = false
+  private _subscribing: boolean = false
+
   private logger: QuietLogger
 
   constructor(
@@ -44,7 +45,7 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
    * @returns Initialized ChannelStore instance
    */
   public async init(channelData: PublicChannel, options: DBOptions): Promise<ChannelStore> {
-    if (this.initialized) {
+    if (this.store != null) {
       this.logger.warn(`Channel ${this.channelData.name} has already been initialized!`)
       return this
     }
@@ -61,7 +62,6 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
     })
 
     this.logger.info('Initialized')
-    this.initialized = true
     return this
   }
 
@@ -70,6 +70,12 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
    */
   public async startSync(): Promise<void> {
     await this.getStore().sync.start()
+  }
+
+  // Accessors
+
+  public get isSubscribing(): boolean {
+    return this._subscribing
   }
 
   /**
@@ -81,6 +87,7 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
    */
   public async subscribe(): Promise<void> {
     this.logger.info('Subscribing to channel ', this.channelData.id)
+    this._subscribing = true
 
     this.getStore().events.on('update', async (entry: LogEntry<ChannelMessage>) => {
       this.logger.info(`${this.channelData.id} database updated`, entry.hash, entry.payload.value?.channelId)
@@ -92,16 +99,7 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
         isVerified: message.verified,
       })
 
-      const ids = (await this.getEntries()).map(msg => msg.id)
-      const community = await this.localDbService.getCurrentCommunity()
-
-      if (community) {
-        this.emit(StorageEvents.MESSAGE_IDS_STORED, {
-          ids,
-          channelId: this.channelData.id,
-          communityId: community.id,
-        })
-      }
+      await this.refreshMessageIds()
 
       // FIXME: the 'update' event runs if we replicate entries and if we add
       // entries ourselves. So we may want to check if the message is written
@@ -130,6 +128,8 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
     })
 
     await this.startSync()
+    await this.refreshMessageIds()
+    this._subscribing = false
 
     this.logger.info(`Subscribed to channel ${this.channelData.id}`)
   }
@@ -163,7 +163,7 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
   }
 
   /**
-   * Read messages from OrbitDB filtered by message ID
+   * Read messages from OrbitDB, optionally filtered by message ID
    *
    * @param ids Message IDs to read from this channel's OrbitDB database
    * @returns Messages read from OrbitDB
@@ -173,6 +173,24 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
     return {
       messages,
       isVerified: true,
+    }
+  }
+
+  /**
+   * Get the latest state of messages in OrbitDB and emit an event to trigger redux updates
+   *
+   * @emits StorageEvents.MESSAGE_IDS_STORED
+   */
+  private async refreshMessageIds(): Promise<void> {
+    const ids = (await this.getEntries()).map(msg => msg.id)
+    const community = await this.localDbService.getCurrentCommunity()
+
+    if (community) {
+      this.emit(StorageEvents.MESSAGE_IDS_STORED, {
+        ids,
+        channelId: this.channelData.id,
+        communityId: community.id,
+      })
     }
   }
 
@@ -195,9 +213,10 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
   }
 
   /**
-   * Read all entries on the OrbitDB event store
+   * Read a list of entries on the OrbitDB event store
    *
-   * @returns All entries on the event store
+   * @param ids Optional list of message IDs to filter by
+   * @returns All matching entries on the event store
    */
   public async getEntries(): Promise<ChannelMessage[]>
   public async getEntries(ids: string[] | undefined): Promise<ChannelMessage[]>
@@ -206,7 +225,9 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
     const messages: ChannelMessage[] = []
 
     for await (const x of this.getStore().iterator()) {
-      if (ids == null || ids?.includes(x.id)) {
+      if (ids == null || ids?.includes(x.value.id)) {
+        // NOTE: we skipped the verification process when reading many messages in the previous version
+        // so I'm skipping it here - is that really the correct behavior?
         const processedMessage = await this.messagesService.onConsume(x.value, false)
         messages.push(processedMessage)
       }
@@ -256,6 +277,6 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
   public clean(): void {
     this.logger.info(`Cleaning channel store`, this.channelData.id, this.channelData.name)
     this.store = undefined
-    this.initialized = false
+    this._subscribing = false
   }
 }
