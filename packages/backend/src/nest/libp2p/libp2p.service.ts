@@ -40,9 +40,6 @@ import {
 import { createLogger } from '../common/logger'
 import { Libp2pDatastore } from './libp2p.datastore'
 import { WEBSOCKET_CIPHER_SUITE } from './libp2p.const'
-
-import { Libp2pDatastore } from './libp2p.datastore'
-import { WEBSOCKET_CIPHER_SUITE, BITSWAP_PROTOCOL } from './libp2p.const'
 import { libp2pAuth, Libp2pAuth } from './libp2p.auth'
 import { SigChainService } from '../auth/sigchain.service'
 
