@@ -240,10 +240,13 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     if (community.name) {
       try {
+        this.logger.info('Loading sigchain for community', community.name)
         await this.sigChainService.loadChain(community.name, true)
       } catch (e) {
         this.logger.warn('Failed to load sigchain', e)
       }
+    } else {
+      this.logger.warn('No community name found in storage')
     }
 
     const sortedPeers = await this.localDbService.getSortedPeers(community.peerList ?? [])
@@ -703,6 +706,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     const community = {
       id: payload.id,
+      name: payload.name,
       peerList: [...new Set([localAddress, ...metadata.peers])],
       psk: metadata.psk,
       ownerOrbitDbIdentity: metadata.ownerOrbitDbIdentity,
