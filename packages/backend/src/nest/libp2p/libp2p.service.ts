@@ -38,6 +38,8 @@ import {
   Libp2pPeerInfo,
 } from './libp2p.types'
 import { createLogger } from '../common/logger'
+import { Libp2pDatastore } from './libp2p.datastore'
+import { WEBSOCKET_CIPHER_SUITE } from './libp2p.const'
 
 import { Libp2pDatastore } from './libp2p.datastore'
 import { WEBSOCKET_CIPHER_SUITE, BITSWAP_PROTOCOL } from './libp2p.const'
@@ -319,6 +321,7 @@ export class Libp2pService extends EventEmitter {
                 },
                 localAddress: params.localAddress,
                 targetPort: params.targetPort,
+                inboundConnectionUpgradeTimeout: 30_000,
                 closeOnEnd: false,
               }),
             ],

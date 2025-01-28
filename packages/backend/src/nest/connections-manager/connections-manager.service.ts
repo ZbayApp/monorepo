@@ -315,7 +315,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     this.logger.info('Closing services')
 
-    // stop socket first to prevent new changes to the community
     await this.closeSocket()
 
     if (this.tor && !options.saveTor) {
