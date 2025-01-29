@@ -186,7 +186,7 @@ describe('ChannelsService', () => {
           author: {
             generation: 0,
             type: 'USER',
-            name: sigChainService.getActiveChain().context.user.userId,
+            name: sigChainService.getActiveChain().localUserContext.user.userId,
           },
           contents: expect.any(String),
           signature: expect.any(String),

@@ -70,6 +70,7 @@ export class SigChainService implements OnModuleInit {
       this.setActiveChain(teamName)
       return true
     }
+
     return false
   }
 
