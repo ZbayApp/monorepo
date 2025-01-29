@@ -168,17 +168,21 @@ export class Libp2pAuth {
       runOnLimitedConnection: false,
       negotiateFully: true,
     })
+    this.logger.info(`Opened outbound stream on ${connection.id.toString()} to ${peerId.toString()}`)
     const outboundPushable: Pushable<Uint8Array | Uint8ArrayList> = pushable()
     this.outboundStreams.set(peerId.toString(), {
       stream: outboundStream,
       pushable: outboundPushable,
     })
 
+    this.logger.info(`Piping outbound stream to ${peerId.toString()}`)
     pipe(outboundPushable, outboundStream).catch((e: Error) =>
       this.logger.error(`Error in outbound stream to ${peerId}`, e)
     )
 
+    this.logger.info(`Starting auth connection with ${peerId.toString()}`)
     this.authConnections.get(peerId.toString())?.start()
+    this.logger.info(`Started auth connection with ${peerId.toString()}`)
   }
 
   private async onIncomingStream({ stream, connection }: IncomingStreamData) {

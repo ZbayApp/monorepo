@@ -674,13 +674,10 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     }
 
     const inviteData = payload.inviteData
+    let communityName: string | undefined
     if (inviteData && inviteData?.version == InvitationDataVersion.v2) {
-      this.sigChainService.createChainFromInvite(
-        identity.nickname,
-        inviteData.authData.communityName,
-        inviteData.authData.seed,
-        true
-      )
+      communityName = (payload.inviteData as InvitationDataV2).authData.communityName
+      this.sigChainService.createChainFromInvite(identity.nickname, communityName, inviteData.authData.seed, true)
     }
 
     if (!metadata.peers || metadata.peers.length === 0) {
@@ -712,22 +709,20 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     const community = {
       id: payload.id,
-      name: payload.name,
+      name: communityName,
       peerList: [...new Set([localAddress, ...metadata.peers])],
       psk: metadata.psk,
       ownerOrbitDbIdentity: metadata.ownerOrbitDbIdentity,
       inviteData,
     }
 
-    // TODO: Add initialization of sigchain from invite
     await this.localDbService.setCommunity(community)
     await this.localDbService.setCurrentCommunityId(community.id)
-
     await this.launchCommunity(community)
-    this.logger.info(`Joined and launched community ${community.id}`)
     if (identity.userCsr?.userCsr) {
       await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
     }
+    this.logger.info(`Joined and launched community ${community.id}`)
     return community
   }
 

@@ -97,7 +97,7 @@ class SigChain {
     return sigChain
   }
 
-  private static init(context: auth.LocalUserContext, team?: auth.Team): SigChain {
+  public static init(context: auth.LocalUserContext, team?: auth.Team): SigChain {
     const sigChain = new SigChain(context, team)
     sigChain.initServices()
 
@@ -114,6 +114,9 @@ class SigChain {
   }
 
   public save(): Uint8Array {
+    if (!this.team) {
+      return new Uint8Array()
+    }
     return this.team!.save() // this doesn't actually do anything but create the new state to save
   }
 
