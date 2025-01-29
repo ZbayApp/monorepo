@@ -74,7 +74,7 @@ export class MessagesService extends EventEmitter {
       const encryptedMessage = chain.crypto.encryptAndSign(
         rawMessage.message,
         { type: EncryptionScopeType.TEAM },
-        chain.context
+        chain.localUserContext
       )
       return {
         ...rawMessage,
@@ -92,7 +92,7 @@ export class MessagesService extends EventEmitter {
       const decryptedMessage = chain.crypto.decryptAndVerify<string>(
         encryptedMessage.message,
         encryptedMessage.encSignature,
-        chain.context,
+        chain.localUserContext,
         false
       )
       return {

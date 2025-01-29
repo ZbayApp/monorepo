@@ -61,14 +61,21 @@ export class SigChainService implements OnModuleInit {
    * @returns Whether the chain was set as active
    */
   addChain(chain: SigChain, setActive: boolean, teamName?: string): boolean {
-    if (this.chains.has(chain.team.teamName)) {
-      throw new Error(`Chain for team ${teamName} already exists`)
+    const name: string | undefined = teamName ?? chain.team?.teamName
+    if (name == null) {
+      throw new Error(`Couldn't determine the team name!`)
     }
-    this.chains.set(chain.team.teamName, chain)
+
+    if (this.chains.has(name)) {
+      throw new Error(`Chain for team ${name} already exists`)
+    }
+
+    this.chains.set(name, chain)
     if (setActive) {
-      this.setActiveChain(chain.team.teamName)
+      this.setActiveChain(name)
       return true
     }
+
     return false
   }
 
@@ -99,7 +106,7 @@ export class SigChainService implements OnModuleInit {
       throw new Error(`Chain for team ${teamName} already exists`)
     }
     const sigChain = SigChain.create(teamName, username)
-    this.addChain(sigChain, setActive)
+    this.addChain(sigChain, setActive, teamName)
     return sigChain
   }
 

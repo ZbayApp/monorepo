@@ -137,7 +137,7 @@ class CryptoService extends ChainServiceBase {
   }
 
   public verifyMessage(signature: SignedEnvelope): boolean {
-    return this.sigChain.team.verify(signature)
+    return this.sigChain.team!.verify(signature)
   }
 
   private symDecrypt<T>(encrypted: EncryptedPayload): T {
