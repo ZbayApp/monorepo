@@ -57,6 +57,7 @@ import {
   UserCsr,
   PeerId as QuietPeerId,
   InvitationDataVersion,
+  InvitationDataV2,
 } from '@quiet/types'
 import { CONFIG_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { Libp2pService } from '../libp2p/libp2p.service'
@@ -660,10 +661,16 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
+    let communityName: string | undefined = payload.name
+    if (payload.inviteData?.version === InvitationDataVersion.v2) {
+      communityName = (payload.inviteData as InvitationDataV2).authData.communityName
+    }
+
     const metadata = {
       psk: payload.psk,
       peers: payload.peers,
       ownerOrbitDbIdentity: payload.ownerOrbitDbIdentity,
+      name: communityName,
     }
 
     const inviteData = payload.inviteData

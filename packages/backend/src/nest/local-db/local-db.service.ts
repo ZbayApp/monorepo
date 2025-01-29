@@ -115,7 +115,7 @@ export class LocalDbService {
   }
 
   public async setCommunity(community: Community) {
-    this.logger.info('Setting community', community.id)
+    this.logger.info('Setting community', community.id, community.name)
     let communities = await this.get(LocalDBKeys.COMMUNITIES)
     if (!communities) {
       communities = {}
