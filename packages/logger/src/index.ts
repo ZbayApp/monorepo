@@ -16,14 +16,38 @@ enum LogLevel {
   ERROR = 'error',
   INFO = 'info',
   LOG = 'log',
+  TRACE = 'trace',
   WARN = 'warn',
   TIMER = 'timer',
+}
+
+/**
+ * Maximum log level allowed
+ */
+enum LogSetting {
+  TRACE = 2, // Allows all logs
+  DEBUG = 1, // Excludes `trace` logs
+  ON = 0, // Excludes `trace`, `debug`, and `log`
+}
+
+/**
+ * Common fields to colorize
+ */
+enum ColorField {
+  SCOPE = 'scope',
+  DATE = 'date',
+  OBJECT = 'object',
+  OBJECT_ERROR = 'object_error',
 }
 
 /**
  * This determines the color scheme of each log type
  */
 colors.theme({
+  // trace
+  trace: colors.bold.dim.italic.cyanBright,
+  trace_text: colors.dim.italic.cyanBright,
+
   // debug
   debug: colors.bold.cyan,
   debug_text: colors.cyan,
@@ -50,9 +74,13 @@ colors.theme({
 
   // misc
   scope: colors.magenta,
+  scope_trace: colors.dim.italic.magenta,
   date: colors.bold.gray,
+  date_trace: colors.bold.dim.italic.gray,
   object: colors.green,
+  object_trace: colors.dim.italic.green,
   object_error: colors.red,
+  object_error_trace: colors.dim.italic.red,
 })
 
 /**
@@ -70,7 +98,8 @@ const nodeConsoleLogger = Console instanceof Function ? new Console(process.stdo
  */
 export class QuietLogger {
   // This is based on the `debug` package and is backwards-compatible with the old logger's behavior (for the most part)
-  private isDebug: boolean
+  private logSetting: LogSetting = LogSetting.ON
+  // Tracks timers created by the `time` log method
   private timers: Map<string, number> = new Map()
 
   /**
@@ -82,7 +111,7 @@ export class QuietLogger {
     public name: string,
     public parallelConsoleLog: boolean = false
   ) {
-    this.isDebug = debug.enabled(name)
+    this.logSetting = this._getLogSetting()
   }
 
   /*
@@ -96,9 +125,18 @@ export class QuietLogger {
    * @param optionalParams Optional parameters to log
    */
   debug(message: any, ...optionalParams: any[]) {
-    if (!this.isDebug) return
-
     this.callLogMethods(LogLevel.DEBUG, message, ...optionalParams)
+  }
+
+  /**
+   * Log a trace-level message if the DEBUG environment variable is set for this package/module with
+   * trace set (e.g. `backend*:trace`)
+   *
+   * @param message Message to log
+   * @param optionalParams Optional parameters to log
+   */
+  trace(message: any, ...optionalParams: any[]) {
+    this.callLogMethods(LogLevel.TRACE, message, ...optionalParams)
   }
 
   /**
@@ -128,8 +166,6 @@ export class QuietLogger {
    * @param optionalParams Optional parameters to log
    */
   log(message: any, ...optionalParams: any[]) {
-    if (!this.isDebug) return
-
     this.callLogMethods(LogLevel.LOG, message, ...optionalParams)
   }
 
@@ -189,6 +225,8 @@ export class QuietLogger {
    * @param optionalParams Other parameters we want to log
    */
   private callLogMethods(level: LogLevel, message: any, ...optionalParams: any[]): void {
+    if (!this._canLog(level)) return
+
     const formattedLogStrings = this.formatLog(level, message, ...optionalParams)
     this.printLog(level, ...formattedLogStrings)
   }
@@ -200,11 +238,14 @@ export class QuietLogger {
    * @param formattedLogStrings Array of formatted log strings
    */
   private printLog(level: LogLevel, ...formattedLogStrings: string[]): void {
+    // we have to do this conversion because console doesn't have a trace method
+    const printLevel: LogLevel = level === LogLevel.TRACE ? LogLevel.LOG : level
+
     // @ts-ignore
-    nodeConsoleLogger[level](...formattedLogStrings)
+    nodeConsoleLogger[printLevel](...formattedLogStrings)
     if (this.parallelConsoleLog) {
       // @ts-ignore
-      console[level](...formattedLogStrings)
+      console[printLevel](...formattedLogStrings)
     }
   }
 
@@ -218,7 +259,7 @@ export class QuietLogger {
    */
   private formatLog(level: LogLevel, message: any, ...optionalParams: any[]): string[] {
     const formattedMessage = this.formatMessage(message, level)
-    const formattedOptionalParams = optionalParams.map((param: any) => this.formatObject(param))
+    const formattedOptionalParams = optionalParams.map((param: any) => this.formatObject(param, level))
     return [formattedMessage, ...formattedOptionalParams]
   }
 
@@ -229,7 +270,7 @@ export class QuietLogger {
    * @param level The level we are logging at
    * @returns A colorized log string
    */
-  private formatMessage(message: any, level: string): string {
+  private formatMessage(message: any, level: LogLevel): string {
     let formattedLevel = level.toUpperCase()
     let scope = this.name
     let date = DateTime.utc().toISO()
@@ -237,14 +278,21 @@ export class QuietLogger {
 
     if (COLORIZE) {
       formattedLevel = colors[level](formattedLevel)
-      scope = colors['scope'](scope)
-      date = colors['date'](date)
+      scope = this._getColorForField(ColorField.SCOPE, level)(scope)
+      date = this._getColorForField(ColorField.DATE, level)(date)
     }
 
     return `${date} ${formattedLevel} ${scope} ${formattedMessage}`
   }
 
-  private formatMessageText(message: any, level: string): string {
+  /**
+   * Formats the primary log message string and applies the level-specific text coloring
+   *
+   * @param message Primary message to log
+   * @param level The level we are logging at
+   * @returns A colorized log message string
+   */
+  private formatMessageText(message: any, level: LogLevel): string {
     if (['string', 'number', 'boolean', 'bigint'].includes(typeof message)) {
       let formattedMessageText = message
       if (COLORIZE) {
@@ -253,7 +301,8 @@ export class QuietLogger {
       return formattedMessageText
     }
 
-    return this.formatObject(message, level)
+    // we override the object coloring to be the same as normal level-specific text
+    return this.formatObject(message, level, level)
   }
 
   /**
@@ -263,13 +312,17 @@ export class QuietLogger {
    *   - All other types are logged as-is
    *
    * @param param Object to format
+   * @param level The level we are logging at
+   * @param overrideColorKey Color field we would like to use instead
    * @returns Colorized string
    */
-  private formatObject(param: any, overrideColorKey: string | undefined = undefined): string {
+  private formatObject(param: any, level: LogLevel, overrideColorKey: string | undefined = undefined): string {
     if (param instanceof Error) {
       const colorizeError = (stringifiedError: string): string => {
         //@ts-ignore
-        return COLORIZE ? colors[overrideColorKey || 'object_error'](stringifiedError) : stringifiedError
+        return COLORIZE
+          ? this._getColorForField(ColorField.OBJECT_ERROR, level, overrideColorKey)(stringifiedError)
+          : stringifiedError
       }
 
       const stringifyError = (err: Error) => {
@@ -287,7 +340,9 @@ export class QuietLogger {
 
     const colorize = (stringifiedParam: string): string => {
       //@ts-ignore
-      return COLORIZE ? colors[overrideColorKey || 'object'](stringifiedParam) : stringifiedParam
+      return COLORIZE
+        ? this._getColorForField(ColorField.OBJECT, level, overrideColorKey)(stringifiedParam)
+        : stringifiedParam
     }
 
     let formatted: string
@@ -315,6 +370,12 @@ export class QuietLogger {
     return colorize(formatted)
   }
 
+  /**
+   * Truncate fields on an object to produce smaller, more readable logs
+   *
+   * @param obj Object to truncate text in
+   * @returns Truncated object
+   */
   private truncateMessageForLogging(obj: any): string {
     return findAllByKeyAndReplace(obj, [
       {
@@ -334,6 +395,70 @@ export class QuietLogger {
         },
       },
     ])
+  }
+
+  /**
+   * Checks if this logger is enabled in `debug` and to what level
+   *
+   * @returns LogSetting for this logger
+   */
+  private _getLogSetting(): LogSetting {
+    // NOTE: This was taken from the libp2p logger code
+    if (
+      debug.enabled(`${this.name}:trace`) &&
+      debug.names.map((r: any) => r.toString()).find((n: string) => n.includes(':trace')) != null
+    ) {
+      return LogSetting.TRACE
+    } else if (debug.enabled(this.name)) {
+      return LogSetting.DEBUG
+    }
+
+    return LogSetting.ON
+  }
+
+  /**
+   * Checks the intended log level against the log setting to determine if we are allowed to log
+   *
+   * @param level The level we are logging at
+   * @returns True if the intended log level is allowed on this logger
+   */
+  private _canLog(level: LogLevel): boolean {
+    switch (level) {
+      case LogLevel.DEBUG:
+      case LogLevel.LOG:
+        return this.logSetting >= LogSetting.DEBUG
+      case LogLevel.TRACE:
+        return this.logSetting === LogSetting.TRACE
+      case LogLevel.INFO:
+      case LogLevel.WARN:
+      case LogLevel.ERROR:
+      case LogLevel.TIMER:
+      default:
+        return true
+    }
+  }
+
+  /**
+   * Gets the correct ansi-color value for a given field and log level.  Color is determined by:
+   *  1. Which field we are logging
+   *  2. If the level is `trace` we use trace-specific field values
+   *  3. If there is an override
+   *
+   * @param field Field we are getting a color for
+   * @param level The level we are logging at
+   * @param overrideColorKey Color field we would like to use instead
+   * @returns ansi-color value for the given field
+   */
+  private _getColorForField(field: ColorField, level: LogLevel, overrideColorKey?: string): any {
+    if (overrideColorKey) {
+      return colors[overrideColorKey]
+    }
+
+    if (level === LogLevel.TRACE) {
+      return colors[`${field}_trace`]
+    }
+
+    return colors[field]
   }
 }
 
