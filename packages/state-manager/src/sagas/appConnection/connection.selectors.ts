@@ -80,6 +80,7 @@ export const invitationUrl = createSelector(
           seed: longLivedInvite.seed,
         },
       }
+      logger.info('Added V2 invite data to the invite link')
     } else {
       logger.warn(
         `Community and/or LFA invite data is missing, can't create V2 invite link! \nCommunity non-null? ${currentCommunity != null} \nCommunity name non-null? ${currentCommunity?.name != null} \nLFA invite data non-null? ${longLivedInvite != null}`
