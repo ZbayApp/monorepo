@@ -665,6 +665,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       psk: payload.psk,
       peers: payload.peers,
       ownerOrbitDbIdentity: payload.ownerOrbitDbIdentity,
+      name: payload.name,
     }
 
     const inviteData = payload.inviteData

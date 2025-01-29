@@ -116,7 +116,7 @@ export class LocalDbService {
   }
 
   public async setCommunity(community: Community) {
-    this.logger.info('Setting community', community.id)
+    this.logger.info('Setting community', community.id, community.name)
     let communities = await this.get(LocalDBKeys.COMMUNITIES)
     if (!communities) {
       communities = {}
@@ -188,6 +188,11 @@ export class LocalDbService {
     const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
     this.logger.info('Getting sigchain', teamName, key)
     const sigChainBlob = await this.get(key)
+    if (sigChainBlob == null) {
+      this.logger.error(`No sig chain stored in local DB for key`, key)
+      return undefined
+    }
+
     try {
       let serializedTeam: Uint8Array | undefined = undefined
       if (sigChainBlob.serializedTeam) {
