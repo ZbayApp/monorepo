@@ -111,17 +111,17 @@ describe('New user joins using invitation link while having app opened', () => {
       await guestApp.open()
     })
 
-    it.skip('Guest clicks invitation link with invalid invitation code', async () => {
-      // Fix when modals ordering is fixed (joining modal hides warning modal)
-      logger.info('opening invalid code')
-      execSync(
-        `xdg-open ${composeInvitationDeepUrl({
-          pairs: [{ peerId: 'invalid', onionAddress: 'alsoInvalid' }],
-          psk: '1234',
-          ownerOrbitDbIdentity: 'ownerId',
-        })}`
-      )
-    })
+    // it.skip('Guest clicks invitation link with invalid invitation code', async () => {
+    //   // Fix when modals ordering is fixed (joining modal hides warning modal)
+    //   logger.info('opening invalid code')
+    //   execSync(
+    //     `xdg-open ${composeInvitationDeepUrl({
+    //       pairs: [{ peerId: 'invalid', onionAddress: 'alsoInvalid' }],
+    //       psk: '1234',
+    //       ownerOrbitDbIdentity: 'ownerId',
+    //     })}`
+    //   )
+    // })
 
     it.skip('Guest sees modal with warning about invalid code, closes it', async () => {
       // Fix when modals ordering is fixed (joining modal hiddes warning modal)

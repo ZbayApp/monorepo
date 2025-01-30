@@ -661,16 +661,11 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    let communityName: string | undefined = payload.name
-    if (payload.inviteData?.version === InvitationDataVersion.v2) {
-      communityName = (payload.inviteData as InvitationDataV2).authData.communityName
-    }
-
     const metadata = {
       psk: payload.psk,
       peers: payload.peers,
       ownerOrbitDbIdentity: payload.ownerOrbitDbIdentity,
-      name: communityName,
+      name: payload.name,
     }
 
     const inviteData = payload.inviteData

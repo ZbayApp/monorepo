@@ -304,7 +304,7 @@ export class Libp2pAuth {
       this.emit(Libp2pEvents.AUTH_DISCONNECTED)
     })
 
-    authConnection.on('joined', payload => {
+    authConnection.on('joined', async payload => {
       const { team, user } = payload
       const sigChain = this.sigChainService.getActiveChain()
       this.logger.info(
@@ -324,15 +324,18 @@ export class Libp2pAuth {
       this.joinStatus = JoinStatus.JOINED
       this.unblockConnections(this.bufferedConnections)
       this.emit(Libp2pEvents.AUTH_JOINED)
+      await this.sigChainService.saveChain(team.teamName)
     })
 
     authConnection.on('change', payload => {
       this.emit(Libp2pEvents.AUTH_STATE_CHANGED, payload)
     })
 
-    authConnection.on('updated', head => {
+    authConnection.on('updated', async head => {
       this.logger.info('Received sync message, team graph updated', head)
       this.emit(Libp2pEvents.AUTH_UPDATED, head)
+      const sigChain = this.sigChainService.getActiveChain()
+      await this.sigChainService.saveChain(sigChain.team!.teamName)
     })
 
     // handle errors detected locally and reported to the peer

@@ -107,6 +107,7 @@ export class SigChainService implements OnModuleInit {
     }
     const sigChain = SigChain.create(teamName, username)
     this.addChain(sigChain, setActive, teamName)
+    await this.saveChain(teamName)
     return sigChain
   }
 
@@ -114,6 +115,7 @@ export class SigChainService implements OnModuleInit {
     this.logger.info('Creating chain from invite')
     const sigChain = SigChain.createFromInvite(username, seed)
     this.addChain(sigChain, setActive, teamName)
+    await this.saveChain(teamName)
     return sigChain
   }
 
@@ -147,9 +149,7 @@ export class SigChainService implements OnModuleInit {
    * @throws Error if the chain doesn't exist
    */
   async loadChain(teamName: string, setActive: boolean): Promise<SigChain> {
-    if (this.localDbService.getStatus() !== 'open') {
-      this.localDbService.open()
-    }
+    await this._ensureDb()
     this.logger.info(`Loading chain for team ${teamName}`)
     const chain = await this.localDbService.getSigChain(teamName)
     if (!chain) {
@@ -170,10 +170,16 @@ export class SigChainService implements OnModuleInit {
    * @param teamName Name of the team to save
    */
   async saveChain(teamName: string): Promise<void> {
-    if (this.localDbService.getStatus() !== 'open') {
-      this.localDbService.open()
-    }
+    this.logger.info(`Saving chain to disk`, teamName)
+    await this._ensureDb()
     const chain = this.getChain(teamName)
     await this.localDbService.setSigChain(chain, teamName)
+  }
+
+  private async _ensureDb(): Promise<void> {
+    if (this.localDbService.getStatus() !== 'open') {
+      this.logger.warn(`LocalDbService wasn't open, opening now!`)
+      await this.localDbService.open()
+    }
   }
 }

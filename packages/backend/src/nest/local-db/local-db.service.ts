@@ -188,6 +188,11 @@ export class LocalDbService {
     const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
     this.logger.info('Getting sigchain', teamName, key)
     const sigChainBlob = await this.get(key)
+    if (sigChainBlob == null) {
+      this.logger.error(`No sig chain stored in local DB for key`, key)
+      return undefined
+    }
+
     try {
       let serializedTeam: Uint8Array | undefined = undefined
       if (sigChainBlob.serializedTeam) {
