@@ -104,6 +104,10 @@ export class ChannelStore extends EventStoreBase<EncryptedMessage, ConsumedChann
       this.logger.info(`${this.channelData.id} database updated`, entry.hash, entry.payload.value?.channelId)
 
       const message = await this.messagesService.onConsume(entry.payload.value!)
+      if (message == null) {
+        this.logger.error(`Couldn't consume message ${entry.payload.value!.id}`)
+        return
+      }
 
       this.emit(StorageEvents.MESSAGES_STORED, {
         messages: [message],
@@ -243,6 +247,9 @@ export class ChannelStore extends EventStoreBase<EncryptedMessage, ConsumedChann
         // NOTE: we skipped the verification process when reading many messages in the previous version
         // so I'm skipping it here - is that really the correct behavior?
         const decryptedMessage = await this.messagesService.onConsume(x.value)
+        if (decryptedMessage == null) {
+          continue
+        }
         messages.push(decryptedMessage)
       }
     }

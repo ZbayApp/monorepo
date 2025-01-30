@@ -19,10 +19,13 @@ import { posixJoin } from '../../../orbitDb/util'
 import { EncryptedMessage } from '../messages.types'
 import { SigChainService } from 'packages/backend/src/nest/auth/sigchain.service'
 import { MessagesService } from '../messages.service'
+import { createLogger } from '../../../../common/logger'
 
 const codec = dagCbor
 const hasher = sha256
 const hashStringEncoding = base58btc
+
+const logger = createLogger(`storage:channels:messages:orbitdb:access-control`)
 
 const AccessControlList = async ({
   storage,
@@ -88,7 +91,12 @@ export const MessagesAccessController =
       const message = entry.payload.value
 
       if (message) {
-        return messagesService.verifyMessage(message)
+        try {
+          return messagesService.verifyMessage(message)
+        } catch (e) {
+          logger.error(`Couldn't verify signature on message ${message.id}, can't append!`, e)
+          return true
+        }
       } else {
         return true
       }

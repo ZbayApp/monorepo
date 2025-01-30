@@ -49,8 +49,13 @@ export class MessagesService extends EventEmitter {
    * @param message Message consumed from OrbitDB
    * @returns Processed message
    */
-  public async onConsume(message: EncryptedMessage): Promise<ConsumedChannelMessage> {
-    return this._decryptPublicChannelMessage(message)
+  public async onConsume(message: EncryptedMessage): Promise<ConsumedChannelMessage | undefined> {
+    try {
+      return this._decryptPublicChannelMessage(message)
+    } catch (e) {
+      this.logger.error(`Failed to process message on consume`, e)
+      return undefined
+    }
   }
 
   /**
