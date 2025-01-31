@@ -1051,13 +1051,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
   private attachStorageListeners() {
     if (!this.storageService) return
-    this.storageService.on(SocketActionTypes.CONNECTION_PROCESS_INFO, data => {
-      this.serverIoProvider.io.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, data)
-    })
-    this.storageService.on(StorageEvents.CERTIFICATES_STORED, (payload: SendCertificatesResponse) => {
-      this.logger.info(`Storage - ${StorageEvents.CERTIFICATES_STORED}`)
-      this.serverIoProvider.io.emit(SocketActionTypes.CERTIFICATES_STORED, payload)
-    })
+    // Channel and Message Events
     this.storageService.channels.on(StorageEvents.CHANNELS_STORED, (payload: ChannelsReplicatedPayload) => {
       this.serverIoProvider.io.emit(SocketActionTypes.CHANNELS_STORED, payload)
     })
@@ -1085,11 +1079,19 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     this.storageService.channels.on(StorageEvents.MESSAGE_MEDIA_UPDATED, (payload: FileMetadata) => {
       this.serverIoProvider.io.emit(SocketActionTypes.MESSAGE_MEDIA_UPDATED, payload)
     })
-    this.storageService.channels.on(StorageEvents.COMMUNITY_UPDATED, (payload: Community) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.COMMUNITY_UPDATED, payload)
-    })
     this.storageService.channels.on(StorageEvents.SEND_PUSH_NOTIFICATION, (payload: PushNotificationPayload) => {
       this.serverIoProvider.io.emit(SocketActionTypes.PUSH_NOTIFICATION, payload)
+    })
+    // Other Events
+    this.storageService.on(SocketActionTypes.CONNECTION_PROCESS_INFO, data => {
+      this.serverIoProvider.io.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, data)
+    })
+    this.storageService.on(StorageEvents.CERTIFICATES_STORED, (payload: SendCertificatesResponse) => {
+      this.logger.info(`Storage - ${StorageEvents.CERTIFICATES_STORED}`)
+      this.serverIoProvider.io.emit(SocketActionTypes.CERTIFICATES_STORED, payload)
+    })
+    this.storageService.on(StorageEvents.COMMUNITY_UPDATED, (payload: Community) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.COMMUNITY_UPDATED, payload)
     })
     this.storageService.on(StorageEvents.CSRS_STORED, async (payload: { csrs: string[] }) => {
       this.logger.info(`Storage - ${StorageEvents.CSRS_STORED}`)

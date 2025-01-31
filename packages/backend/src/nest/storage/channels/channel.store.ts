@@ -221,14 +221,10 @@ export class ChannelStore extends EventStoreBase<EncryptedMessage, ConsumedChann
    * @returns Hash of the new database entry
    */
   public async addEntry(message: ChannelMessage): Promise<string> {
-    if (!this.store) {
-      throw new Error('Store is not initialized')
-    }
-
     this.logger.info('Adding message to database')
     const encryptedMessage = await this.messagesService.onSend(message)
     try {
-      return await this.store.add(encryptedMessage)
+      return await this.getStore().add(encryptedMessage)
     } catch (e) {
       throw new CompoundError(`Could not append message (entry not allowed to write to the log)`, e)
     }
