@@ -1,7 +1,6 @@
 import { SigChain } from '../../sigchain'
 import { createLogger } from '../../../common/logger'
-import { LocalUserContext } from '@localfirst/auth'
-import { RoleName, Channel } from './roles'
+import { RoleName } from './roles'
 import { UserService } from '../members/user.service'
 import { InviteService } from '../invites/invite.service'
 

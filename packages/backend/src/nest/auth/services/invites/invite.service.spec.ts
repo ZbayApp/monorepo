@@ -1,8 +1,5 @@
-import { jest } from '@jest/globals'
 import { SigChain } from '../../sigchain'
-import { SigChainService } from '../../sigchain.service'
 import { createLogger } from '../../../common/logger'
-import { device, InviteResult, LocalUserContext } from '@localfirst/auth'
 import { RoleName } from '..//roles/roles'
 import { UserService } from '../members/user.service'
 import { InviteService } from './invite.service'
@@ -43,6 +40,10 @@ describe('invites', () => {
     )
     expect(newMemberSigChain).toBeDefined()
     expect(newMemberSigChain.localUserContext).toBeDefined()
+    logger.info('adminSigChain.team', adminSigChain.team)
+    expect(adminSigChain.team).toBeDefined()
+    logger.info('newMemberSigChain.team', newMemberSigChain.team)
+    expect(newMemberSigChain.team).toBeDefined()
     expect(newMemberSigChain.localUserContext.user.userName).toBe('user2')
     expect(newMemberSigChain.localUserContext.user.userId).not.toBe(adminSigChain.localUserContext.user.userId)
     expect(newMemberSigChain.roles.amIMemberOfRole(newMemberSigChain.localUserContext, RoleName.MEMBER)).toBe(false)

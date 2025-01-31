@@ -92,7 +92,7 @@ class SigChain {
     const team: auth.Team = this.lfa.loadTeam(serializedTeam, context, teamKeyRing)
     team.join(teamKeyRing)
 
-    const sigChain = this.init(context)
+    const sigChain = this.init(context, team)
 
     return sigChain
   }

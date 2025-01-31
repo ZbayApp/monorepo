@@ -45,6 +45,7 @@ enum JoinStatus {
   PENDING = 'PENDING',
   JOINING = 'JOINING',
   JOINED = 'JOINED',
+  NOT_STARTED = 'NOT_STARTED',
 }
 
 const createLFALogger = createQuietLogger('localfirst')
@@ -76,12 +77,17 @@ export class Libp2pAuth {
     this.outboundStreams = new Map()
     this.inboundStreams = new Map()
     this.bufferedConnections = []
-    if (sigChainService.getActiveChain()!.team == null) {
-      this.joinStatus = JoinStatus.PENDING
+    if (sigChainService.activeChainTeamName == null) {
+      this.logger.warn('No active chain found')
+      this.joinStatus = JoinStatus.NOT_STARTED
     } else {
-      this.joinStatus = JoinStatus.JOINED
+      this.logger = this.logger.extend(sigChainService.getActiveChain().localUserContext.user.userName)
+      if (sigChainService.getActiveChain()!.team == null) {
+        this.joinStatus = JoinStatus.PENDING
+      } else {
+        this.joinStatus = JoinStatus.JOINED
+      }
     }
-    this.logger = this.logger.extend(sigChainService.getActiveChain().localUserContext.user.userName)
 
     this.logger.info('Auth service initialized')
     this.logger.info('sigChainService', sigChainService.activeChainTeamName)
@@ -103,7 +109,10 @@ export class Libp2pAuth {
   }
 
   private async unblockConnections(conns: { peerId: PeerId; connection: Connection }[]) {
-    if (this.joinStatus !== JoinStatus.JOINED) return
+    if (this.joinStatus === JoinStatus.NOT_STARTED && this.sigChainService.activeChainTeamName != null) {
+      this.logger.info(`Unblocking ${conns.length} connections now that we have an active chain`)
+      this.joinStatus = JoinStatus.PENDING
+    } else if (this.joinStatus !== JoinStatus.JOINED) return
 
     this.logger.info(`Unblocking ${conns.length} connections now that we've joined the chain`)
     while (conns.length > 0) {
@@ -258,6 +267,11 @@ export class Libp2pAuth {
       this.bufferedConnections.push({ peerId, connection })
       return
     }
+    if (this.sigChainService.activeChainTeamName == null) {
+      this.logger.warn(`No active chain found, buffering connection to ${peerId.toString()}`)
+      this.bufferedConnections.push({ peerId, connection })
+      return
+    }
 
     if (this.joinStatus === JoinStatus.PENDING) {
       this.joinStatus = JoinStatus.JOINING
@@ -301,7 +315,7 @@ export class Libp2pAuth {
 
     authConnection.on('disconnected', event => {
       this.logger.info(`LFA Disconnected!`, event)
-      this.emit(Libp2pEvents.AUTH_DISCONNECTED)
+      this.emit(Libp2pEvents.AUTH_DISCONNECTED, { event, connection })
     })
 
     authConnection.on('joined', async payload => {

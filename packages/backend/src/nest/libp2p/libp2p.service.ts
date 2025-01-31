@@ -75,6 +75,9 @@ export class Libp2pService extends EventEmitter {
 
   public emit(event: string, ...args: any[]): boolean {
     this.logger.info(`Emitting event: ${event}`, args)
+    if (event === Libp2pEvents.AUTH_DISCONNECTED) {
+      this.hangUpPeer(args[0].connection.remoteAddr.toString())
+    }
     return super.emit(event, ...args)
   }
 
