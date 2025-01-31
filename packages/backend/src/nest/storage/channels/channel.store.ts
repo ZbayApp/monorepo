@@ -3,7 +3,13 @@ import { Injectable } from '@nestjs/common'
 import { EventsType, LogEntry } from '@orbitdb/core'
 
 import { QuietLogger } from '@quiet/logger'
-import { ChannelMessage, MessagesLoadedPayload, PublicChannel, PushNotificationPayload } from '@quiet/types'
+import {
+  ChannelMessage,
+  CompoundError,
+  MessagesLoadedPayload,
+  PublicChannel,
+  PushNotificationPayload,
+} from '@quiet/types'
 
 import { createLogger } from '../../common/logger'
 import { EventStoreBase } from '../base.store'
