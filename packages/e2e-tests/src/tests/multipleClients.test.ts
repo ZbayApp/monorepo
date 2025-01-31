@@ -34,6 +34,7 @@ describe('Multiple Clients', () => {
 
   let secondChannelOwner: Channel
   let secondChannelUser1: Channel
+  let secondChannelUser3: Channel
 
   let thirdChannelOwner: Channel
 
@@ -43,6 +44,7 @@ describe('Multiple Clients', () => {
 
   let sidebarOwner: Sidebar
   let sidebarUser1: Sidebar
+  let sidebarUser3: Sidebar
 
   let users: Record<string, UserTestData>
 
@@ -358,11 +360,34 @@ describe('Multiple Clients', () => {
         await secondChannelOwner.sendMessage(users.owner.messages[1], users.owner.username)
       })
 
-      it('User reads message in second channel', async () => {
+      it('User sees the second channel', async () => {
         sidebarUser1 = new Sidebar(users.user1.app.driver)
+        secondChannelUser1 = new Channel(users.user1.app.driver, newChannelName)
+        expect(await secondChannelUser1.isReady(30_000)).toBeTruthy()
+        const channels = await sidebarUser1.getChannelList()
+        expect(channels.length).toEqual(2)
+      })
+
+      it('Second user sees the second channel', async () => {
+        sidebarUser3 = new Sidebar(users.user3.app.driver)
+        secondChannelUser3 = new Channel(users.user3.app.driver, newChannelName)
+        expect(await secondChannelUser3.isReady(30_000)).toBeTruthy()
+        const channels = await sidebarUser3.getChannelList()
+        expect(channels.length).toEqual(2)
+      })
+
+      it('User reads message in second channel', async () => {
         await sidebarUser1.switchChannel(newChannelName)
         secondChannelUser1 = new Channel(users.user1.app.driver, newChannelName)
+        await secondChannelUser1.getAtleastNumUserMessages(users.owner.username, 1)
         await secondChannelUser1.getMessageIdsByText(users.owner.messages[1], users.owner.username)
+      })
+
+      it('Second user reads message in second channel', async () => {
+        await sidebarUser3.switchChannel(newChannelName)
+        secondChannelUser3 = new Channel(users.user3.app.driver, newChannelName)
+        await secondChannelUser3.getAtleastNumUserMessages(users.owner.username, 1)
+        await secondChannelUser3.getMessageIdsByText(users.owner.messages[1], users.owner.username)
       })
     })
 
@@ -385,8 +410,21 @@ describe('Multiple Clients', () => {
         )
       })
 
+      it('Second user sees info about channel deletion in general channel', async () => {
+        expect(await generalChannelUser3.isOpen()).toBeTruthy()
+        await generalChannelUser3.getMessageIdsByText(
+          `@${users.owner.username} deleted #${newChannelName}`,
+          users.owner.username
+        )
+      })
+
       it('User sees that the channel is missing in the sidebar', async () => {
         const channels = await sidebarUser1.getChannelList()
+        expect(channels.length).toEqual(1)
+      })
+
+      it('Second user sees that the channel is missing in the sidebar', async () => {
+        const channels = await sidebarUser3.getChannelList()
         expect(channels.length).toEqual(1)
       })
 
@@ -403,6 +441,12 @@ describe('Multiple Clients', () => {
       it('Owner sees the recreated second channel', async () => {
         expect(await secondChannelOwner.isReady()).toBeTruthy()
         const channels = await sidebarOwner.getChannelList()
+        expect(channels.length).toEqual(2)
+      })
+
+      it('Second user sees the recreated second channel', async () => {
+        expect(await secondChannelUser3.isReady()).toBeTruthy()
+        const channels = await sidebarUser3.getChannelList()
         expect(channels.length).toEqual(2)
       })
 
