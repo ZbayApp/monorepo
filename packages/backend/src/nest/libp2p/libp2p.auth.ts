@@ -315,7 +315,7 @@ export class Libp2pAuth {
           `${user.userId}: Creating SigChain for user with name ${user.userName} and team name ${team.teamName}`
         )
         sigChain.context = {
-          ...sigChain.context,
+          device: (sigChain.context as Auth.InviteeContext).device,
           team,
           user,
         } as Auth.MemberContext
