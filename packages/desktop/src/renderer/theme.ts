@@ -1,5 +1,5 @@
 import { createTheme, type Theme } from '@mui/material/styles'
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { settings } from '@quiet/state-manager'
 import { ThemePreference } from '@quiet/state-manager'
@@ -452,8 +452,6 @@ const darkTheme = createTheme({
   },
 })
 
-const defaultTheme = darkTheme
-
 const getCurrentTheme = (preference: ThemePreference, systemIsDark: boolean | undefined): Theme => {
   switch (preference) {
     case ThemePreference.light:
@@ -466,6 +464,11 @@ const getCurrentTheme = (preference: ThemePreference, systemIsDark: boolean | un
       return defaultTheme
   }
 }
+
+const defaultTheme = getCurrentTheme(
+  ThemePreference.system,
+  window.matchMedia?.('(prefers-color-scheme: dark)').matches
+)
 
 const useTheme = (): Theme => {
   const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')

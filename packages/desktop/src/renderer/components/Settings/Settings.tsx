@@ -1,14 +1,11 @@
 import React from 'react'
-
 import { useModal } from '../../containers/hooks'
 import { ModalName } from '../../sagas/modals/modals.types'
-
 import { About } from '../widgets/Settings/About'
 import { Notifications } from './Tabs/Notifications/Notifications'
 import { Invite } from './Tabs/Invite/Invite'
 import { QRCode } from './Tabs/QRCode/QRCode'
 import { Theme } from './Tabs/Theme/Theme'
-
 import SettingsComponent from './SettingsComponent'
 
 const Settings = () => {
