@@ -13,7 +13,7 @@ import { fork, ChildProcess } from 'child_process'
 import { DESKTOP_DATA_DIR, DESKTOP_DEV_DATA_DIR, getFilesData } from '@quiet/common'
 import { updateDesktopFile, processInvitationCode } from './invitation'
 const ElectronStore = require('electron-store')
-const contextMenu = require('electron-context-menu');
+const contextMenu = require('electron-context-menu')
 
 // eslint-disable-next-line
 const remote = require('@electron/remote/main')
@@ -473,7 +473,7 @@ app.on('ready', async () => {
     const temporaryFilesDirectory = path.join(appDataPath, 'temporaryFiles')
     fs.mkdirSync(temporaryFilesDirectory, { recursive: true })
     const id = `${Date.now()}_${Math.random().toString(36).substring(0, 20)}`
-    const name = arg.ext ? arg.fileName.split(arg.ext)[0] : arg.fileName 
+    const name = arg.ext ? arg.fileName.split(arg.ext)[0] : arg.fileName
     const filePath = `${path.join(temporaryFilesDirectory, `${name}_${id}${arg.ext}`)}`
     fs.writeFileSync(filePath, arg.fileBuffer)
 
@@ -572,5 +572,3 @@ app.on('activate', async () => {
     await createWindow()
   }
 })
-
-
