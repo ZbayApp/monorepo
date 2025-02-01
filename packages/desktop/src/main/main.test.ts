@@ -1,3 +1,5 @@
+jest.mock('electron-context-menu', () => jest.fn()) // prevents context-menu from interfering with tests
+
 import * as main from './main'
 import * as backendHelpers from './backendHelpers'
 
