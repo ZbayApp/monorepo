@@ -1,5 +1,8 @@
 import { createTheme, type Theme } from '@mui/material/styles'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
+import { useSelector } from 'react-redux'
+import { settings } from '@quiet/state-manager'
+import { ThemePreference } from '@quiet/state-manager'
 
 const font = "'Rubik', sans-serif"
 const fontLogs = 'Menlo Regular'
@@ -450,40 +453,37 @@ const darkTheme = createTheme({
 })
 
 const defaultTheme = darkTheme
-const getCurrentTheme = (useDarkTheme: boolean | undefined): Theme => {
-  if (useDarkTheme == null) {
-    return defaultTheme
-  }
 
-  return useDarkTheme ? darkTheme : lightTheme
+const getCurrentTheme = (preference: ThemePreference, systemIsDark: boolean | undefined): Theme => {
+  switch (preference) {
+    case ThemePreference.light:
+      return lightTheme
+    case ThemePreference.dark:
+      return darkTheme
+    case ThemePreference.system:
+      return (systemIsDark ?? false) ? darkTheme : lightTheme
+    default:
+      return defaultTheme
+  }
 }
 
-/**
- * Check if dark mode is enabled natively in the OS and use an effect to get realtime updates to dark mode settings
- * from the OS.
- *
- * NOTE: Defaults to the theme above
- *
- * @returns Theme that matches system theme
- */
 const useTheme = (): Theme => {
-  const mediaQuery = () => (window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null)
-  const [isDarkTheme, setDarkTheme] = useState<Theme>(
-    mediaQuery != null ? getCurrentTheme(mediaQuery()?.matches) : defaultTheme
-  )
+  const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
+  const [theme, setTheme] = useState(() => getCurrentTheme(ThemePreference.system, mediaQuery?.matches))
+  const themePreference = useSelector(settings.selectors.getThemePreference)
 
   useEffect(() => {
-    const mediaQueryResult = mediaQuery()
-    if ((mediaQueryResult as MediaQueryList).addEventListener != null) {
-      ;(mediaQueryResult as MediaQueryList).addEventListener('change', event => {
-        setDarkTheme(getCurrentTheme(event.matches))
-      })
-    } else {
-      setDarkTheme(defaultTheme)
+    const updateTheme = (isDark: boolean) => {
+      setTheme(getCurrentTheme(themePreference, isDark))
     }
-  }, [])
 
-  return isDarkTheme
+    updateTheme(mediaQuery?.matches)
+
+    mediaQuery?.addEventListener('change', e => updateTheme(e.matches))
+    return () => mediaQuery?.removeEventListener('change', e => updateTheme(e.matches))
+  }, [themePreference])
+
+  return theme
 }
 
 export { lightTheme, darkTheme, defaultTheme, useTheme }

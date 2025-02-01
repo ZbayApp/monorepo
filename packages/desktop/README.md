@@ -1,4 +1,4 @@
-# Quiet Desktop
+cd # Quiet Desktop
 
 Running the desktop version of Quiet should be straightforward on Mac and Linux. On Windows we recommend using git-bash or just wsl.
 Here are the steps:

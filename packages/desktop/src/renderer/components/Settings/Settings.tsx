@@ -7,6 +7,7 @@ import { About } from '../widgets/Settings/About'
 import { Notifications } from './Tabs/Notifications/Notifications'
 import { Invite } from './Tabs/Invite/Invite'
 import { QRCode } from './Tabs/QRCode/QRCode'
+import { Theme } from './Tabs/Theme/Theme'
 
 import SettingsComponent from './SettingsComponent'
 
@@ -18,6 +19,7 @@ const Settings = () => {
     notifications: Notifications,
     invite: Invite,
     qrcode: QRCode,
+    theme: Theme,
   }
 
   const leaveCommunityModal = useModal(ModalName.leaveCommunity)

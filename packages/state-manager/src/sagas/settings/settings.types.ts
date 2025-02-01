@@ -11,3 +11,9 @@ export enum NotificationsSounds {
   none = 'none',
   librarianShhh = 'librarianShhh',
 }
+
+export enum ThemePreference {
+  light = 'light',
+  dark = 'dark',
+  system = 'system',
+}

@@ -86,6 +86,14 @@ export const SettingsComponent: React.FC<SettingsComponentProps> = ({
               <ChevronRightIcon />
             </ListItemIcon>
           </ListItemButton>
+          <Divider />
+          <ListItemButton data-testid={'theme-settings-tab'} onClick={() => handleChange('theme')}>
+            <ListItemText>Theme</ListItemText>
+            <ListItemIcon>
+              <ChevronRightIcon />
+            </ListItemIcon>
+          </ListItemButton>
+          <Divider />
           {!isWindows && (
             <>
               <Divider />
