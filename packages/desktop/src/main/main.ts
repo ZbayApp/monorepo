@@ -13,6 +13,7 @@ import { fork, ChildProcess } from 'child_process'
 import { DESKTOP_DATA_DIR, DESKTOP_DEV_DATA_DIR, getFilesData } from '@quiet/common'
 import { updateDesktopFile, processInvitationCode } from './invitation'
 const ElectronStore = require('electron-store')
+const contextMenu = require('electron-context-menu')
 
 // eslint-disable-next-line
 const remote = require('@electron/remote/main')
@@ -342,6 +343,15 @@ app.on('ready', async () => {
   Menu.setApplicationMenu(null)
 
   await applyDevTools()
+
+  contextMenu({
+    showInspectElement: false,
+    showSaveLinkAs: true,
+    showCopyLink: true,
+    showSaveImage: true,
+    showCopyImage: true,
+    showSaveImageAs: true,
+  })
 
   ports = await getPorts()
   await createWindow()

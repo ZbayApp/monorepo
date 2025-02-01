@@ -136,6 +136,7 @@
     "@quiet/types": "^2.0.2-alpha.1",
     "@sentry/electron": "^2.5.4",
     "backend-bundle": "^2.0.1-alpha.4",
+    "electron-context-menu": "^3.6.1",
     "electron-debug": "^3.0.1",
     "electron-localshortcut": "^3.2.1",
     "electron-store": "^8.0.1",
