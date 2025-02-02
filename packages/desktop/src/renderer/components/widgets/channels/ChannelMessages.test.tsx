@@ -62,7 +62,7 @@ describe('ChannelMessages', () => {
             >
               <div>
                 <div
-                  class="MuiGrid-root MuiGrid-container css-1nj3j97-MuiGrid-root"
+                  class="MuiGrid-root MuiGrid-container css-1xe2ld0-MuiGrid-root"
                 >
                   <div
                     class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-true css-1vd824g-MuiGrid-root"
