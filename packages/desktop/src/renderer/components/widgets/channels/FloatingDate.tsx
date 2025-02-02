@@ -21,7 +21,6 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
     backgroundColor: 'transparent',
   },
 
-  // Updated titleDiv styling with floating properties.
   [`& .${classes.titleDiv}`]: {
     boxSizing: 'border-box',
     display: 'flex',
@@ -33,9 +32,9 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
     width: '109px',
     height: '25px',
     top: '20px',
-    background: '#FFFFFF',
-    border: '1px solid #F0F0F0',
-    boxShadow: '0px 1px 12px rgba(0, 0, 0, 0.09)',
+    background: theme.palette.background.default,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.shadows[2],
     borderRadius: '72px',
     zIndex: 1000, // ensures the date floats above other elements
   },
