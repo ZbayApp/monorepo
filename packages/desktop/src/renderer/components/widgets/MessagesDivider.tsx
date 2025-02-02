@@ -18,13 +18,23 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
   },
 
   [`& .${classes.divider}`]: {
-    height: 1,
-    backgroundColor: theme.palette.colors.border01,
+    height: 0,
+    backgroundColor: 'transparent',
   },
 
   [`& .${classes.titleDiv}`]: {
-    paddingLeft: 12,
-    paddingRight: 12,
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: '5px 18px',
+    gap: '8px',
+    width: '108px',
+    height: '25px',
+    backgroundColor: theme.palette.background.default,
+    border: `1px solid ${theme.palette.colors.border01}`,
+    borderRadius: '72px',
   },
 }))
 
