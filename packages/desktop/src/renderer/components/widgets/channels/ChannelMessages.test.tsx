@@ -55,6 +55,25 @@ describe('ChannelMessages', () => {
             class="ChannelMessagesComponentscroll css-sxxllx"
             data-testid="channelContent"
           >
+            <div
+              class="MuiGrid-root MuiGrid-container css-1a1t0ik-MuiGrid-root"
+            >
+              <div
+                class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-true css-1vd824g-MuiGrid-root"
+              />
+              <div
+                class="MuiGrid-root MuiGrid-item FloatingDatetitleDiv css-13i4rnv-MuiGrid-root"
+              >
+                <p
+                  class="MuiTypography-root MuiTypography-body1 css-ghvhpl-MuiTypography-root"
+                >
+                  Today
+                </p>
+              </div>
+              <div
+                class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-true css-1vd824g-MuiGrid-root"
+              />
+            </div>
             <ul
               class="MuiList-root ChannelMessagesComponentlist css-1mk9mw3-MuiList-root"
               id="messages-scroll"

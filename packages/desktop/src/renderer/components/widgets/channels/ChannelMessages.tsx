@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef } from 'react'
 import { styled } from '@mui/material/styles'
 import { Dictionary } from '@reduxjs/toolkit'
 import List from '@mui/material/List'
+import FloatingDate from './FloatingDate'
 
 import MessagesDivider from '../MessagesDivider'
 import BasicMessageComponent from './BasicMessage'
@@ -132,6 +133,7 @@ export const ChannelMessagesComponent: React.FC<IChannelMessagesProps & FileActi
       {Object.values(messages).length < 1 && (
         <SpinnerLoader size={40} message={spinnerMessage} className={classes.spinner} color={'black'} />
       )}
+      <FloatingDate title={'Today'} />
       <List disablePadding className={classes.list} id='messages-scroll' ref={listRef} tabIndex={0}>
         {Object.keys(messages).map(day => {
           return (
