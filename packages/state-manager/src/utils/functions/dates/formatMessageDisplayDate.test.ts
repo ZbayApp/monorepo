@@ -46,5 +46,18 @@ describe('Format message displays date', () => {
     const createdAt = DateTime.now().plus({ minutes: -1 }).toSeconds()
     const result = formatMessageDisplayDate(createdAt)
     expect(result).toContain(',')
-  })
+  }),
+    it('does not display leading zero on date', () => {
+      jest.spyOn(DateTime, 'now').mockImplementation(() => {
+        return DateTime.fromObject({
+          year: 2020,
+          month: 10,
+          day: 2,
+          hour: 0,
+        })
+      })
+      const createdAt = DateTime.now().plus({ minutes: -1 }).toSeconds()
+      const result = formatMessageDisplayDate(createdAt)
+      expect(result).toBe('Oct 1, 11:59 PM')
+    })
 })
