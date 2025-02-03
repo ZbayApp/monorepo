@@ -1,7 +1,6 @@
 import React from 'react'
 import { styled } from '@mui/material/styles'
 import { Grid, Typography } from '@mui/material'
-import zIndex from '@mui/material/styles/zIndex'
 
 const PREFIX = 'FloatingDate'
 
@@ -36,15 +35,18 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
     border: `1px solid ${theme.palette.divider}`,
     boxShadow: theme.shadows[2],
     borderRadius: '72px',
-    zIndex: 1000, // ensures the date floats above other elements
+    zIndex: 1000,
   },
 }))
 
 interface FloatingDateProps {
   title: string
+  isVisible?: boolean
 }
 
-export const FloatingDate: React.FC<FloatingDateProps> = ({ title }) => {
+export const FloatingDate: React.FC<FloatingDateProps> = ({ title, isVisible = false }) => {
+  if (!isVisible) return null
+
   return (
     <StyledGrid container justifyContent='center' alignItems='center'>
       <Grid item xs />
