@@ -78,9 +78,20 @@ jest.mock('socket.io-client', () => ({
   io: jest.fn(),
 }))
 
-// Mocked because of: "Invariant Violation: TurboModuleRegistry.getEnforcing(...): 'RNDocumentPicker'
+// Mocked because of: 
+// 
+// "Invariant Violation: TurboModuleRegistry.getEnforcing(...): 'RNDocumentPicker'
 // could not be found. Verify that a module by this name is registered in the native binary."
 jest.mock('react-native-document-picker', () => { })
+
+// Mocked because of:
+//
+// /Users/isla/Dev/quiet/packages/mobile/node_modules/react-native-image-picker/src/index.ts:1
+// ({"Object.<anonymous>":function(module,exports,require,__dirname,__filename,jest){import {Platform} from 'react-native';
+// ^^^^^^
+// 
+// SyntaxError: Cannot use import statement outside a module
+jest.mock('react-native-image-picker', () => { })
 
 jest.mock('react-native-device-info', () => {
   return {
