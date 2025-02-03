@@ -31,28 +31,23 @@ const StyledRoot = styled('div')(({ theme }) => ({
     position: 'relative',
     transform: 'translate(0, -50%)',
   },
-
   [`&.${classes.scroll}`]: {
     overflow: 'scroll',
     overflowX: 'hidden',
     height: '100%',
   },
-
   [`& .${classes.list}`]: {
     backgroundColor: theme.palette.background.default,
     width: '100%',
   },
-
   [`& .${classes.link}`]: {
     color: theme.palette.primary.main,
     cursor: 'pointer',
   },
-
   [`& .${classes.item}`]: {
     backgroundColor: theme.palette.grey[100],
     padding: '9px 16px',
   },
-
   [`& .${classes.bold}`]: {
     fontWeight: 'bold',
   },
@@ -94,14 +89,17 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
   unregisteredUsernameModalHandleOpen,
   duplicatedUsernameModalHandleOpen,
 }) => {
-  const [isScrolling, setIsScrolling] = useState(false)
   const scrollTimerRef = useRef<number | null>(null)
   const listRef = useRef<HTMLUListElement>(null)
-  const [currentDay, setCurrentDay] = useState<string>('')
-  const dayRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
+  const [isScrolling, setIsScrolling] = useState(false)
+  const [userHasInitiatedScroll, setUserHasInitiatedScroll] = useState(false)
+  const [currentDay, setCurrentDay] = useState<string>('')
+
+  const dayRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const spinnerMessage = pendingGeneralChannelRecreation ? DELETING_CHANNEL : FETCHING_MESSAGES
 
+  // Keep a ref for each day block
   Object.keys(messages).forEach(day => {
     if (!dayRefs.current[day]) {
       dayRefs.current[day] = null
@@ -122,7 +120,6 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
       const node = dayRefs.current[day]
       if (!node) continue
       const rect = node.getBoundingClientRect()
-
       if (rect.top <= floatPos && rect.top > bestTop) {
         bestTop = rect.top
         bestDay = day
@@ -132,39 +129,47 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
     setCurrentDay(bestDay)
   }, [scrollbarRef])
 
+  // Only set isScrolling if user physically scrolled (wheel or PageUp/PageDown).
   const handleScroll = useCallback(() => {
     onScroll()
+    if (!scrollbarRef.current) return
+    if (!userHasInitiatedScroll) return
+
     updateFloatingDate()
 
     setIsScrolling(true)
-
     if (scrollTimerRef.current) {
       window.clearTimeout(scrollTimerRef.current)
     }
-
     scrollTimerRef.current = window.setTimeout(() => {
       setIsScrolling(false)
     }, 1000)
-  }, [onScroll, updateFloatingDate])
+  }, [onScroll, updateFloatingDate, userHasInitiatedScroll])
 
+  // PageUp/PageDown events
   const handleKeyDown = useCallback(
     (evt: KeyboardEvent) => {
       if (!scrollbarRef.current) return
+      if (evt.key === 'PageUp' || evt.key === 'PageDown') {
+        setUserHasInitiatedScroll(true)
+        listRef.current?.focus()
 
-      switch (evt.key) {
-        case 'PageUp':
-          listRef.current?.focus()
+        if (evt.key === 'PageUp') {
           scrollbarRef.current.scrollTop -= 40
-          break
-        case 'PageDown':
-          listRef.current?.focus()
+        } else {
           scrollbarRef.current.scrollTop += 40
-          break
+        }
       }
     },
     [listRef, scrollbarRef]
   )
 
+  // Wheel event means user definitely scrolled
+  const handleWheel = useCallback(() => {
+    setUserHasInitiatedScroll(true)
+  }, [])
+
+  // Register key events on the document
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown, false)
     return () => {
@@ -172,15 +177,19 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
     }
   }, [handleKeyDown])
 
+  // Register scroll/wheel on the container
   useEffect(() => {
     const el = scrollbarRef.current
     if (!el) return
     el.addEventListener('scroll', handleScroll)
+    el.addEventListener('wheel', handleWheel)
     return () => {
       el.removeEventListener('scroll', handleScroll)
+      el.removeEventListener('wheel', handleWheel)
     }
-  }, [scrollbarRef, handleScroll])
+  }, [scrollbarRef, handleScroll, handleWheel])
 
+  // Cleanup scroll timer
   useEffect(() => {
     return () => {
       if (scrollTimerRef.current) {
@@ -195,7 +204,8 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
         <SpinnerLoader size={40} message={spinnerMessage} className={classes.spinner} color='black' />
       )}
 
-      <FloatingDate title={currentDay || 'Today'} isVisible={isScrolling} />
+      {/* Only show FloatingDate after user input and while they're actively scrolling */}
+      <FloatingDate title={currentDay || 'Today'} isVisible={userHasInitiatedScroll && isScrolling} />
 
       <List disablePadding className={classes.list} id='messages-scroll' ref={listRef} tabIndex={0}>
         {Object.keys(messages).map(day => (
@@ -233,5 +243,4 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
 }
 
 export { FETCHING_MESSAGES as fetchingChannelMessagesText, DELETING_CHANNEL as deletingChannelMessage }
-
 export default ChannelMessagesComponent
