@@ -8,17 +8,12 @@ export enum Libp2pEvents {
   AUTH_CONNECTED = 'authConnected',
   AUTH_JOINED = 'authJoined',
   AUTH_STATE_CHANGED = 'authStateChanged',
-  AUTH_ERROR = 'authError',
-  AUTH_REMOVED = 'authRemoved',
-  AUTH_INVALID_PROOF = 'authInvalidProof',
-  AUTH_CONNECTION_DENIED = 'authConnectionDenied',
-  AUTH_TIMEOUT = 'authTimeout',
-  AUTH_PEER_REMOVED = 'authPeerRemoved',
-  AUTH_PEER_INVALID = 'authPeerInvalid',
-  AUTH_PEER_CANNOT_ADMIT = 'authPeerCannotAdmit',
+  AUTH_REMOTE_ERROR = 'authRemoteError',
+  AUTH_LOCAL_ERROR = 'authLocalError',
   AUTH_DISCONNECTED = 'authDisconnected',
   AUTH_UPDATED = 'authUpdated',
 }
+export enum AuthErrors {}
 
 export interface Libp2pNodeParams {
   peerId: CreatedLibp2pPeerId

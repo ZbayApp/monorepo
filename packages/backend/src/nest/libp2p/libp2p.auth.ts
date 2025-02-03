@@ -1,18 +1,14 @@
 import {
   ComponentLogger,
   Connection,
-  NewStreamOptions,
   PeerId,
   PeerStore,
   serviceCapabilities,
-  serviceDependencies,
   Stream,
   Topology,
 } from '@libp2p/interface'
 import type { ConnectionManager, IncomingStreamData, Registrar } from '@libp2p/interface-internal'
 import * as Auth from '@localfirst/auth'
-import { pushable, type Pushable } from 'it-pushable'
-import { Uint8ArrayList } from 'uint8arraylist'
 import { pipe } from 'it-pipe'
 import { encode, decode } from 'it-length-prefixed'
 
@@ -36,11 +32,6 @@ export interface Libp2pAuthStatus {
   joining: boolean
 }
 
-export interface PushableStream {
-  stream: Stream
-  pushable: Pushable<Uint8Array | Uint8ArrayList>
-}
-
 enum JoinStatus {
   PENDING = 'PENDING',
   JOINING = 'JOINING',
@@ -56,15 +47,12 @@ export class Libp2pAuth {
   private sigChainService: SigChainService
   private libp2pService: Libp2pService
   private authConnections: Map<string, Auth.Connection>
-  private outboundStreamQueue: Pushable<{ peerId: PeerId; connection: Connection }>
-  private outboundStreams: Map<string, PushableStream>
-  private inboundStreams: Map<string, Stream>
+  private peerConnections: Map<string, Connection>
   private bufferedConnections: { peerId: PeerId; connection: Connection }[]
   private unblockInterval: NodeJS.Timeout
   private joinStatus: JoinStatus
   private logger: ReturnType<typeof createLogger> = createLogger('libp2p:auth')
   readonly [serviceCapabilities]: string[] = ['@quiet/auth']
-  // readonly [serviceDependencies]: string[] = ['@libp2p/identify']
   readonly [Symbol.toStringTag]: string = 'lfaAuth'
 
   constructor(sigChainService: SigChainService, libp2pService: Libp2pService, components: Libp2pAuthComponents) {
@@ -73,10 +61,9 @@ export class Libp2pAuth {
     this.sigChainService = sigChainService
     this.libp2pService = libp2pService
     this.authConnections = new Map()
-    this.outboundStreamQueue = pushable<{ peerId: PeerId; connection: Connection }>({ objectMode: true })
-    this.outboundStreams = new Map()
-    this.inboundStreams = new Map()
+    this.peerConnections = new Map()
     this.bufferedConnections = []
+
     if (sigChainService.activeChainTeamName == null) {
       this.logger.warn('No active chain found')
       this.joinStatus = JoinStatus.NOT_STARTED
@@ -92,15 +79,7 @@ export class Libp2pAuth {
     this.logger.info('Auth service initialized')
     this.logger.info('sigChainService', sigChainService.activeChainTeamName)
 
-    pipe(this.outboundStreamQueue, async source => {
-      for await (const { peerId, connection } of source) {
-        this.logger.info(`Outbound stream queue received connection to ${peerId.toString()}`)
-        await this.openOutboundStream(peerId, connection)
-      }
-    }).catch(e => {
-      this.logger.error('Outbound stream queue error', e)
-    })
-
+    // Set up a periodic check to process buffered connections
     this.unblockInterval = setInterval(this.unblockConnections, 5_000, this.bufferedConnections)
   }
 
@@ -108,13 +87,16 @@ export class Libp2pAuth {
     this.libp2pService.emit(eventName, ...args)
   }
 
+  // Process any connections that were buffered because we were waiting for a chain
   private async unblockConnections(conns: { peerId: PeerId; connection: Connection }[]) {
     if (this.joinStatus === JoinStatus.NOT_STARTED && this.sigChainService.activeChainTeamName != null) {
       this.logger.info(`Unblocking ${conns.length} connections now that we have an active chain`)
       this.joinStatus = JoinStatus.PENDING
-    } else if (this.joinStatus !== JoinStatus.JOINED) return
+    } else if (this.joinStatus !== JoinStatus.JOINED) {
+      return
+    }
 
-    this.logger.info(`Unblocking ${conns.length} connections now that we've joined the chain`)
+    this.logger.info(`Unblocking ${conns.length} buffered connections now that we've joined the chain`)
     while (conns.length > 0) {
       const conn = conns.pop()
       if (conn != null) {
@@ -150,11 +132,9 @@ export class Libp2pAuth {
     clearInterval(this.unblockInterval)
 
     // Close all auth connections
-    for (const peerId in this.authConnections.keys()) {
+    for (const peerId of this.authConnections.keys()) {
       await this.closeAuthConnection(peerId)
     }
-    // End the outbound stream queue to prevent further pushes
-    this.outboundStreamQueue.end()
 
     this.logger.info('Libp2pAuth service stopped')
   }
@@ -166,97 +146,81 @@ export class Libp2pAuth {
     }
   }
 
-  private async openOutboundStream(peerId: PeerId, connection: Connection) {
-    this.logger.info(`Opening outbound stream to ${peerId.toString()}`)
-    if (this.outboundStreams.has(peerId.toString())) {
-      return
-    }
-
-    this.logger.info(`Opening outbound stream on ${connection.id.toString()} to ${peerId.toString()}`)
-    const outboundStream = await connection.newStream(this.protocol, {
-      runOnLimitedConnection: false,
-      negotiateFully: true,
-    })
-    this.logger.info(`Opened outbound stream on ${connection.id.toString()} to ${peerId.toString()}`)
-    const outboundPushable: Pushable<Uint8Array | Uint8ArrayList> = pushable()
-    this.outboundStreams.set(peerId.toString(), {
-      stream: outboundStream,
-      pushable: outboundPushable,
-    })
-
-    this.logger.info(`Piping outbound stream to ${peerId.toString()}`)
-    pipe(outboundPushable, outboundStream).catch((e: Error) =>
-      this.logger.error(`Error in outbound stream to ${peerId}`, e)
-    )
-
-    this.logger.info(`Starting auth connection with ${peerId.toString()}`)
-    this.authConnections.get(peerId.toString())?.start()
-    this.logger.info(`Started auth connection with ${peerId.toString()}`)
-  }
-
+  /**
+   * Handle an incoming ephemeral stream.
+   * Once the stream is processed, it is closed.
+   */
   private async onIncomingStream({ stream, connection }: IncomingStreamData) {
     const peerId = connection.remotePeer
-    this.logger.info(`Handling incoming stream ${connection.id} from ${peerId.toString()}`)
+    this.logger.info(`Handling incoming ephemeral stream ${connection.id.toString()} from ${peerId.toString()}`)
 
-    const oldStream = this.inboundStreams.get(peerId.toString())
-    if (oldStream) {
-      this.logger.info(`Old inbound stream found!`)
-      this.logger.debug('Old stream info:', oldStream)
-      this.logger.debug('New stream info:', stream)
-      return
-    }
-
+    // Process messages from the stream
     this.handleIncomingMessages(peerId, stream)
-
-    this.inboundStreams.set(peerId.toString(), stream)
+      .catch(err => {
+        this.logger.error(`Error processing incoming stream from ${peerId.toString()}`, err)
+      })
+      .finally(() => {
+        stream
+          .close()
+          .catch(err => this.logger.error(`Error closing incoming ephemeral stream from ${peerId.toString()}`, err))
+      })
   }
 
-  private handleIncomingMessages(peerId: PeerId, stream: Stream) {
-    pipe(
+  /**
+   * Process incoming messages by decoding the length-prefixed data and delivering
+   * it to the corresponding auth connection.
+   */
+  private async handleIncomingMessages(peerId: PeerId, stream: Stream) {
+    await pipe(
       stream,
       source => decode(source),
       async source => {
         for await (const data of source) {
           try {
-            if (!this.authConnections.has(peerId.toString())) {
+            const authConn = this.authConnections.get(peerId.toString())
+            if (!authConn) {
               this.logger.error(`No auth connection established for ${peerId.toString()}`)
             } else {
-              this.authConnections.get(peerId.toString())?.deliver(data.subarray())
+              authConn.deliver(data.subarray())
             }
           } catch (e) {
-            this.logger.error(`Error while delivering message to ${peerId}`, e)
+            this.logger.error(`Error while delivering message to ${peerId.toString()}`, e)
           }
         }
       }
     )
   }
 
-  private sendMessage(peerId: PeerId, message: Uint8Array) {
-    if (!this.outboundStreams.has(peerId.toString())) {
-      this.logger.warn(`No outbound stream available for peer ${peerId.toString()}`)
+  /**
+   * Send an outgoing message using an ephemeral stream.
+   * This method opens a new stream, writes the encoded message, and then closes it.
+   */
+  private async sendMessage(peerId: PeerId, message: Uint8Array) {
+    const connection = this.peerConnections.get(peerId.toString())
+    if (!connection) {
+      this.logger.warn(`No connection available for ephemeral stream to ${peerId.toString()}`)
       return
     }
     try {
-      this.logger.info(`Sending auth message to ${peerId.toString()}`)
-      const outboundStream = this.outboundStreams.get(peerId.toString())
-      if (outboundStream == null) {
-        this.logger.error(`No outbound stream available for peer ${peerId.toString()}`)
-        return
-      }
-      if (outboundStream.stream.status !== 'open') {
-        this.logger.warn(`Outbound stream to ${peerId.toString()} is closed`)
-        return
-      }
-      this.outboundStreams.get(peerId.toString())?.pushable.push(
-        // length-prefix encoded
-        encode.single(message)
-      )
+      this.logger.info(`Opening ephemeral outbound stream to ${peerId.toString()}`)
+      const stream = await connection.newStream(this.protocol, {
+        runOnLimitedConnection: false,
+        negotiateFully: false,
+      })
+      this.logger.info(`Ephemeral stream opened to ${peerId.toString()}, sending message`)
+      await pipe([encode.single(message)], stream)
+      await stream.close()
+      this.logger.info(`Ephemeral stream closed to ${peerId.toString()}`)
     } catch (e) {
-      this.logger.error(`Error while sending auth message over stream to ${peerId.toString()}`, e)
+      this.logger.error(`Error sending ephemeral message to ${peerId.toString()}`, e)
     }
   }
 
-  // NOTE: This is not awaited by the registrar
+  /**
+   * Called when a peer connects. If we’re not ready to start (e.g. no active chain),
+   * the connection is buffered. Otherwise we create a new auth connection and
+   * store the underlying libp2p connection for ephemeral stream use.
+   */
   private async onPeerConnected(peerId: PeerId, connection: Connection) {
     if (this.authConnections.has(peerId.toString())) {
       this.logger.info(`Auth connection with ${peerId.toString()} already exists`)
@@ -278,8 +242,6 @@ export class Libp2pAuth {
     }
 
     this.logger.info(`Peer connected (direction = ${connection.direction})! (status = ${connection.status})`)
-
-    // https://github.com/ChainSafe/js-libp2p-gossipsub/issues/398
     if (connection.status !== 'open') {
       this.logger.warn(`The connection with ${peerId.toString()} was not in an open state!`)
       return
@@ -294,17 +256,22 @@ export class Libp2pAuth {
       return
     }
 
+    // Create an auth connection using an ephemeral sendMessage callback.
     const authConnection = new Auth.Connection({
       context,
       sendMessage: (message: Uint8Array) => {
-        this.sendMessage(peerId, message)
+        // Fire-and-forget: send message using an ephemeral stream.
+        this.sendMessage(peerId, message).catch(err => {
+          this.logger.error(`Error in sendMessage callback for ${peerId.toString()}`, err)
+        })
       },
       createLogger: createLFALogger,
     } as ConnectionParams)
 
+    // Set up auth connection event handlers.
     authConnection.on('connected', () => {
       if (this.sigChainService.activeChainTeamName != null) {
-        this.logger.debug(`Sending sync message because our chain is intialized`)
+        this.logger.debug(`Sending sync message because our chain is initialized`)
         const sigChain = this.sigChainService.getActiveChain()
         const team = sigChain.team
         const user = sigChain.localUserContext.user
@@ -315,7 +282,6 @@ export class Libp2pAuth {
 
     authConnection.on('disconnected', event => {
       this.logger.info(`LFA Disconnected!`, event)
-      this.emit(Libp2pEvents.AUTH_DISCONNECTED, { event, connection })
     })
 
     authConnection.on('joined', async payload => {
@@ -352,122 +318,42 @@ export class Libp2pAuth {
       await this.sigChainService.saveChain(sigChain.team!.teamName)
     })
 
-    // handle errors detected locally and reported to the peer
+    // Handle errors from local or remote sources.
     authConnection.on('localError', error => {
-      switch (error.type) {
-        case Auth.connection.DEVICE_REMOVED:
-        case Auth.connection.DEVICE_UNKNOWN:
-        case Auth.connection.MEMBER_REMOVED:
-        case Auth.connection.SERVER_REMOVED:
-          this.emit(Libp2pEvents.AUTH_PEER_REMOVED, error, peerId)
-          break
-        case Auth.connection.IDENTITY_PROOF_INVALID:
-        case Auth.connection.INVITATION_PROOF_INVALID:
-        case Auth.connection.JOINED_WRONG_TEAM:
-          this.emit(Libp2pEvents.AUTH_PEER_INVALID, error, peerId)
-          break
-        case Auth.connection.NEITHER_IS_MEMBER:
-          this.emit(Libp2pEvents.AUTH_PEER_CANNOT_ADMIT, error)
-          break
-        case Auth.connection.TIMEOUT:
-          this.emit(Libp2pEvents.AUTH_TIMEOUT, error)
-          break
-        default:
-          this.emit(Libp2pEvents.AUTH_ERROR, error)
-          break
-      }
+      this.emit(Libp2pEvents.AUTH_LOCAL_ERROR, { error, connection })
     })
-
-    // handle errors sent by the peer
     authConnection.on('remoteError', error => {
-      switch (error.type) {
-        case Auth.connection.DEVICE_REMOVED:
-        case Auth.connection.DEVICE_UNKNOWN:
-        case Auth.connection.MEMBER_REMOVED:
-        case Auth.connection.SERVER_REMOVED:
-          this.emit(Libp2pEvents.AUTH_REMOVED, error)
-          break
-        case Auth.connection.IDENTITY_PROOF_INVALID:
-        case Auth.connection.INVITATION_PROOF_INVALID:
-        case Auth.connection.JOINED_WRONG_TEAM:
-          this.emit(Libp2pEvents.AUTH_INVALID_PROOF, error)
-          break
-        case Auth.connection.TIMEOUT:
-          this.emit(Libp2pEvents.AUTH_TIMEOUT, error)
-          break
-        default:
-          this.emit(Libp2pEvents.AUTH_ERROR, error)
-          break
-      }
+      this.emit(Libp2pEvents.AUTH_REMOTE_ERROR, { error, connection })
     })
 
+    // Store the auth connection and also the underlying libp2p connection
     this.authConnections.set(peerId.toString(), authConnection)
+    this.peerConnections.set(peerId.toString(), connection)
 
-    this.logger.info(`Auth connection established with ${peerId.toString()} pushing to outbound stream queue`)
-    this.outboundStreamQueue.push({ peerId, connection })
+    this.logger.info(`Auth connection established with ${peerId.toString()}`)
+    authConnection.start()
   }
 
   private async onPeerDisconnected(peerId: PeerId) {
-    this.logger.warn(`Disconnecting auth connection with peer ${peerId.toString()}`)
-    await this.closeAuthConnection(peerId)
-  }
-
-  private async closeOutboundStream(peerId: PeerId | string, deleteRecord?: boolean) {
-    if (!this.outboundStreams.has(peerId.toString())) {
-      this.logger.warn(`Can't close outbound stream with ${peerId.toString()} as it doesn't exist`)
-      return
-    }
-
-    const outboundStream = this.outboundStreams.get(peerId.toString())
-    this.logger.warn(`Closing outbound stream with ${peerId.toString()}`)
-
-    if (outboundStream == null) {
-      return
-    }
-
-    outboundStream.pushable.end()
-    await outboundStream.stream.close().catch(e => {
-      outboundStream.stream.abort(e)
-    })
-
-    if (deleteRecord) {
-      this.outboundStreams.delete(peerId.toString())
+    if (this.authConnections.has(peerId.toString())) {
+      this.logger.warn(`Auth connection with ${peerId.toString()} was disconnected`)
+      this.closeAuthConnection(peerId)
     }
   }
 
-  private async closeInboundStream(peerId: PeerId | string, deleteRecord?: boolean) {
-    this.logger.warn(`Attempting to close inbound stream with ${peerId.toString()}`)
-    const inboundStream = this.inboundStreams.get(peerId.toString())
+  public closeAuthConnection(peerId: PeerId | string) {
+    this.logger.info(`Attempting to close auth connection with ${peerId.toString()}`)
+    const key = peerId.toString()
 
-    if (inboundStream == null) {
-      this.logger.warn(`Can't close inbound stream with ${peerId.toString()} as it doesn't exist`)
-      return
+    // Remove the stored connection (ephemeral streams are used for each message)
+    if (this.peerConnections.has(key)) {
+      this.peerConnections.delete(key)
     }
 
-    this.logger.info(`Closing inbound stream with ${peerId.toString()}`)
-    await inboundStream.close().catch(e => {
-      this.logger.info(`Error closing inbound stream with ${peerId.toString()}. Aborting stream`, e)
-      inboundStream.abort(e)
-    })
-
-    if (deleteRecord) {
-      this.logger.info(`Deleting inbound stream record for ${peerId.toString()}`)
-      this.inboundStreams.delete(peerId.toString())
+    if (this.authConnections.has(key)) {
+      this.authConnections.get(key)?.stop()
+      this.authConnections.delete(key)
     }
-  }
-
-  public async closeAuthConnection(peerId: PeerId | string) {
-    if (!this.authConnections.has(peerId.toString())) {
-      this.logger.warn(`Can't close auth connection with ${peerId.toString()} as it doesn't exist`)
-      return
-    }
-    this.logger.warn(`Closing auth connection with ${peerId.toString()}`)
-
-    await this.closeOutboundStream(peerId, true)
-    await this.closeInboundStream(peerId, true)
-
-    this.authConnections.get(peerId.toString())?.stop()
-    this.authConnections.delete(peerId.toString())
   }
 }
 

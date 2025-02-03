@@ -75,7 +75,7 @@ export class Libp2pService extends EventEmitter {
 
   public emit(event: string, ...args: any[]): boolean {
     this.logger.info(`Emitting event: ${event}`, args)
-    if (event === Libp2pEvents.AUTH_DISCONNECTED) {
+    if (event === Libp2pEvents.AUTH_LOCAL_ERROR || event === Libp2pEvents.AUTH_REMOTE_ERROR) {
       this.hangUpPeer(args[0].connection.remoteAddr.toString())
     }
     return super.emit(event, ...args)
@@ -206,7 +206,7 @@ export class Libp2pService extends EventEmitter {
       const peerId = peerIdFromString(ma.getPeerId()!)
 
       this.logger.info('Disconnecting auth service gracefully')
-      await this.authService?.closeAuthConnection(peerId)
+      this.authService?.closeAuthConnection(peerId)
 
       this.logger.info('Hanging up connection on libp2p')
       await this.libp2pInstance?.hangUp(ma)

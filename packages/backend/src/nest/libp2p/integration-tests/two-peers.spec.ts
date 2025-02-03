@@ -41,11 +41,6 @@ describe('Libp2pAuth', () => {
     const inviteResult = await sigchainServiceA.getActiveChain().invites.createLongLivedUserInvite()
     await sigchainServiceB.createChainFromInvite(userB, teamName, inviteResult.seed, true)
   })
-  afterEach(() => {
-    eventTimeline.length = 0
-    eventTimelineA.length = 0
-    eventTimelineB.length = 0
-  })
 
   afterAll(async () => {
     for (const module of modules) {
@@ -99,6 +94,7 @@ describe('Libp2pAuth', () => {
       const resolveIfMet = async () => {
         if (timelinesInclude([eventTimelineA, eventTimelineB], Libp2pEvents.AUTH_CONNECTED)) {
           logger.info('timelines include expected events!')
+          expect(eventTimeline).toMatchSnapshot('event timeline after connected')
           expect(eventTimelineA).toMatchSnapshot('instanceA event timeline after connected')
           expect(eventTimelineB).toMatchSnapshot('instanceB event timeline after connected')
           clearTimeout(timeout)
@@ -123,6 +119,7 @@ describe('Libp2pAuth', () => {
     ).toBeTruthy()
   })
   it('gracefully disconnects', async () => {
+    logger.info('Gracefully disconnects')
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('PEER_DISCONNECTED events did not occur within expected time.'))
@@ -132,9 +129,9 @@ describe('Libp2pAuth', () => {
           eventTimelineA.includes(Libp2pEvents.PEER_DISCONNECTED) &&
           eventTimelineB.includes(Libp2pEvents.PEER_DISCONNECTED)
         ) {
+          expect(eventTimeline).toMatchSnapshot('eventTimeline after disconnection')
           expect(eventTimelineA).toMatchSnapshot('disconnectEventsA')
           expect(eventTimelineB).toMatchSnapshot('disconnectEventsB')
-          expect(eventTimeline).toMatchSnapshot('eventTimeline after disconnection')
           clearTimeout(timeout)
           resolve()
         }
