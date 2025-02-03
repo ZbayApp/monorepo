@@ -6,6 +6,7 @@
 
 * Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 * Add local-first/auth powered libp2p authentication service ([#2629](https://github.com/TryQuiet/quiet/issues/2629))
+* Attachments button on mobile shows photo library ([#1698](https://github.com/TryQuiet/quiet/issues/1698))
 
 ### Chores
 
