@@ -906,6 +906,10 @@ PODS:
     - React-Core
   - react-native-document-picker (9.1.0):
     - React-Core
+  - react-native-image-picker (8.0.0):
+    - glog
+    - RCT-Folly (= 2022.05.16.00)
+    - React-Core
   - react-native-safe-area-context (4.9.0):
     - React-Core
   - react-native-webview (13.7.0):
@@ -1149,6 +1153,7 @@ DEPENDENCIES:
   - react-native-blob-util (from `../node_modules/react-native-blob-util`)
   - react-native-config (from `../node_modules/react-native-config`)
   - react-native-document-picker (from `../node_modules/react-native-document-picker`)
+  - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - react-native-webview (from `../node_modules/react-native-webview`)
   - React-nativeconfig (from `../node_modules/react-native/ReactCommon`)
@@ -1255,6 +1260,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-config"
   react-native-document-picker:
     :path: "../node_modules/react-native-document-picker"
+  react-native-image-picker:
+    :path: "../node_modules/react-native-image-picker"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-webview:
@@ -1358,6 +1365,7 @@ SPEC CHECKSUMS:
   react-native-blob-util: d8fa1a7f726867907a8e43163fdd8b441d4489ea
   react-native-config: 86038147314e2e6d10ea9972022aa171e6b1d4d8
   react-native-document-picker: b4f4a23b73f864ce17965b284c0757648993805b
+  react-native-image-picker: 55f0bf6a6d7b29c32323bc4dbb60ded9e9249218
   react-native-safe-area-context: b97eb6f9e3b7f437806c2ce5983f479f8eb5de4b
   react-native-webview: f109b7da3efc6ea7a6d61a3cff3907edb6237b6a
   React-nativeconfig: d753fbbc8cecc8ae413d615599ac378bbf6999bb

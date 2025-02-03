@@ -4,6 +4,7 @@ import { storybookLog } from '../../utils/functions/storybookLog/storybookLog.fu
 
 import { Chat } from './Chat.component'
 import { DocumentPickerResponse } from 'react-native-document-picker'
+import { Asset } from 'react-native-image-picker'
 import { createLogger } from '../../utils/logger'
 
 const logger = createLogger('chat:stories')
@@ -244,6 +245,9 @@ storiesOf('Chat', module)
       updateUploadedFiles={function (_filesData: DocumentPickerResponse[]): void {
         logger.info('updateUploadedFiles')
       }}
+      updateUploadedImages={function (_assets: Asset[]): void {
+        logger.info('updateUploadedImages')
+      }}
       removeFilePreview={function (id: string): void {
         logger.info(`removeFilePreview ${id}`)
       }}
@@ -274,6 +278,9 @@ storiesOf('Chat', module)
       }}
       updateUploadedFiles={function (_filesData: DocumentPickerResponse[]): void {
         logger.info('updateUploadedFiles')
+      }}
+      updateUploadedImages={function (_assets: Asset[]): void {
+        logger.info('updateUploadedImages')
       }}
       removeFilePreview={function (id: string): void {
         logger.info(`removeFilePreview ${id}`)

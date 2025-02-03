@@ -248,6 +248,7 @@ describe('Chat component', () => {
       },
     },
     updateUploadedFiles: jest.fn(),
+    updateUploadedImages: jest.fn(),
     removeFilePreview: jest.fn(),
   }
 
