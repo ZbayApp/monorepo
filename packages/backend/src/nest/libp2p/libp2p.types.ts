@@ -13,7 +13,6 @@ export enum Libp2pEvents {
   AUTH_DISCONNECTED = 'authDisconnected',
   AUTH_UPDATED = 'authUpdated',
 }
-export enum AuthErrors {}
 
 export interface Libp2pNodeParams {
   peerId: CreatedLibp2pPeerId

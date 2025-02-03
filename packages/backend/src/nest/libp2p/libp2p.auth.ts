@@ -133,7 +133,7 @@ export class Libp2pAuth {
 
     // Close all auth connections
     for (const peerId of this.authConnections.keys()) {
-      await this.closeAuthConnection(peerId)
+      this.closeAuthConnection(peerId)
     }
 
     this.logger.info('Libp2pAuth service stopped')
