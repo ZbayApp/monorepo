@@ -2,6 +2,14 @@ name: Test IOS build
 
 on:
   pull_request:
+    paths:
+      - packages/mobile/**
+      - packages/common/**
+      - packages/helia/**
+      - packages/identity/**
+      - packages/logger/**
+      - packages/state-manager/**
+      - packages/types/**
 
 jobs:
   test-build-ios:
@@ -13,69 +21,41 @@ jobs:
         os: [macos-13]
 
     steps:
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            mobile:
-              - 'packages/mobile/**'
-              - 'packages/backend/**'
-              - 'packages/common/**'
-              - 'packages/helia/**'
-              - 'packages/identity/**'
-              - 'packages/logger/**'
-              - 'packages/state-manager/**'
-              - 'packages/types/**'
-
-      - name: "Skip tests"
-        if: steps.filter.outputs.mobile == 'false'
-        run: |
-         echo "Skipping test run"
-         exit 0
-
       - name: "Print OS"
-        if: steps.filter.outputs.mobile == 'true'
         run: echo ${{ matrix.os }}
 
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        if: steps.filter.outputs.mobile == 'true'
         with:
           submodules: 'recursive'
           lfs: true
 
       - name: Install gpg
-        if: steps.filter.outputs.mobile == 'true'
         run: brew install gnupg
 
       - name: Setup XCode
-        if: steps.filter.outputs.mobile == 'true'
         uses: maxim-lobanov/setup-xcode@9a697e2b393340c3cacd97468baa318e4c883d98 # v1.5.1
         with:
           xcode-version: '15.2'
 
       - name: Setup environment
-        if: steps.filter.outputs.mobile == 'true'
         uses: ./.github/actions/setup-env
         with:
           cachePrefix: "deploy-ios"
           bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/mobile,backend-bundle,helia"
 
       - name: Install pod dependencies
-        if: steps.filter.outputs.mobile == 'true'
         run: |
           cd ./packages/mobile/ios
           pod install
         shell: bash
 
       - name: Setup provisioning profile
-        if: steps.filter.outputs.mobile == 'true'
         run: ./.github/secrets/decrypt_secrets.sh
         env:
           IOS_PROFILE_KEY: ${{ secrets.IOS_PROFILE_KEY }}
           IOS_CERTIFICATE_KEY: ${{ secrets.IOS_CERTIFICATE_KEY }}
 
       - name: Build
-        if: steps.filter.outputs.mobile == 'true'
         run: |
           cd ./packages/mobile/ios
           xcodebuild archive \
@@ -87,7 +67,6 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Distribution: A Quiet LLC (CTYKSWN9T4)"
 
       - name: Export .ipa
-        if: steps.filter.outputs.mobile == 'true'
         run: |
           cd ./packages/mobile/ios
           xcodebuild \
