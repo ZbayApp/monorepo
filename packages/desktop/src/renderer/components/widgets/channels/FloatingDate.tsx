@@ -36,6 +36,7 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
     boxShadow: theme.shadows[2],
     borderRadius: '72px',
     zIndex: 1000,
+    transition: 'opacity 200ms ease-out',
   },
 }))
 
@@ -45,12 +46,16 @@ interface FloatingDateProps {
 }
 
 export const FloatingDate: React.FC<FloatingDateProps> = ({ title, isVisible = false }) => {
-  if (!isVisible) return null
-
   return (
     <StyledGrid container justifyContent='center' alignItems='center'>
       <Grid item xs />
-      <Grid item className={classes.titleDiv}>
+      <Grid
+        item
+        className={classes.titleDiv}
+        style={{
+          opacity: isVisible ? 1 : 0,
+        }}
+      >
         <Typography variant='body1'>{title}</Typography>
       </Grid>
       <Grid item xs />
