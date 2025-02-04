@@ -1,4 +1,5 @@
 import fs from 'fs'
+import fsAsync from 'fs/promises'
 import getPort from 'get-port'
 import path from 'path'
 import { Server } from 'socket.io'
@@ -298,19 +299,16 @@ export async function createPeerId(): Promise<CreatedLibp2pPeerId> {
   }
 }
 
-export const createArbitraryFile = (filePath: string, sizeBytes: number) => {
-  const stream = fs.createWriteStream(filePath)
+export const createArbitraryFile = async (filePath: string, sizeBytes: number) => {
   const maxChunkSize = 1048576 // 1MB
 
   let remainingSize = sizeBytes
 
   while (remainingSize > 0) {
     const chunkSize = Math.min(maxChunkSize, remainingSize)
-    stream.write(crypto.randomBytes(chunkSize))
+    await fsAsync.appendFile(filePath, crypto.randomBytes(chunkSize))
     remainingSize -= chunkSize
   }
-
-  stream.end()
 }
 
 export async function* asyncGeneratorFromIterator<T>(asyncIterator: AsyncIterable<T>): AsyncGenerator<T> {

@@ -42,6 +42,10 @@ export interface ChannelMessage {
   media?: FileMetadata
 }
 
+export interface ConsumedChannelMessage extends ChannelMessage {
+  verified?: boolean
+}
+
 export interface DisplayableMessage {
   id: string
   type: number
