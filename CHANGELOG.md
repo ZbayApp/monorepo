@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Chores
+
+* Add `trace` level logs to `@quiet/logger` ([#2716](https://github.com/TryQuiet/quiet/issues/2716))
+
 ## [3.0.0]
 
 ### Chores
