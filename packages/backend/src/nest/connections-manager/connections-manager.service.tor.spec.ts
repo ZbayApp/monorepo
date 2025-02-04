@@ -211,7 +211,6 @@ describe('Connections manager', () => {
     await waitForExpect(async () => {
       expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
     }, 15_000)
-
     await waitForExpect(async () => {
       // expect to dial all peers except self
       expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
@@ -250,7 +249,6 @@ describe('Connections manager', () => {
     await waitForExpect(async () => {
       expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
     }, 15_000)
-
     await waitForExpect(async () => {
       // expect to dial all peers except self
       expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)
@@ -291,7 +289,6 @@ describe('Connections manager', () => {
     await waitForExpect(async () => {
       expect(connectionsManagerService.libp2pService.dialedPeers.size).toBe(MANY_PEERS_COUNT)
     }, 15_000)
-
     await waitForExpect(async () => {
       // expect to dial all peers except self
       expect(spyOnDial).toHaveBeenCalledTimes(MANY_PEERS_DIALS)

@@ -6,8 +6,13 @@ import { connectionSelectors } from './connection.selectors'
 import { communitiesActions } from '../communities/communities.slice'
 import { connectionActions } from './connection.slice'
 import { type FactoryGirl } from 'factory-girl'
-import { type Community } from '@quiet/types'
+import { InvitationDataVersion, type Community } from '@quiet/types'
 import { composeInvitationShareUrl, createLibp2pAddress, p2pAddressesToPairs } from '@quiet/common'
+import { Base58 } from '3rd-party/auth/packages/crypto/dist'
+import { communitiesSelectors } from '../communities/communities.selectors'
+import { createLogger } from '../../utils/logger'
+
+const logger = createLogger('connection.selectors.test')
 
 describe('communitiesSelectors', () => {
   setupCrypto()
@@ -93,15 +98,13 @@ describe('communitiesSelectors', () => {
     expect(socketIOSecret2).toEqual(secret)
   })
 
-  it('invitationUrl selector does not break if there is no community', () => {
+  it('invitationUrl selector does not break if there is no community or long lived invite', () => {
     const { store } = prepareStore()
     const invitationUrl = connectionSelectors.invitationUrl(store.getState())
     expect(invitationUrl).toEqual('')
   })
 
   it('invitationUrl selector returns proper url', async () => {
-    const { store } = prepareStore()
-    const factory = await getFactory(store)
     const peerList = [
       createLibp2pAddress(
         'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
@@ -117,14 +120,69 @@ describe('communitiesSelectors', () => {
     })
     const selectorInvitationUrl = connectionSelectors.invitationUrl(store.getState())
     const pairs = p2pAddressesToPairs(peerList)
-    const expectedUrl = composeInvitationShareUrl({ pairs, psk, ownerOrbitDbIdentity })
+    const expectedUrl = composeInvitationShareUrl({
+      pairs,
+      psk,
+      ownerOrbitDbIdentity,
+      version: InvitationDataVersion.v1,
+    })
     expect(expectedUrl).not.toEqual('')
     expect(selectorInvitationUrl).toEqual(expectedUrl)
   })
 
   it('invitationUrl selector returns empty string if state lacks psk', async () => {
-    const { store } = prepareStore()
-    const factory = await getFactory(store)
+    await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
+      peerList: [
+        createLibp2pAddress(
+          'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
+          '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
+        ),
+      ],
+    })
+    const invitationUrl = connectionSelectors.invitationUrl(store.getState())
+    expect(invitationUrl).toEqual('')
+  })
+
+  it('invitationUrl selector returns proper v2 url when community and long lived invite are defined', async () => {
+    const peerList = [
+      createLibp2pAddress(
+        'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
+        '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
+      ),
+    ]
+    const psk = '12345'
+    const ownerOrbitDbIdentity = 'testOwnerOrbitDbIdentity'
+    await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
+      peerList,
+      psk,
+      ownerOrbitDbIdentity,
+    })
+    store.dispatch(
+      connectionActions.setLongLivedInvite({
+        seed: '5ah8uYodiwuwVybT',
+        id: '5ah8uYodiwuwVybT' as Base58,
+      })
+    )
+    const longLivedInvite = connectionSelectors.longLivedInvite(store.getState())
+    expect(longLivedInvite).toEqual({ seed: '5ah8uYodiwuwVybT', id: '5ah8uYodiwuwVybT' })
+    const selectorInvitationUrl = connectionSelectors.invitationUrl(store.getState())
+    const authData = {
+      seed: '5ah8uYodiwuwVybT',
+      communityName: communitiesSelectors.currentCommunity(store.getState())!.name!,
+    }
+    const pairs = p2pAddressesToPairs(peerList)
+    const expectedUrl = composeInvitationShareUrl({
+      pairs,
+      psk,
+      ownerOrbitDbIdentity,
+      authData,
+      version: InvitationDataVersion.v2,
+    })
+    expect(expectedUrl).not.toEqual('')
+    expect(selectorInvitationUrl).toEqual(expectedUrl)
+  })
+
+  it('invitationUrl selector returns empty string if state lacks psk', async () => {
     await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
       peerList: [
         createLibp2pAddress(

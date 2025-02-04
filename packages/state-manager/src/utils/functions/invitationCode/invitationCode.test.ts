@@ -32,7 +32,6 @@ describe('Invitation link helper', () => {
     urlParams.forEach(([key, value]) => url.searchParams.append(key, value))
     const result = getInvitationLinks(url.href.replace('?', '#'))
     expect(result).toEqual({
-      version: InvitationDataVersion.v1,
       ...data,
     })
   })
@@ -60,7 +59,6 @@ describe('Invitation link helper', () => {
     urlParams.forEach(([key, value]) => url.searchParams.append(key, value))
     const result = getInvitationLinks(getUrlParamsPart(url.href))
     expect(result).toEqual({
-      version: InvitationDataVersion.v1,
       ...data,
     })
   })

@@ -36,8 +36,6 @@ import {
   FileMetadata,
   GetMessagesPayload,
   InitCommunityPayload,
-  InvitationDataV2,
-  InvitationDataVersion,
   MessagesLoadedPayload,
   NetworkDataPayload,
   NetworkInfo,
@@ -58,6 +56,8 @@ import {
   InitUserCsrPayload,
   UserCsr,
   PeerId as QuietPeerId,
+  InvitationDataVersion,
+  InvitationDataV2,
 } from '@quiet/types'
 import { CONFIG_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { Libp2pService } from '../libp2p/libp2p.service'
@@ -71,7 +71,6 @@ import { SocketService } from '../socket/socket.service'
 import { StorageService } from '../storage/storage.service'
 import { StorageEvents } from '../storage/storage.types'
 import { StorageServiceClient } from '../storageServiceClient/storageServiceClient.service'
-import { ServerStoredCommunityMetadata } from '../storageServiceClient/storageServiceClient.types'
 import { Tor } from '../tor/tor.service'
 import { ConfigOptions, GetPorts, ServerIoProviderTypes } from '../types'
 import { ServiceState, TorInitState } from './connections-manager.types'
@@ -81,6 +80,8 @@ import { peerIdFromString } from '@libp2p/peer-id'
 import { PeerId } from '@libp2p/interface'
 import { privateKeyFromRaw } from '@libp2p/crypto/keys'
 import { SigChainService } from '../auth/sigchain.service'
+import { Base58, InviteResult } from '3rd-party/auth/packages/auth/dist'
+import { UserService } from '../auth/services/members/user.service'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -240,10 +241,13 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     if (community.name) {
       try {
+        this.logger.info('Loading sigchain for community', community.name)
         await this.sigChainService.loadChain(community.name, true)
       } catch (e) {
         this.logger.warn('Failed to load sigchain', e)
       }
+    } else {
+      this.logger.warn('No community name found in storage')
     }
 
     const sortedPeers = await this.localDbService.getSortedPeers(community.peerList ?? [])
@@ -590,6 +594,14 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       id: payload.id,
     }
     await this.storageService.setIdentity(identity)
+
+    if (!community.name) {
+      this.logger.error('Community name is required to create sigchain')
+      return community
+    }
+    this.logger.info(`Creating new LFA chain`)
+    await this.sigChainService.createChain(community.name, identity.nickname, true)
+
     await this.launchCommunity(community)
 
     const meta = await this.storageService.updateCommunityMetadata({
@@ -612,12 +624,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
     }
 
-    // create sigchain
-    if (!community.name) {
-      this.logger.error('Community name is required to create sigchain')
-      return community
-    }
-    this.sigChainService.createChain(community.name, identity.nickname, true)
+    // this is the forever invite that all users get
+    this.logger.info(`Creating long lived LFA invite code`)
+    this.socketService.emit(SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE)
     return community
   }
 
@@ -656,26 +665,15 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       psk: payload.psk,
       peers: payload.peers,
       ownerOrbitDbIdentity: payload.ownerOrbitDbIdentity,
+      name: payload.name,
     }
 
     const inviteData = payload.inviteData
-    // TODO: add back when QSS is implemented
-    // if (inviteData) {
-    //   this.logger.info(`Joining community: inviteData version: ${inviteData.version}`)
-    //   switch (inviteData.version) {
-    //     case InvitationDataVersion.v2:
-    //       const downloadedData = await this.downloadCommunityData(inviteData)
-    //       if (!downloadedData) {
-    //         emitError(this.serverIoProvider.io, {
-    //           type: SocketActionTypes.LAUNCH_COMMUNITY,
-    //           message: ErrorMessages.STORAGE_SERVER_CONNECTION_FAILED,
-    //         })
-    //         return
-    //       }
-    //       metadata = downloadedData
-    //       break
-    //   }
-    // }
+    let communityName: string | undefined
+    if (inviteData && inviteData?.version == InvitationDataVersion.v2) {
+      communityName = (payload.inviteData as InvitationDataV2).authData.communityName
+      this.sigChainService.createChainFromInvite(identity.nickname, communityName, inviteData.authData.seed, true)
+    }
 
     if (!metadata.peers || metadata.peers.length === 0) {
       this.logger.error('Joining community: Peers required')
@@ -706,21 +704,20 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     const community = {
       id: payload.id,
+      name: communityName,
       peerList: [...new Set([localAddress, ...metadata.peers])],
       psk: metadata.psk,
       ownerOrbitDbIdentity: metadata.ownerOrbitDbIdentity,
       inviteData,
     }
 
-    // TODO: Add initialization of sigchain from invite
     await this.localDbService.setCommunity(community)
     await this.localDbService.setCurrentCommunityId(community.id)
-
     await this.launchCommunity(community)
-    this.logger.info(`Joined and launched community ${community.id}`)
     if (identity.userCsr?.userCsr) {
       await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
     }
+    this.logger.info(`Joined and launched community ${community.id}`)
     return community
   }
 
@@ -944,13 +941,56 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       callback(await this.leaveCommunity())
     })
 
+    // Local First Auth
+
+    this.socketService.on(
+      SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE,
+      async (callback?: (response: InviteResult | undefined) => void) => {
+        this.logger.info(`socketService - ${SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE}`)
+        if (this.sigChainService.activeChainTeamName != null) {
+          const invite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
+          this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, invite)
+          if (callback) callback(invite)
+        } else {
+          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code generation!`)
+          if (callback) callback(undefined)
+        }
+      }
+    )
+
+    this.socketService.on(
+      SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE,
+      async (
+        inviteId: Base58,
+        callback: (response: { valid: boolean; newInvite?: InviteResult } | undefined) => void
+      ) => {
+        this.logger.info(`socketService - ${SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE}`)
+        if (this.sigChainService.activeChainTeamName != null) {
+          if (this.sigChainService.getActiveChain().invites.isValidLongLivedUserInvite(inviteId)) {
+            this.logger.info(`Invite is a valid long lived LFA invite code!`)
+            callback({ valid: true })
+          } else {
+            this.logger.info(`Invite is an invalid long lived LFA invite code!  Generating a new code!`)
+            const newInvite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
+            this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, newInvite)
+            callback({ valid: false, newInvite })
+          }
+        } else {
+          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code validation/generation!`)
+          callback(undefined)
+        }
+      }
+    )
+
     // Username registration
+
     this.socketService.on(SocketActionTypes.ADD_CSR, async (payload: SaveCSRPayload) => {
       this.logger.info(`socketService - ${SocketActionTypes.ADD_CSR}`)
       await this.storageService?.saveCSR(payload)
     })
 
     // Public Channels
+
     this.socketService.on(
       SocketActionTypes.CREATE_CHANNEL,
       async (args: CreateChannelPayload, callback: (response?: CreateChannelResponse) => void) => {

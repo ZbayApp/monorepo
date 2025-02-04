@@ -15,8 +15,9 @@ import { createLogger } from '../common/logger'
 const logger = createLogger('auth:sigchain')
 
 class SigChain {
-  private _context: auth.LocalUserContext | null = null
-  private _team: auth.Team
+  public localUserContext: auth.LocalUserContext
+  public context: auth.Context
+  public team: auth.Team | null = null
   private _users: UserService | null = null
   private _devices: DeviceService | null = null
   private _roles: RoleService | null = null
@@ -24,9 +25,9 @@ class SigChain {
   private _invites: InviteService | null = null
   private _crypto: CryptoService | null = null
 
-  private constructor(team: auth.Team, context: auth.LocalUserContext) {
-    this._team = team
-    this._context = context
+  private constructor(localUserContext: auth.LocalUserContext, team?: auth.Team) {
+    this.localUserContext = localUserContext
+    if (team) this.team = team
   }
 
   /**
@@ -39,7 +40,12 @@ class SigChain {
   public static create(teamName: string, username: string): SigChain {
     const context = UserService.create(username)
     const team: auth.Team = this.lfa.createTeam(teamName, context)
-    const sigChain = this.init(team, context)
+    const sigChain = this.init(context, team)
+    sigChain.context = {
+      user: context.user,
+      device: context.device,
+      team: team,
+    } as auth.MemberContext
 
     // sigChain.roles.createWithMembers(RoleName.ADMIN, [context.user.userId])
     sigChain.roles.createWithMembers(RoleName.MEMBER, [context.user.userId])
@@ -48,13 +54,35 @@ class SigChain {
   }
 
   public static createFromTeam(team: auth.Team, context: auth.LocalUserContext): SigChain {
-    const sigChain = this.init(team, context)
+    const sigChain = this.init(context, team)
+    sigChain.context = {
+      user: context.user,
+      device: context.device,
+      team: team,
+    } as auth.MemberContext
     return sigChain
   }
 
   public static load(serializedTeam: Uint8Array, context: auth.LocalUserContext, teamKeyRing: auth.Keyring): SigChain {
     const team: auth.Team = this.lfa.loadTeam(serializedTeam, context, teamKeyRing)
-    const sigChain = this.init(team, context)
+    const sigChain = this.init(context, team)
+    sigChain.context = {
+      user: context.user,
+      device: context.device,
+      team: team,
+    } as auth.MemberContext
+
+    return sigChain
+  }
+
+  public static createFromInvite(username: string, seed: string): SigChain {
+    const prospectiveUser = UserService.createFromInviteSeed(username, seed)
+    const sigChain = this.init(prospectiveUser.context)
+    sigChain.context = {
+      user: prospectiveUser.context.user,
+      device: prospectiveUser.context.device,
+      invitationSeed: seed,
+    } as auth.InviteeContext
 
     return sigChain
   }
@@ -64,13 +92,13 @@ class SigChain {
     const team: auth.Team = this.lfa.loadTeam(serializedTeam, context, teamKeyRing)
     team.join(teamKeyRing)
 
-    const sigChain = this.init(team, context)
+    const sigChain = this.init(context, team)
 
     return sigChain
   }
 
-  private static init(team: auth.Team, context: auth.LocalUserContext): SigChain {
-    const sigChain = new SigChain(team, context)
+  public static init(context: auth.LocalUserContext, team?: auth.Team): SigChain {
+    const sigChain = new SigChain(context, team)
     sigChain.initServices()
 
     return sigChain
@@ -86,23 +114,10 @@ class SigChain {
   }
 
   public save(): Uint8Array {
-    return this.team.save() // this doesn't actually do anything but create the new state to save
-  }
-
-  get context(): auth.LocalUserContext {
-    return this._context!
-  }
-
-  set context(context: auth.LocalUserContext) {
-    this._context = context
-  }
-
-  get team(): auth.Team {
-    return this._team
-  }
-
-  get teamGraph(): auth.TeamGraph {
-    return this._team.graph
+    if (!this.team) {
+      return new Uint8Array()
+    }
+    return this.team!.save() // this doesn't actually do anything but create the new state to save
   }
 
   get users(): UserService {

@@ -115,7 +115,7 @@ export const applyDevTools = async () => {
   if (!isDev || isE2Etest) return
   /* eslint-disable */
   require('electron-debug')({
-    showDevTools: true,
+    showDevTools: false,
   })
   const installer = require('electron-devtools-installer')
   const { REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } = require('electron-devtools-installer')

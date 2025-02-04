@@ -4,8 +4,10 @@ import { ComponentStory, ComponentMeta } from '@storybook/react'
 import { withTheme } from '../../../../storybook/decorators'
 import QRCodeComponent, { QRCodeProps } from './QRCode.component'
 import { composeInvitationShareUrl } from '@quiet/common'
+import { InvitationDataVersion } from '@quiet/types'
 
 const invitationLink = composeInvitationShareUrl({
+  version: InvitationDataVersion.v1,
   pairs: [
     {
       peerId: '12D3KooWHgLdRMqkepNiYnrur21cyASUNk1f9NZ5tuGa9He8QXNa',

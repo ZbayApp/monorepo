@@ -20,7 +20,7 @@ export type InvitationDataP2P = {
 }
 
 export type InvitationDataV1 = InvitationDataP2P & {
-  version?: InvitationDataVersion.v1
+  version: InvitationDataVersion.v1
 }
 
 export type InvitationAuthData = {
@@ -29,7 +29,7 @@ export type InvitationAuthData = {
 }
 
 export type InvitationDataV2 = InvitationDataP2P & {
-  version?: InvitationDataVersion.v2
+  version: InvitationDataVersion.v2
   authData: InvitationAuthData
 }
 

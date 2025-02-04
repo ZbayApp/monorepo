@@ -21,6 +21,8 @@ const logger = createLogger('auth:inviteService')
 
 export const DEFAULT_MAX_USES = 1
 export const DEFAULT_INVITATION_VALID_FOR_MS = 604_800_000 // 1 week
+export const DEFAULT_LONG_LIVED_MAX_USES = 0 // no limit
+export const DEFAULT_LONG_LIVED_VALID_FOR_MS = 0 // no limit
 
 class InviteService extends ChainServiceBase {
   public static init(sigChain: SigChain): InviteService {
@@ -32,8 +34,12 @@ class InviteService extends ChainServiceBase {
     maxUses: number = DEFAULT_MAX_USES,
     seed?: string
   ): InviteResult {
-    const expiration = (Date.now() + validForMs) as UnixTimestamp
-    const invitation: InviteResult = this.sigChain.team.inviteMember({
+    let expiration: UnixTimestamp = 0 as UnixTimestamp
+    if (validForMs > 0) {
+      expiration = (Date.now() + validForMs) as UnixTimestamp
+    }
+
+    const invitation: InviteResult = this.sigChain.team!.inviteMember({
       seed,
       expiration,
       maxUses,
@@ -41,21 +47,42 @@ class InviteService extends ChainServiceBase {
     return invitation
   }
 
+  public createLongLivedUserInvite(): InviteResult {
+    return this.createUserInvite(DEFAULT_LONG_LIVED_VALID_FOR_MS, DEFAULT_LONG_LIVED_MAX_USES)
+  }
+
   public createDeviceInvite(validForMs: number = DEFAULT_INVITATION_VALID_FOR_MS, seed?: string): InviteResult {
     const expiration = (Date.now() + validForMs) as UnixTimestamp
-    const invitation: InviteResult = this.sigChain.team.inviteDevice({
+    const invitation: InviteResult = this.sigChain.team!.inviteDevice({
       expiration,
       seed,
     })
     return invitation
   }
 
+  public isValidLongLivedUserInvite(id: Base58): boolean {
+    logger.info(`Validating LFA invite with ID ${id}`)
+    const invites = this.getAllInvites()
+    for (const invite of invites) {
+      if (
+        invite.id === id && // is correct invite
+        !invite.revoked && // is not revoked
+        invite.maxUses == 0 && // is an unlimited invite
+        invite.expiration == 0 // is an unlimited invite
+      ) {
+        return true
+      }
+    }
+
+    return false
+  }
+
   public revoke(id: string) {
-    this.sigChain.team.revokeInvitation(id)
+    this.sigChain.team!.revokeInvitation(id)
   }
 
   public getById(id: Base58): InvitationState {
-    return this.sigChain.team.getInvitation(id)
+    return this.sigChain.team!.getInvitation(id)
   }
 
   public static generateProof(seed: string): ProofOfInvitation {
@@ -63,7 +90,7 @@ class InviteService extends ChainServiceBase {
   }
 
   public validateProof(proof: ProofOfInvitation): boolean {
-    const validationResult = this.sigChain.team.validateInvitation(proof) as ValidationResult
+    const validationResult = this.sigChain.team!.validateInvitation(proof) as ValidationResult
     if (!validationResult.isValid) {
       logger.warn(`Proof was invalid or was on an invalid invitation`, validationResult.error)
       return false
@@ -72,21 +99,21 @@ class InviteService extends ChainServiceBase {
   }
 
   public admitUser(proof: ProofOfInvitation, username: string, publicKeys: Keyset) {
-    this.sigChain.team.admitMember(proof, publicKeys, username)
+    this.sigChain.team!.admitMember(proof, publicKeys, username)
   }
 
   public admitMemberFromInvite(proof: ProofOfInvitation, username: string, userId: string, publicKeys: Keyset): string {
-    this.sigChain.team.admitMember(proof, publicKeys, username)
+    this.sigChain.team!.admitMember(proof, publicKeys, username)
     this.sigChain.roles.addMember(userId, RoleName.MEMBER)
     return username
   }
 
   public admitDeviceFromInvite(proof: ProofOfInvitation, firstUseDevice: FirstUseDevice): void {
-    this.sigChain.team.admitDevice(proof, firstUseDevice)
+    this.sigChain.team!.admitDevice(proof, firstUseDevice)
   }
 
   public getAllInvites(): InvitationState[] {
-    const inviteMap = this.sigChain.team.invitations()
+    const inviteMap = this.sigChain.team!.invitations()
     const invites: InvitationState[] = []
     for (const invite of Object.entries(inviteMap)) {
       invites.push(invite[1])

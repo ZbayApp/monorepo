@@ -114,6 +114,10 @@ export class QuietLogger {
     this.logSetting = this._getLogSetting()
   }
 
+  extend(moduleName: string): QuietLogger {
+    return new QuietLogger(`${this.name}:${moduleName}`, this.parallelConsoleLog)
+  }
+
   /*
   Log Level Methods
   */

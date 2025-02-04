@@ -210,14 +210,22 @@ describe('Multiple Clients', () => {
         await generalChannelUser1.getMessageIdsByText(users.user1.messages[0], users.user1.username)
       })
 
-      it('First user opens the settings tab and copies updated invitation link', async () => {
-        const settingsModal = await new Sidebar(users.user1.app.driver).openSettings()
+      it("First user's message is visible in a channel to the owner", async () => {
+        await generalChannelUser1.getUserMessages(users.user1.username)
+        await generalChannelOwner.getMessageIdsByText(users.user1.messages[0], users.user1.username)
+      })
+
+      // NOTE: we used to get the second invite link with the other user but LFA treats invite generation as an admin-only
+      // action and the only admin currently is the owner
+      it('Owner opens the settings tab and gets an updated invitation link', async () => {
+        const settingsModal = await new Sidebar(users.owner.app.driver).openSettings()
         expect(await settingsModal.isReady()).toBeTruthy()
         await settingsModal.switchTab(SettingsModalTabName.INVITE)
         const invitationLinkElement = await settingsModal.invitationLink()
         invitationLink = await invitationLinkElement.getText()
-        logger.info(`${invitationLink} copied from non owner`)
         expect(invitationLink).not.toBeUndefined()
+        logger.info('Received updated invitation link:', invitationLink)
+        logger.warn('closing invite tab')
         await settingsModal.closeTabThenModal()
       })
     })
@@ -232,7 +240,6 @@ describe('Multiple Clients', () => {
       })
 
       it("First user's message is visible in a channel", async () => {
-        await generalChannelUser1.getUserMessages(users.owner.username)
         await generalChannelUser1.getMessageIdsByText(users.user1.messages[1], users.user1.username)
       })
     })
