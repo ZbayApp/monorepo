@@ -132,8 +132,8 @@ const lightTheme = createTheme({
     '0px 1px 0px #F0F0F0',
     '0px 1px 3px rgba(0, 0, 0, 0.0)',
     '0px 2px 25px rgba(0, 0, 0, 0.2)',
-    // From here, this is just 20 repeats until we figure out shadows
-    '0px 0px 4px rgba(0, 0, 0, 0.25)',
+    '0px 1px 12px rgba(0, 0, 0, 0.09)',
+    // From here, this is just 19 repeats until we figure out shadows
     '0px 0px 4px rgba(0, 0, 0, 0.25)',
     '0px 0px 4px rgba(0, 0, 0, 0.25)',
     '0px 0px 4px rgba(0, 0, 0, 0.25)',
@@ -357,8 +357,8 @@ const darkTheme = createTheme({
     '0px 1px 0px #0F0F0F',
     '0px 1px 3px rgba(1, 1, 1, 0.0)',
     '0px 2px 25px rgba(1, 1, 1, 0.2)',
+    '0px 1px 12px rgba(1, 1, 1, 0.25)',
     // Repeats until we design our shadows
-    '0px 0px 4px rgba(1, 1, 1, 0.25)',
     '0px 0px 4px rgba(1, 1, 1, 0.25)',
     '0px 0px 4px rgba(1, 1, 1, 0.25)',
     '0px 0px 4px rgba(1, 1, 1, 0.25)',
@@ -455,7 +455,7 @@ const getCurrentTheme = (useDarkTheme: boolean | undefined): Theme => {
     return defaultTheme
   }
 
-  return useDarkTheme ? darkTheme : lightTheme
+  return darkTheme
 }
 
 /**

@@ -34,7 +34,7 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
     top: '20px',
     background: theme.palette.background.default,
     border: `1px solid ${theme.palette.divider}`,
-    boxShadow: theme.shadows[2],
+    boxShadow: theme.shadows[5],
     borderRadius: '72px',
     zIndex: 1000,
     transition: 'opacity 200ms ease-out',
