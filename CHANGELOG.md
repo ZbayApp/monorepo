@@ -1,5 +1,11 @@
 # Changelog
 
+## [unreleased]
+
+### New features
+* Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
+* Add local-first/auth powered libp2p authentication service ([#2629](https://github.com/TryQuiet/quiet/issues/2629))
+
 ## [3.0.0]
 
 ### Chores
@@ -19,7 +25,6 @@
 * Adds basic sigchain functions ([#2625](https://github.com/TryQuiet/quiet/issues/2625))
 * Instantiates signature chain when creating communities and reloading application ([#2626](https://github.com/TryQuiet/quiet/issues/2626))
 * Added in LFA-ready invite links ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
-* Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 
 ### Fixes
 
