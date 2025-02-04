@@ -45,8 +45,8 @@ enum ColorField {
  */
 colors.theme({
   // trace
-  trace: colors.bold.dim.italic.cyanBright,
-  trace_text: colors.dim.italic.cyanBright,
+  trace: colors.bold.italic.cyanBright,
+  trace_text: colors.italic.cyanBright,
 
   // debug
   debug: colors.bold.cyan,
@@ -74,13 +74,13 @@ colors.theme({
 
   // misc
   scope: colors.magenta,
-  scope_trace: colors.dim.italic.magenta,
+  scope_trace: colors.italic.magenta,
   date: colors.bold.gray,
-  date_trace: colors.bold.dim.italic.gray,
+  date_trace: colors.bold.italic.gray,
   object: colors.green,
-  object_trace: colors.dim.italic.green,
+  object_trace: colors.italic.green,
   object_error: colors.red,
-  object_error_trace: colors.dim.italic.red,
+  object_error_trace: colors.italic.red,
 })
 
 /**
@@ -403,17 +403,36 @@ export class QuietLogger {
    * @returns LogSetting for this logger
    */
   private _getLogSetting(): LogSetting {
-    // NOTE: This was taken from the libp2p logger code
-    if (
-      debug.enabled(`${this.name}:trace`) &&
-      debug.names.map((r: any) => r.toString()).find((n: string) => n.includes(':trace')) != null
-    ) {
+    if (this._canTrace()) {
       return LogSetting.TRACE
     } else if (debug.enabled(this.name)) {
       return LogSetting.DEBUG
     }
 
     return LogSetting.ON
+  }
+
+  /**
+   * Check if <this logger name>:trace is explicitly enabled in the DEBUG environment variable
+   *
+   * @returns True if this logger can emit TRACE logs
+   */
+  private _canTrace(): boolean {
+    if (!debug.enabled(`${this.name}:trace`)) {
+      return false
+    }
+
+    for (const debugName of debug.names) {
+      if (!debugName.toString().includes(':trace')) {
+        continue
+      }
+
+      if (debugName.test(`${this.name}:trace`)) {
+        return true
+      }
+    }
+
+    return false
   }
 
   /**
