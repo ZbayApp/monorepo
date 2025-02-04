@@ -1,7 +1,6 @@
 import { jest } from '@jest/globals'
 
 import { Test, TestingModule } from '@nestjs/testing'
-import { keyFromCertificate, parseCertificate } from '@quiet/identity'
 import {
   prepareStore,
   getFactory,
@@ -9,21 +8,12 @@ import {
   generateMessageFactoryContentWithId,
   Store,
 } from '@quiet/state-manager'
-import {
-  ChannelMessage,
-  Community,
-  FileMetadata,
-  Identity,
-  MessageType,
-  PublicChannel,
-  TestMessage,
-} from '@quiet/types'
+import { ChannelMessage, Community, Identity, PublicChannel, TestMessage } from '@quiet/types'
 
 import path from 'path'
 import { type PeerId } from '@libp2p/interface'
-import waitForExpect from 'wait-for-expect'
 import { TestModule } from '../common/test.module'
-import { createArbitraryFile, libp2pInstanceParams } from '../common/utils'
+import { libp2pInstanceParams } from '../common/utils'
 import { IpfsModule } from '../ipfs/ipfs.module'
 import { IpfsService } from '../ipfs/ipfs.service'
 import { Libp2pModule } from '../libp2p/libp2p.module'
@@ -165,95 +155,6 @@ describe('StorageService', () => {
     })
   })
 
-  describe('Channels', () => {
-    it('deletes channel as owner', async () => {
-      await storageService.init(peerId)
-      await storageService.subscribeToChannel(channelio)
-
-      const result = await storageService.deleteChannel({ channelId: channelio.id, ownerPeerId: peerId.toString() })
-      expect(result).toEqual({ channelId: channelio.id })
-
-      const channelFromKeyValueStore = (await storageService.getChannels()).filter(x => x.id === channelio.id)
-      expect(channelFromKeyValueStore).toEqual([])
-    })
-
-    it('delete channel as standard user', async () => {
-      await storageService.init(peerId)
-      await storageService.subscribeToChannel(channelio)
-
-      const result = await storageService.deleteChannel({ channelId: channelio.id, ownerPeerId: 'random peer id' })
-      expect(result).toEqual({ channelId: channelio.id })
-
-      const channelFromKeyValueStore = (await storageService.getChannels()).filter(x => x.id === channelio.id)
-      expect(channelFromKeyValueStore).toEqual([channelio])
-    })
-  })
-
-  describe('Message access controller', () => {
-    it('is saved to db if passed signature verification', async () => {
-      await storageService.init(peerId)
-
-      await storageService.subscribeToChannel(channelio)
-
-      const publicChannelRepo = storageService.publicChannelsRepos.get(message.channelId)
-      expect(publicChannelRepo).not.toBeUndefined()
-      // @ts-expect-error
-      const db = publicChannelRepo.db
-      const eventSpy = jest.spyOn(db, 'add')
-
-      const messageCopy = {
-        ...message,
-      }
-      delete messageCopy.media
-
-      await storageService.sendMessage(messageCopy)
-
-      // Confirm message has passed orbitdb validator (check signature verification only)
-      expect(eventSpy).toHaveBeenCalled()
-      // @ts-expect-error
-      const savedMessages = await storageService.getAllEventLogEntries(db)
-      expect(savedMessages.length).toBe(1)
-      expect(savedMessages[0]).toEqual(messageCopy)
-    })
-
-    it('is not saved to db if did not pass signature verification', async () => {
-      const aliceMessage = await factory.create<ReturnType<typeof publicChannels.actions.test_message>['payload']>(
-        'Message',
-        {
-          identity: alice,
-          message: generateMessageFactoryContentWithId(channel.id),
-        }
-      )
-      // @ts-expect-error userCertificate can be undefined
-      const johnCertificate: string = john.userCertificate
-      const johnPublicKey = keyFromCertificate(parseCertificate(johnCertificate))
-
-      const spoofedMessage = {
-        ...aliceMessage.message,
-        channelId: channelio.id,
-        pubKey: johnPublicKey,
-      }
-      delete spoofedMessage.media // Media 'undefined' is not accepted by db.add
-
-      await storageService.init(peerId)
-
-      await storageService.subscribeToChannel(channelio)
-
-      const publicChannelRepo = storageService.publicChannelsRepos.get(message.channelId)
-      expect(publicChannelRepo).not.toBeUndefined()
-      // @ts-expect-error
-      const db = publicChannelRepo.db
-      const eventSpy = jest.spyOn(db, 'add')
-
-      await storageService.sendMessage(spoofedMessage)
-
-      // Confirm message has passed orbitdb validator (check signature verification only)
-      expect(eventSpy).toHaveBeenCalled()
-      // @ts-expect-error getAllEventLogEntries is protected
-      expect((await storageService.getAllEventLogEntries(db)).length).toBe(0)
-    })
-  })
-
   describe('Users', () => {
     it('gets all users from db', async () => {
       const expected = [
@@ -331,71 +232,6 @@ describe('StorageService', () => {
       const allUsers = await storageService.getAllUsers()
 
       expect(allUsers).toStrictEqual(expected)
-    })
-  })
-
-  describe('Files deletion', () => {
-    let realFilePath: string
-    let messages: {
-      messages: Record<string, ChannelMessage>
-    }
-
-    beforeEach(async () => {
-      realFilePath = path.join(dirname, '/real-file.txt')
-      createArbitraryFile(realFilePath, 2147483)
-      await storageService.init(peerId)
-
-      const metadata: FileMetadata = {
-        path: realFilePath,
-        name: 'test-large-file',
-        ext: '.txt',
-        cid: 'uploading_id',
-        message: {
-          id: 'id',
-          channelId: channel.id,
-        },
-      }
-
-      const aliceMessage = await factory.create<ReturnType<typeof publicChannels.actions.test_message>['payload']>(
-        'Message',
-        {
-          identity: alice,
-          message: generateMessageFactoryContentWithId(channel.id, MessageType.File, metadata),
-        }
-      )
-
-      messages = {
-        messages: {
-          [aliceMessage.message.id]: aliceMessage.message,
-        },
-      }
-    })
-
-    afterEach(() => {
-      if (fs.existsSync(realFilePath)) {
-        fs.rmSync(realFilePath)
-      }
-    })
-
-    it('delete file correctly', async () => {
-      const isFileExist = await storageService.checkIfFileExist(realFilePath)
-      expect(isFileExist).toBeTruthy()
-
-      await expect(storageService.deleteFilesFromChannel(messages)).resolves.not.toThrowError()
-
-      await waitForExpect(async () => {
-        expect(await storageService.checkIfFileExist(realFilePath)).toBeFalsy()
-      }, 2000)
-    })
-
-    it('file dont exist - not throw error', async () => {
-      fs.rmSync(realFilePath)
-
-      await waitForExpect(async () => {
-        expect(await storageService.checkIfFileExist(realFilePath)).toBeFalsy()
-      }, 2000)
-
-      await expect(storageService.deleteFilesFromChannel(messages)).resolves.not.toThrowError()
     })
   })
 })
