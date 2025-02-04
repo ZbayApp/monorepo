@@ -10,7 +10,7 @@ describe('MessagesDivider', () => {
       <body>
         <div>
           <div
-            class="MuiGrid-root MuiGrid-container css-1xe2ld0-MuiGrid-root"
+            class="MuiGrid-root MuiGrid-container css-15hbwzl-MuiGrid-root"
           >
             <div
               class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-true css-1vd824g-MuiGrid-root"
@@ -23,7 +23,7 @@ describe('MessagesDivider', () => {
               class="MuiGrid-root MuiGrid-item MessagesDividertitleDiv css-13i4rnv-MuiGrid-root"
             >
               <p
-                class="MuiTypography-root MuiTypography-body1 css-ghvhpl-MuiTypography-root"
+                class="MuiTypography-root MuiTypography-body1 MessagesDividerdateText css-ghvhpl-MuiTypography-root"
               >
                 test
               </p>

@@ -52,20 +52,21 @@ describe('ChannelMessages', () => {
       <body>
         <div>
           <div
-            class="ChannelMessagesComponentscroll css-sxxllx"
+            class="ChannelMessagesComponentscroll css-jvrqwe"
             data-testid="channelContent"
           >
             <div
-              class="MuiGrid-root MuiGrid-container css-1a1t0ik-MuiGrid-root"
+              class="MuiGrid-root MuiGrid-container css-1jze5vx-MuiGrid-root"
             >
               <div
                 class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-true css-1vd824g-MuiGrid-root"
               />
               <div
                 class="MuiGrid-root MuiGrid-item FloatingDatetitleDiv css-13i4rnv-MuiGrid-root"
+                style="opacity: 0;"
               >
                 <p
-                  class="MuiTypography-root MuiTypography-body1 css-ghvhpl-MuiTypography-root"
+                  class="MuiTypography-root MuiTypography-body1 FloatingDatedateText css-ghvhpl-MuiTypography-root"
                 >
                   Today
                 </p>
@@ -81,7 +82,7 @@ describe('ChannelMessages', () => {
             >
               <div>
                 <div
-                  class="MuiGrid-root MuiGrid-container css-1xe2ld0-MuiGrid-root"
+                  class="MuiGrid-root MuiGrid-container css-15hbwzl-MuiGrid-root"
                 >
                   <div
                     class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-true css-1vd824g-MuiGrid-root"
@@ -94,7 +95,7 @@ describe('ChannelMessages', () => {
                     class="MuiGrid-root MuiGrid-item MessagesDividertitleDiv css-13i4rnv-MuiGrid-root"
                   >
                     <p
-                      class="MuiTypography-root MuiTypography-body1 css-ghvhpl-MuiTypography-root"
+                      class="MuiTypography-root MuiTypography-body1 MessagesDividerdateText css-ghvhpl-MuiTypography-root"
                     >
                       Today
                     </p>
