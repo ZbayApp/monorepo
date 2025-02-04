@@ -59,3 +59,12 @@ export enum ErrorMessages {
   // Storage Server
   STORAGE_SERVER_CONNECTION_FAILED = 'Connecting to storage server failed',
 }
+
+export class CompoundError<T extends Error> extends Error {
+  constructor(
+    message: string,
+    public readonly originalError: T
+  ) {
+    super(message)
+  }
+}

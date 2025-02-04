@@ -33,7 +33,7 @@ describe('IpfsFileManagerService', () => {
     tmpDir = createTmpDir()
     filePath = new URL('./testUtils/large-file.txt', import.meta.url).pathname
     // Generate 2.1GB file
-    createArbitraryFile(filePath, BIG_FILE_SIZE)
+    await createArbitraryFile(filePath, BIG_FILE_SIZE)
     module = await Test.createTestingModule({
       imports: [TestModule, IpfsFileManagerModule, IpfsModule, SocketModule, Libp2pModule],
     }).compile()
