@@ -118,9 +118,14 @@ export class ChannelsService extends EventEmitter {
 
       this.emit(StorageEvents.CHANNELS_STORED, { channels })
 
-      if (operation === 'PUT') {
-        const channel = entry.payload.value as PublicChannel
-        await this.subscribeToChannel(channel)
+      // Try to subscribe to all channels that we haven't subscribed to yet, even if this update event isn't for that
+      // particular channel.
+      //
+      // This fixes a bug where joining a community with multiple channels doesn't initialize all channels immediately.
+      for (const channel of channels) {
+        if (!this.publicChannelsRepos.has(channel.id) || !this.publicChannelsRepos.get(channel.id)?.eventsAttached) {
+          await this.subscribeToChannel(channel)
+        }
       }
     })
 
