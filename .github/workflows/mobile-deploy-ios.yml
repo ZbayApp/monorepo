@@ -25,6 +25,12 @@ jobs:
           submodules: 'recursive'
           lfs: true
 
+      - name: Extract version
+        id: extract_version
+        uses: Saionaro/extract-package-version@fdb5b74adc1278ddb777dfed4c988b9d098bb48d # v1.2.1
+        with:
+          path: packages/mobile
+
       - name: Install gpg
         run: brew install gnupg
 
@@ -90,3 +96,12 @@ jobs:
         env:
           APPSTORE_USER: ${{ secrets.APPSTORE_USER }}
           APPSTORE_PASSWORD: ${{ secrets.APPSTORE_PASSWORD }}
+
+      - name: Send Release Notificaton
+        uses: ./.github/actions/release-notifier
+        if: always()
+        with:
+          os-name: IOS
+          version: ${{ steps.extract_version.outputs.current-version }}
+          status: ${{ job.status }}
+          slack_oauth_token: ${{ secrets.SLACK_BOT_OAUTH_TOKEN }}
