@@ -10,9 +10,12 @@ const classes = {
   root: `${PREFIX}root`,
   divider: `${PREFIX}divider`,
   titleDiv: `${PREFIX}titleDiv`,
+  dateText: `${PREFIX}dateText`,
 }
 
 const StyledGrid = styled(Grid)(({ theme }) => ({
+  marginTop: '5px',
+
   [`& .${classes.root}`]: {
     padding: 0,
   },
@@ -36,6 +39,10 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: '72px',
   },
+
+  [`& .${classes.dateText}`]: {
+    fontSize: '13px',
+  },
 }))
 
 interface MessagesDividerProps {
@@ -49,7 +56,9 @@ export const MessagesDivider: React.FC<MessagesDividerProps> = ({ title }) => {
         <div className={classes.divider} />
       </Grid>
       <Grid item className={classes.titleDiv}>
-        <Typography variant='body1'>{title}</Typography>
+        <Typography variant='body1' className={classes.dateText}>
+          {title}
+        </Typography>
       </Grid>
       <Grid item xs>
         <div className={classes.divider} />

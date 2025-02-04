@@ -8,6 +8,7 @@ const classes = {
   root: `${PREFIX}root`,
   divider: `${PREFIX}divider`,
   titleDiv: `${PREFIX}titleDiv`,
+  dateText: `${PREFIX}dateText`,
 }
 
 const StyledGrid = styled(Grid)(({ theme }) => ({
@@ -38,6 +39,10 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
     zIndex: 1000,
     transition: 'opacity 200ms ease-out',
   },
+
+  [`& .${classes.dateText}`]: {
+    fontSize: '0.8rem',
+  },
 }))
 
 interface FloatingDateProps {
@@ -56,7 +61,9 @@ export const FloatingDate: React.FC<FloatingDateProps> = ({ title, isVisible = f
           opacity: isVisible ? 1 : 0,
         }}
       >
-        <Typography variant='body1'>{title}</Typography>
+        <Typography variant='body1' className={classes.dateText}>
+          {title}
+        </Typography>
       </Grid>
       <Grid item xs />
     </StyledGrid>
