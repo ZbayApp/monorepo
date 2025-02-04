@@ -24,58 +24,52 @@ This would produce log messages with the scope `backend:IpfsFileManagerService`.
 
 The maximum level at which we log is set by the `DEBUG` environment variable.  For local desktop this can set on the `start` npm script and for the backend, run from the desktop, it can be set in `src/main/main.ts`.
 
+**NOTE: Any logs emitted by the backend when run as part of Quiet (i.e. not running the backend standalone) _must_ have their log level set via `src/main/main.ts`.  The environment variable on the desktop start script does not propagate!**
+
+### Levels Explained
+
 There are currently 3 levels that logging can be set at for Quiet logs:
 
 1. On
 2. Debug
 3. Trace
 
-### On
+#### On
 
 Excluding a package or module from `DEBUG` will still print logs from the Quiet logger but will exclude `log`, `debug` and `trace` logs for that package/module.
 
-#### Set the backend package to On
-
-```
-DEBUG='quiet*,state-manager*,desktop*,utils*,identity*,common*'
-```
-
-#### Set all backend modules to On except ConnectionsManagerService
-
-```
-DEBUG='quiet*,state-manager*,desktop*,utils*,identity*,common*,backend:ConnectionsManagerService'
-```
-
-### Debug
+#### Debug
 
 Including a package or module in `DEBUG` will print the same logs as `On` but will now include `log` and `debug` logs for that package/module.
 
-#### Set the backend package to Debug
-
-```
-DEBUG='quiet*,state-manager*,desktop*,utils*,identity*,common*,backend*'
-```
-
-#### Set the backend module ConnectionsManagerService to Debug
-
-```
-DEBUG='quiet*,state-manager*,desktop*,utils*,identity*,common*,backend:ConnectionsManagerService'
-```
-
-### Trace
+#### Trace
 
 Including a package or module in `DEBUG` with the suffix `:trace` print all logs for that package/module.
 
-#### Set the backend package to Trace
+### How to Set the Log Level
+
+#### Set the log level of the backend package to DEBUG
 
 ```
-DEBUG='quiet*,state-manager*,desktop*,utils*,identity*,common*,backend*:trace'
+DEBUG='backend*'
 ```
 
-#### Set the backend module ConnectionsManagerService to Trace
+#### Set the log level of the just the logger named backend:ConnectionsManagerService to DEBUG
 
 ```
-DEBUG='quiet*,state-manager*,desktop*,utils*,identity*,common*,backend:ConnectionsManagerService:trace'
+DEBUG='backend:ConnectionsManagerService'
+```
+
+#### Set the log level of the backend package to Trace
+
+```
+DEBUG='backend*:trace'
+```
+
+#### Set the log level of the just the logger named backend:ConnectionsManagerService to Trace
+
+```
+DEBUG='backend:ConnectionsManagerService:trace'
 ```
 
 ## Setting log levels for dependencies
