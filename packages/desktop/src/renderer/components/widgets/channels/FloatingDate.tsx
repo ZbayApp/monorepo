@@ -41,7 +41,7 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
   },
 
   [`& .${classes.dateText}`]: {
-    fontSize: '0.8rem',
+    fontSize: '13px',
   },
 }))
 
