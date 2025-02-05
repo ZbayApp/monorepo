@@ -6,6 +6,7 @@
 
 * Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 * Add local-first/auth powered libp2p authentication service ([#2629](https://github.com/TryQuiet/quiet/issues/2629))
+* Add theme settings tab for manual theme selection when system theme isn't detected ([#2720](https://github.com/TryQuiet/quiet/issues/2720))
 
 ### Chores
 
