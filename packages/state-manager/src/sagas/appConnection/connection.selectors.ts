@@ -63,6 +63,9 @@ export const invitationUrl = createSelector(
     if (!sortedPeerList || sortedPeerList?.length === 0) return ''
     if (!communityPsk) return ''
     if (!ownerOrbitDbIdentity) return ''
+    if (!longLivedInvite) return ''
+    if (!currentCommunity) return ''
+    if (!currentCommunity.name) return ''
     const initialPeers = sortedPeerList.slice(0, 3)
     const pairs = p2pAddressesToPairs(initialPeers)
     let inviteData: InvitationData = {

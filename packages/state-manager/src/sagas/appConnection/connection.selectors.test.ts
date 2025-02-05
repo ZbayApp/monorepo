@@ -11,6 +11,7 @@ import { composeInvitationShareUrl, createLibp2pAddress, p2pAddressesToPairs } f
 import { Base58 } from '3rd-party/auth/packages/crypto/dist'
 import { communitiesSelectors } from '../communities/communities.selectors'
 import { createLogger } from '../../utils/logger'
+import { InviteResult } from '@localfirst/auth'
 
 const logger = createLogger('connection.selectors.test')
 
@@ -104,45 +105,6 @@ describe('communitiesSelectors', () => {
     expect(invitationUrl).toEqual('')
   })
 
-  it('invitationUrl selector returns proper url', async () => {
-    const peerList = [
-      createLibp2pAddress(
-        'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
-        '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
-      ),
-    ]
-    const psk = '12345'
-    const ownerOrbitDbIdentity = 'testOwnerOrbitDbIdentity'
-    await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
-      peerList,
-      psk,
-      ownerOrbitDbIdentity,
-    })
-    const selectorInvitationUrl = connectionSelectors.invitationUrl(store.getState())
-    const pairs = p2pAddressesToPairs(peerList)
-    const expectedUrl = composeInvitationShareUrl({
-      pairs,
-      psk,
-      ownerOrbitDbIdentity,
-      version: InvitationDataVersion.v1,
-    })
-    expect(expectedUrl).not.toEqual('')
-    expect(selectorInvitationUrl).toEqual(expectedUrl)
-  })
-
-  it('invitationUrl selector returns empty string if state lacks psk', async () => {
-    await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
-      peerList: [
-        createLibp2pAddress(
-          'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
-          '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
-        ),
-      ],
-    })
-    const invitationUrl = connectionSelectors.invitationUrl(store.getState())
-    expect(invitationUrl).toEqual('')
-  })
-
   it('invitationUrl selector returns proper v2 url when community and long lived invite are defined', async () => {
     const peerList = [
       createLibp2pAddress(
@@ -182,16 +144,99 @@ describe('communitiesSelectors', () => {
     expect(selectorInvitationUrl).toEqual(expectedUrl)
   })
 
-  it('invitationUrl selector returns empty string if state lacks psk', async () => {
+  it('invitationUrl selector returns empty string if state lacks peer list', async () => {
+    const peerList = [
+      createLibp2pAddress(
+        'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
+        '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
+      ),
+    ]
+    const psk = '1234'
+    const ownerOrbitDbIdentity = 'testOwnerOrbitDbIdentity'
     await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
-      peerList: [
-        createLibp2pAddress(
-          'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
-          '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
-        ),
-      ],
+      // peerList, // peerList is not defined
+      psk,
+      ownerOrbitDbIdentity,
     })
-    const invitationUrl = connectionSelectors.invitationUrl(store.getState())
-    expect(invitationUrl).toEqual('')
+    store.dispatch(
+      connectionActions.setLongLivedInvite({
+        seed: '5ah8uYodiwuwVybT',
+        id: '5ah8uYodiwuwVybT' as Base58,
+      })
+    )
+    const selectorInvitationUrl = connectionSelectors.invitationUrl(store.getState())
+    expect(selectorInvitationUrl).toEqual('')
+  })
+
+  it('invitationUrl selector returns empty string if state lacks psk', async () => {
+    const peerList = [
+      createLibp2pAddress(
+        'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
+        '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
+      ),
+    ]
+    const psk = '1234'
+    const ownerOrbitDbIdentity = 'testOwnerOrbitDbIdentity'
+    await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
+      peerList,
+      // psk, // psk is not defined
+      ownerOrbitDbIdentity,
+    })
+    store.dispatch(
+      connectionActions.setLongLivedInvite({
+        seed: '5ah8uYodiwuwVybT',
+        id: '5ah8uYodiwuwVybT' as Base58,
+      })
+    )
+    const selectorInvitationUrl = connectionSelectors.invitationUrl(store.getState())
+    expect(selectorInvitationUrl).toEqual('')
+  })
+
+  it('invitationUrl selector returns empty string if state lacks ownerOrbitDbIdentity', async () => {
+    const peerList = [
+      createLibp2pAddress(
+        'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
+        '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
+      ),
+    ]
+    const psk = '1234'
+    const ownerOrbitDbIdentity = 'testOwnerOrbitDbIdentity'
+    await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
+      peerList,
+      psk,
+      // ownerOrbitDbIdentity, // ownerOrbitDbIdentity is not defined
+    })
+    store.dispatch(
+      connectionActions.setLongLivedInvite({
+        seed: '5ah8uYodiwuwVybT',
+        id: '5ah8uYodiwuwVybT' as Base58,
+      })
+    )
+    const selectorInvitationUrl = connectionSelectors.invitationUrl(store.getState())
+    expect(selectorInvitationUrl).toEqual('')
+  })
+
+  it('invitationUrl selector returns empty string if state lacks lfa invite seed', async () => {
+    const peerList = [
+      createLibp2pAddress(
+        'gloao6h5plwjy4tdlze24zzgcxll6upq2ex2fmu2ohhyu4gtys4nrjad',
+        '12D3KooWCXzUw71ovvkDky6XkV57aCWUV9JhJoKhoqXa1gdhFNoL'
+      ),
+    ]
+    const psk = '1234'
+    const ownerOrbitDbIdentity = 'testOwnerOrbitDbIdentity'
+    await factory.create<ReturnType<typeof communitiesActions.addNewCommunity>['payload']>('Community', {
+      peerList,
+      psk,
+      ownerOrbitDbIdentity,
+    })
+    // store.dispatch(
+    //   connectionActions.setLongLivedInvite({
+    //     seed: '5ah8uYodiwuwVybT',
+    //     id: '5ah8uYodiwuwVybT' as Base58,
+    //   })
+    // )
+    const selectorInvitationUrl = connectionSelectors.invitationUrl(store.getState())
+    expect(selectorInvitationUrl).toEqual('')
   })
 })
