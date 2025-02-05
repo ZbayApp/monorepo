@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.0.0]
+
+### New features
+
+* Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
+* Add local-first/auth powered libp2p authentication service ([#2629](https://github.com/TryQuiet/quiet/issues/2629))
+
+### Chores
+
+* Add `trace` level logs to `@quiet/logger` ([#2716](https://github.com/TryQuiet/quiet/issues/2716))
+* Add slack notifications to release workflows ([#2722](https://github.com/TryQuiet/quiet/issues/2722))
+
 ## [3.0.0]
 
 ### Chores

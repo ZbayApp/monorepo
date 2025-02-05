@@ -10,7 +10,7 @@ import { modalsActions } from '../renderer/sagas/modals/modals.slice'
 import { ModalName } from '../renderer/sagas/modals/modals.types'
 import JoinCommunity from '../renderer/components/CreateJoinCommunity/JoinCommunity/JoinCommunity'
 import CreateUsername from '../renderer/components/CreateUsername/CreateUsername'
-import { type Community, type InvitationData } from '@quiet/types'
+import { InvitationDataVersion, type Community, type InvitationData } from '@quiet/types'
 import { composeInvitationDeepUrl } from '@quiet/common'
 
 jest.setTimeout(20_000)
@@ -59,6 +59,7 @@ describe('Opening app through custom protocol', () => {
     )
 
     const invitationCodes: InvitationData = {
+      version: InvitationDataVersion.v1,
       pairs: [{ peerId: 'abcdef', onionAddress: 'bidrmzr3ee6qa2vvrlcnqvvvsk2gmjktcqkunba326parszr44gibwyd' }],
       psk: '12345',
       ownerOrbitDbIdentity: 'testOwnerOrbitDbIdentity',

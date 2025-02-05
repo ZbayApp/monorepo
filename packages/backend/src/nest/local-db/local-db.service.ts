@@ -8,6 +8,7 @@ import { LocalDBKeys, LocalDbStatus } from './local-db.types'
 import { createLogger } from '../common/logger'
 import { SerializedSigChain, SigChainSaveData } from '../auth/types'
 import { SigChain } from '../auth/sigchain'
+import { Keyring } from '@localfirst/crdx'
 
 @Injectable()
 export class LocalDbService {
@@ -115,7 +116,7 @@ export class LocalDbService {
   }
 
   public async setCommunity(community: Community) {
-    this.logger.info('Setting community', community.id)
+    this.logger.info('Setting community', community.id, community.name)
     let communities = await this.get(LocalDBKeys.COMMUNITIES)
     if (!communities) {
       communities = {}
@@ -165,13 +166,19 @@ export class LocalDbService {
     return await this.get(LocalDBKeys.IDENTITIES)
   }
 
-  public async setSigChain(sigChain: SigChain) {
-    const teamName = sigChain.team.teamName
+  public async setSigChain(sigChain: SigChain, teamName: string) {
     const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
+    let serializedTeam: string | undefined = undefined
+    let teamKeyring: Keyring | undefined = undefined
+    if (sigChain.team) {
+      serializedTeam = Buffer.from(sigChain.save()).toString('base64')
+      teamKeyring = sigChain.team.teamKeyring()
+    }
     const serializedSigChain: SigChainSaveData = {
-      serializedTeam: Buffer.from(sigChain.save()).toString('base64'),
+      serializedTeam: serializedTeam,
+      localUserContext: sigChain.localUserContext,
       context: sigChain.context,
-      teamKeyRing: sigChain.team.teamKeyring(),
+      teamKeyRing: teamKeyring,
     }
     this.logger.info('Saving sigchain', teamName)
     await this.put(key, serializedSigChain)
@@ -181,16 +188,29 @@ export class LocalDbService {
     const key = `${LocalDBKeys.SIGCHAINS}${teamName}`
     this.logger.info('Getting sigchain', teamName, key)
     const sigChainBlob = await this.get(key)
-    if (sigChainBlob) {
-      // convert serializedTeam from base64 to buffer to Uint8Array
-      const serializedTeamBuffer = Buffer.from(sigChainBlob.serializedTeam, 'base64')
+    if (sigChainBlob == null) {
+      this.logger.error(`No sig chain stored in local DB for key`, key)
+      return undefined
+    }
+
+    try {
+      let serializedTeam: Uint8Array | undefined = undefined
+      if (sigChainBlob.serializedTeam) {
+        try {
+          serializedTeam = Buffer.from(sigChainBlob.serializedTeam, 'base64')
+        } catch (e) {
+          this.logger.error('Failed to load serialized team', e)
+        }
+        serializedTeam = Buffer.from(sigChainBlob.serializedTeam, 'base64')
+      }
       return {
-        serializedTeam: new Uint8Array(serializedTeamBuffer),
+        serializedTeam: serializedTeam,
+        localUserContext: sigChainBlob.localUserContext,
         context: sigChainBlob.context,
-        teamKeyRing: sigChainBlob.teamKeyRing,
+        teamKeyRing: sigChainBlob.teamKeyRing ? sigChainBlob.teamKeyRing : undefined,
       } as SerializedSigChain
-    } else {
-      this.logger.error('Sigchain not found', teamName)
+    } catch (e) {
+      this.logger.error('Failed to get sigchain', e)
       return undefined
     }
   }

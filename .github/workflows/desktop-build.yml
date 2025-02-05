@@ -38,6 +38,12 @@ jobs:
         with:
           submodules: 'recursive'
 
+      - name: Extract version
+        id: extract_version
+        uses: Saionaro/extract-package-version@fdb5b74adc1278ddb777dfed4c988b9d098bb48d # v1.2.1
+        with:
+          path: packages/desktop
+
       - name: Setup environment
         uses: ./.github/actions/setup-env
         with:
@@ -80,21 +86,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Get release version
-        id: package-version
-        uses: martinbeentjes/npm-get-version-action@3cf273023a0dda27efcd3164bdfb51908dd46a5b # main
-        with:
-          path: packages/desktop
-
       - name: Upload Release Assets
         uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: ./packages/desktop/dist/Quiet-${{ steps.package-version.outputs.current-version}}.AppImage
-          asset_name: Quiet-${{ steps.package-version.outputs.current-version}}.AppImage
+          asset_path: ./packages/desktop/dist/Quiet-${{ steps.extract_version.outputs.current-version}}.AppImage
+          asset_name: Quiet-${{ steps.extract_version.outputs.current-version}}.AppImage
           asset_content_type: application/.AppImage
+
+      - name: Send Release Notificaton
+        uses: ./.github/actions/release-notifier
+        if: always()
+        with:
+          os-name: Linux
+          version: ${{ steps.extract_version.outputs.current-version }}
+          status: ${{ job.status }}
+          slack_oauth_token: ${{ secrets.SLACK_BOT_OAUTH_TOKEN }}
 
   build-macos:
     # needs: run-e2e-tests-mac
@@ -110,6 +119,12 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           submodules: 'recursive'
+
+      - name: Extract version
+        id: extract_version
+        uses: Saionaro/extract-package-version@fdb5b74adc1278ddb777dfed4c988b9d098bb48d # v1.2.1
+        with:
+          path: packages/desktop
 
       - uses: actions-rs/components-nightly@254194ebf6ba07d2bb7cec8be76cee368d44fb90 # v1.1.1
         with:
@@ -156,12 +171,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Extract version
-        id: extract_version
-        uses: Saionaro/extract-package-version@fdb5b74adc1278ddb777dfed4c988b9d098bb48d # v1.2.1
-        with:
-          path: packages/desktop
-
       - name: Upload Release Assets
         uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
         env:
@@ -171,6 +180,15 @@ jobs:
           asset_path: ./packages/desktop/dist/Quiet-${{ steps.extract_version.outputs.version}}.dmg
           asset_name: Quiet-${{ steps.extract_version.outputs.version}}.dmg
           asset_content_type: application/.dmg
+
+      - name: Send Release Notificaton
+        uses: ./.github/actions/release-notifier
+        if: always()
+        with:
+          os-name: MacOS
+          version: ${{ steps.extract_version.outputs.current-version }}
+          status: ${{ job.status }}
+          slack_oauth_token: ${{ secrets.SLACK_BOT_OAUTH_TOKEN }}
 
   build-windows:
     # needs: run-e2e-tests-win
@@ -186,6 +204,12 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           submodules: 'recursive'
+
+      - name: Extract version
+        id: extract_version
+        uses: Saionaro/extract-package-version@fdb5b74adc1278ddb777dfed4c988b9d098bb48d # v1.2.1
+        with:
+          path: packages/desktop
 
       - name: "Fetch jsign"
         shell: bash
@@ -234,13 +258,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Extract version
-        id: extract_version
-        uses: Saionaro/extract-package-version@fdb5b74adc1278ddb777dfed4c988b9d098bb48d # v1.2.1
-        with:
-          path: packages/desktop
-
-
       - name: Upload Release Assets
         uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
         env:
@@ -250,3 +267,12 @@ jobs:
           asset_path: ./packages/desktop/dist/Quiet Setup ${{ steps.extract_version.outputs.version}}.exe
           asset_name: Quiet Setup ${{ steps.extract_version.outputs.version}}.exe
           asset_content_type: application/.exe
+
+      - name: Send Release Notificaton
+        uses: ./.github/actions/release-notifier
+        if: always()
+        with:
+          os-name: Windows
+          version: ${{ steps.extract_version.outputs.current-version }}
+          status: ${{ job.status }}
+          slack_oauth_token: ${{ secrets.SLACK_BOT_OAUTH_TOKEN }}

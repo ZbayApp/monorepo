@@ -8,7 +8,13 @@ import { initActions } from '../init.slice'
 import { navigationActions } from '../../navigation/navigation.slice'
 import { ScreenNames } from '../../../const/ScreenNames.enum'
 import { deepLinkSaga } from './deepLink.saga'
-import { type Community, CommunityOwnership, InvitationData, CreateNetworkPayload } from '@quiet/types'
+import {
+  type Community,
+  CommunityOwnership,
+  InvitationData,
+  CreateNetworkPayload,
+  InvitationDataVersion,
+} from '@quiet/types'
 import { composeInvitationShareUrl, getValidInvitationUrlTestData, validInvitationDatav1 } from '@quiet/common'
 import { FactoryGirl } from 'factory-girl'
 
@@ -138,6 +144,7 @@ describe('deepLinkSaga', () => {
 
   test('displays error if invitation code is invalid', async () => {
     const invalidData: InvitationData = {
+      version: InvitationDataVersion.v1,
       pairs: [
         {
           onionAddress: 'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdvcbzw5vex2crsr26qd',

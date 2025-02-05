@@ -116,7 +116,7 @@ describe('ConnectionsManagerService', () => {
     // expect(launchCommunitySpy).toHaveBeenCalledWith(updatedLaunchCommunityPayload)
     expect(launchCommunitySpy).toBeCalledWith(updatedLaunchCommunityPayload)
     expect(sigChainService.getActiveChain()).toBeDefined()
-    expect(sigChainService.getActiveChain()?.team.teamName).toBe(community.name)
+    expect(sigChainService.getActiveChain()?.team!.teamName).toBe(community.name)
   })
 
   it('does not launch community on init if its data does not exist in local db', async () => {

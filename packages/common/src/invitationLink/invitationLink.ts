@@ -226,8 +226,6 @@ export const peerPairsToUrlParamString = (pairs: InvitationPair[]): string => {
 const composeInvitationUrl = (baseUrl: string, data: InvitationDataV1 | InvitationDataV2): string => {
   const url = new URL(baseUrl)
 
-  if (!data.version) data.version = InvitationDataVersion.v1
-
   switch (data.version) {
     case InvitationDataVersion.v1:
       url.searchParams.append(PEER_ADDRESS_KEY, peerPairsToUrlParamString(data.pairs))
@@ -239,6 +237,7 @@ const composeInvitationUrl = (baseUrl: string, data: InvitationDataV1 | Invitati
       url.searchParams.append(PSK_PARAM_KEY, data.psk)
       url.searchParams.append(OWNER_ORBIT_DB_IDENTITY_PARAM_KEY, data.ownerOrbitDbIdentity)
       url.searchParams.append(AUTH_DATA_KEY, encodeAuthData(data.authData))
+      break
   }
   return url.href
 }

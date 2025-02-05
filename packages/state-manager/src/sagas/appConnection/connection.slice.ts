@@ -2,6 +2,7 @@ import { createSlice, type EntityState, type PayloadAction } from '@reduxjs/tool
 import { StoreKeys } from '../store.keys'
 import { peersStatsAdapter } from './connection.adapter'
 import { ConnectionProcessInfo, type NetworkDataPayload, type NetworkStats } from '@quiet/types'
+import { InviteResult } from '@localfirst/auth'
 
 export class ConnectionState {
   public lastConnectedTime = 0
@@ -14,6 +15,7 @@ export class ConnectionState {
     number: 5,
     text: ConnectionProcessInfo.CONNECTION_STARTED,
   }
+  public longLivedInvite: InviteResult | undefined = undefined
 }
 
 export const connectionSlice = createSlice({
@@ -47,6 +49,9 @@ export const connectionSlice = createSlice({
     setTorInitialized: state => {
       state.isTorInitialized = true
     },
+    setLongLivedInvite: (state, action: PayloadAction<InviteResult>) => {
+      state.longLivedInvite = action.payload
+    },
     setSocketIOSecret: (state, action: PayloadAction<string>) => {
       state.socketIOSecret = action.payload
     },
@@ -71,6 +76,7 @@ export const connectionSlice = createSlice({
         }
       }
     },
+    createInvite: (state, _action: PayloadAction<any>) => state,
   },
 })
 

@@ -46,7 +46,7 @@ class CryptoService extends ChainServiceBase {
         throw new Error(`Unknown encryption type ${scope.type} provided!`)
     }
 
-    const signature = this.sigChain.team.sign(encryptedPayload.contents)
+    const signature = this.sigChain.team!.sign(encryptedPayload.contents)
 
     return {
       encrypted: encryptedPayload,
@@ -61,7 +61,7 @@ class CryptoService extends ChainServiceBase {
       throw new Error(`Must provide a scope name when encryption scope is set to ${scope.type}`)
     }
 
-    const envelope = this.sigChain.team.encrypt(message, scope.name)
+    const envelope = this.sigChain.team!.encrypt(message, scope.name)
     return {
       contents: bs58.default.encode(envelope.contents) as Base58,
       scope: {
@@ -97,7 +97,7 @@ class CryptoService extends ChainServiceBase {
   }
 
   public decryptAndVerify(encrypted: EncryptedPayload, signature: SignedEnvelope, context: LocalUserContext): any {
-    const isValid = this.sigChain.team.verify(signature)
+    const isValid = this.sigChain.team!.verify(signature)
     if (!isValid) {
       throw new Error(`Couldn't verify signature on message`)
     }
@@ -122,7 +122,7 @@ class CryptoService extends ChainServiceBase {
       throw new Error(`Must provide a scope name when encryption scope is set to ${encrypted.scope.type}`)
     }
 
-    return this.sigChain.team.decrypt({
+    return this.sigChain.team!.decrypt({
       contents: bs58.default.decode(encrypted.contents),
       recipient: {
         ...encrypted.scope,

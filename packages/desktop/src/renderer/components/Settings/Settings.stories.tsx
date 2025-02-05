@@ -11,8 +11,10 @@ import { LeaveCommunityComponent } from './Tabs/LeaveCommunity/LeaveCommunityCom
 import { Typography } from '@mui/material'
 import { QRCodeComponent } from './Tabs/QRCode/QRCode.component'
 import { composeInvitationShareUrl } from '@quiet/common'
+import { InvitationDataVersion } from '@quiet/types'
 
 const invitationLink = composeInvitationShareUrl({
+  version: InvitationDataVersion.v1,
   pairs: [
     {
       peerId: '12D3KooWSZxWV6DmmTNf9sUgcTQqpN3CTuRiJFY4VthXr4yYxXxi',

@@ -60,13 +60,14 @@ export class SigChainService implements OnModuleInit {
    * @param setActive Whether to set the chain as active
    * @returns Whether the chain was set as active
    */
-  addChain(chain: SigChain, setActive: boolean): boolean {
-    if (this.chains.has(chain.team.teamName)) {
-      throw new Error(`Chain for team ${chain.team.teamName} already exists`)
+  addChain(chain: SigChain, setActive: boolean, teamName?: string): boolean {
+    teamName = teamName || chain.team!.teamName
+    if (this.chains.has(teamName)) {
+      throw new Error(`Chain for team ${teamName} already exists`)
     }
-    this.chains.set(chain.team.teamName, chain)
+    this.chains.set(teamName, chain)
     if (setActive) {
-      this.setActiveChain(chain.team.teamName)
+      this.setActiveChain(teamName)
       return true
     }
     return false
@@ -99,26 +100,35 @@ export class SigChainService implements OnModuleInit {
       throw new Error(`Chain for team ${teamName} already exists`)
     }
     const sigChain = SigChain.create(teamName, username)
-    this.addChain(sigChain, setActive)
+    this.addChain(sigChain, setActive, teamName)
+    await this.saveChain(teamName)
+    return sigChain
+  }
+
+  async createChainFromInvite(username: string, teamName: string, seed: string, setActive: boolean): Promise<SigChain> {
+    this.logger.info('Creating chain from invite')
+    const sigChain = SigChain.createFromInvite(username, seed)
+    this.addChain(sigChain, setActive, teamName)
+    await this.saveChain(teamName)
     return sigChain
   }
 
   /**
    * Deserializes a chain and adds it to the service
    * @param serializedTeam Serialized chain to deserialize
-   * @param context User context to use for the chain
+   * @param localUserContext User context to use for the chain
    * @param teamKeyRing Keyring to use for the chain
    * @param setActive Whether to set the chain as active
    * @returns The SigChain instance created from the serialized chain
    */
   private async deserialize(
     serializedTeam: Uint8Array,
-    context: LocalUserContext,
+    localUserContext: LocalUserContext,
     teamKeyRing: Keyring,
     setActive: boolean
   ): Promise<SigChain> {
     this.logger.info('Deserializing chain')
-    const sigChain = SigChain.load(serializedTeam, context, teamKeyRing)
+    const sigChain = SigChain.load(serializedTeam, localUserContext, teamKeyRing)
     this.addChain(sigChain, setActive)
     return sigChain
   }
@@ -133,15 +143,20 @@ export class SigChainService implements OnModuleInit {
    * @throws Error if the chain doesn't exist
    */
   async loadChain(teamName: string, setActive: boolean): Promise<SigChain> {
-    if (this.localDbService.getStatus() !== 'open') {
-      this.localDbService.open()
-    }
+    await this._ensureDb()
     this.logger.info(`Loading chain for team ${teamName}`)
     const chain = await this.localDbService.getSigChain(teamName)
     if (!chain) {
       throw new Error(`Chain for team ${teamName} not found`)
     }
-    return await this.deserialize(chain.serializedTeam, chain.context, chain.teamKeyRing, setActive)
+    if (chain.serializedTeam && chain.teamKeyRing) {
+      return await this.deserialize(chain.serializedTeam, chain.localUserContext, chain.teamKeyRing, setActive)
+    }
+    this.logger.info('No serialized team found, creating new chain from:', chain)
+    const sigchain = SigChain.init(chain.localUserContext)
+    sigchain.context = chain.context
+    this.addChain(sigchain, setActive, teamName)
+    return sigchain
   }
 
   /**
@@ -149,10 +164,16 @@ export class SigChainService implements OnModuleInit {
    * @param teamName Name of the team to save
    */
   async saveChain(teamName: string): Promise<void> {
+    this.logger.info(`Saving chain to disk`, teamName)
+    await this._ensureDb()
+    const chain = this.getChain(teamName)
+    await this.localDbService.setSigChain(chain, teamName)
+  }
+
+  private async _ensureDb(): Promise<void> {
     if (this.localDbService.getStatus() !== 'open') {
-      this.localDbService.open()
+      this.logger.warn(`LocalDbService wasn't open, opening now!`)
+      await this.localDbService.open()
     }
-    const chain = await this.getChain(teamName)
-    await this.localDbService.setSigChain(chain)
   }
 }

@@ -26,6 +26,7 @@
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "@ipld/dag-cbor": "^6.0.15",
+    "@localfirst/auth": "file:../../3rd-party/auth/packages/auth/dist",
     "@quiet/common": "^2.0.2-alpha.1",
     "@quiet/logger": "^2.0.2-alpha.0",
     "@quiet/types": "^2.0.2-alpha.1",

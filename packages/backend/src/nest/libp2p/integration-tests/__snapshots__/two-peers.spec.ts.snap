@@ -1,0 +1,156 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Libp2pAuth emits connected after syncing: event timeline after connected 1`] = `
+[
+  "peerConnected",
+  "peerConnected",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityChallenge,verifyingTheirIdentity:done",
+  "authStateChanged:authenticating:awaitingInvitationAcceptance",
+  "authJoined",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:done,verifyingTheirIdentity:awaitingIdentityProof",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityAcceptance,verifyingTheirIdentity:done",
+  "authStateChanged:negotiating",
+  "authStateChanged:negotiating",
+  "authStateChanged:synchronizing",
+  "authStateChanged:synchronizing",
+  "authStateChanged:synchronizing",
+  "authUpdated",
+  "authConnected",
+  "authStateChanged:connected",
+  "authStateChanged:connected",
+  "authConnected",
+]
+`;
+
+exports[`Libp2pAuth emits connected after syncing: instanceA event timeline after connected 1`] = `
+[
+  "peerConnected",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityChallenge,verifyingTheirIdentity:done",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityAcceptance,verifyingTheirIdentity:done",
+  "authStateChanged:negotiating",
+  "authStateChanged:synchronizing",
+  "authUpdated",
+  "authConnected",
+  "authStateChanged:connected",
+  "authStateChanged:connected",
+]
+`;
+
+exports[`Libp2pAuth emits connected after syncing: instanceB event timeline after connected 1`] = `
+[
+  "peerConnected",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:authenticating:awaitingInvitationAcceptance",
+  "authJoined",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:done,verifyingTheirIdentity:awaitingIdentityProof",
+  "authStateChanged:negotiating",
+  "authStateChanged:synchronizing",
+  "authStateChanged:synchronizing",
+  "authConnected",
+]
+`;
+
+exports[`Libp2pAuth gracefully disconnects: disconnectEventsA 1`] = `
+[
+  "peerConnected",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityChallenge,verifyingTheirIdentity:done",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityAcceptance,verifyingTheirIdentity:done",
+  "authStateChanged:negotiating",
+  "authStateChanged:synchronizing",
+  "authUpdated",
+  "authConnected",
+  "authStateChanged:connected",
+  "authStateChanged:connected",
+  "peerDisconnected",
+]
+`;
+
+exports[`Libp2pAuth gracefully disconnects: disconnectEventsB 1`] = `
+[
+  "peerConnected",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:authenticating:awaitingInvitationAcceptance",
+  "authJoined",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:done,verifyingTheirIdentity:awaitingIdentityProof",
+  "authStateChanged:negotiating",
+  "authStateChanged:synchronizing",
+  "authStateChanged:synchronizing",
+  "authConnected",
+  "authStateChanged:connected",
+  "authStateChanged:disconnected",
+  "peerDisconnected",
+]
+`;
+
+exports[`Libp2pAuth gracefully disconnects: eventTimeline after disconnection 1`] = `
+[
+  "peerConnected",
+  "peerConnected",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityChallenge,verifyingTheirIdentity:done",
+  "authStateChanged:authenticating:awaitingInvitationAcceptance",
+  "authJoined",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:done,verifyingTheirIdentity:awaitingIdentityProof",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityAcceptance,verifyingTheirIdentity:done",
+  "authStateChanged:negotiating",
+  "authStateChanged:negotiating",
+  "authStateChanged:synchronizing",
+  "authStateChanged:synchronizing",
+  "authStateChanged:synchronizing",
+  "authUpdated",
+  "authConnected",
+  "authStateChanged:connected",
+  "authStateChanged:connected",
+  "authConnected",
+  "authStateChanged:connected",
+  "authStateChanged:disconnected",
+  "peerDisconnected",
+  "peerDisconnected",
+]
+`;
+
+exports[`Libp2pAuth joins with an invitation: event timeline after joining 1`] = `
+[
+  "peerConnected",
+  "peerConnected",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityChallenge,verifyingTheirIdentity:done",
+  "authStateChanged:authenticating:awaitingInvitationAcceptance",
+  "authJoined",
+]
+`;
+
+exports[`Libp2pAuth joins with an invitation: instanceA event timeline after join 1`] = `
+[
+  "peerConnected",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:authenticating:checkingIdentity:provingMyIdentity:awaitingIdentityChallenge,verifyingTheirIdentity:done",
+]
+`;
+
+exports[`Libp2pAuth joins with an invitation: instanceB event timeline after join 1`] = `
+[
+  "peerConnected",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:awaitingIdentityClaim",
+  "authStateChanged:authenticating:awaitingInvitationAcceptance",
+  "authJoined",
+]
+`;

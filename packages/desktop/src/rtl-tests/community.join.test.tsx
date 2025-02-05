@@ -37,6 +37,7 @@ import {
   InitUserCsrPayload,
   PeerId,
   UserCsr,
+  InvitationDataVersion,
 } from '@quiet/types'
 import { composeInvitationShareUrl } from '@quiet/common'
 
@@ -49,6 +50,7 @@ jest.setTimeout(20_000)
 describe('User', () => {
   let socket: MockedSocket
   const validData: InvitationData = {
+    version: InvitationDataVersion.v1,
     pairs: [
       {
         onionAddress: 'y7yczmugl2tekami7sbdz5pfaemvx7bahwthrdvcbzw5vex2crsr26qd',
