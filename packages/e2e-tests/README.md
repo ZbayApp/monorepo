@@ -1,36 +1,41 @@
-## Running tests locally
+## Running e2e tests locally
 
-*  Install chromedriver correctly before running the tests:
+*  Install dependencies:
 
-`export ELECTRON_CUSTOM_VERSION=23.0.0`
 `npm run bootstrap`
 
+*  Run individual tests:
 
-*  Run jest:
+`npm run test oneClient.test.ts`
 
-`npm run test`
+`npm run test` # Run all tests
 
 ### Locally-built Binaries
 
-To run against binaries built locally (which will be in the `/dist` folder) you can run
+To run tests against locally built binaries:
 
-```
-npm run test:localBinary
-```
+1. In the `desktop` package, build the application:
+   - Mac: `electron-builder --mac`
+   - Linux: `npm run distUbuntu`
 
-This passes the `IS_LOCAL` flag and will use local binaries in the `/dist` directory (if the OS has been configured for it in the tests).  Check the README in the `desktop` package for information on building binaries for each OS.
+2. Run the tests:
+`npm run test`
 
-*You must compile the binary prior to running this command or it will fail!*
+See the README in the `desktop` package for detailed build instructions for each OS.
 
-Convenience methods can be found in the root `package.json` for building the binary before running the tests.
+## Test Suite
 
+Current E2E test suite includes:
+- oneClient.test.ts - Basic single client functionality
+- userProfile.test.ts - User profile management
+- multipleClients.test.ts - Multi-client interactions
+- invitationLink.test.ts - Invitation link functionality
+- backwardsCompatibility.test.ts - Version compatibility tests (CI only)
 
 ## Notes
 
-The rest of the tests to be rewritten have been left on this commit fa1256e4d19fc481e316a09523746ce9359d4073
--fileSending
--joiningUser
--lazyLoading
--newUser.returns
-
-In the current approach, installers are taken from github releases, but in the future the application will be built on CI
+Legacy tests pending migration can be found in commit fa1256e4d19fc481e316a09523746ce9359d4073:
+- fileSending
+- joiningUser
+- lazyLoading
+- newUser.returns
