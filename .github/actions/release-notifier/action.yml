@@ -1,14 +1,20 @@
+###
+### Handles sending release-releated messages to the #releases channel in Slack
+###
+### Notification Action: https://github.com/actions-ecosystem/action-slack-notifier
+###
+
 name: 'Release Notifier'
 
 inputs:
   os-name:
-    description: 'OS name (e.g. Linux, Android)'
+    description: 'OS name (e.g. Linux, Android) or release-type (e.g. Desktop, Mobile)'
     required: true
   version:
     description: 'Semantic version string for this release (e.g. 4.0.0-alpha.0)'
     required: true
   status:
-    description: 'Final status of the release job (available values: success, failure, cancelled)'
+    description: 'Final status of the release job (available values: success, failure, cancelled, started)'
     required: true
   slack_oauth_token:
     description: 'OAuth token for our Slack bot'
@@ -17,6 +23,18 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: 'Started Notification'
+      uses: actions-ecosystem/action-slack-notifier@v1
+      if: ${{ inputs.status == 'started' }}
+      with:
+        slack_token: ${{ inputs.slack_oauth_token }}
+        username: Github Actions
+        color: white
+        verbose: false
+        message: |
+          Release Started - `${{ inputs.os-name }} ${{ inputs.version }}`
+        channel: releases
+
     - name: 'Success Notification'
       uses: actions-ecosystem/action-slack-notifier@v1
       if: ${{ inputs.status == 'success' }}
