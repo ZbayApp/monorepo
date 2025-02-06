@@ -30,6 +30,21 @@ export interface QRCodeProps {
 }
 
 export const QRCodeComponent: FC<QRCodeProps> = ({ value }) => {
+  if (!value) {
+    return (
+      <StyledGrid container direction='column'>
+        <Grid item>
+          <Typography variant='h5'>Only admins can invite new members</Typography>
+        </Grid>
+        <Grid item>
+          <Typography variant='body2'>
+            For security reasons, only admins can invite new members to this community. Ask the community creator for a
+            QR code to share.
+          </Typography>
+        </Grid>
+      </StyledGrid>
+    )
+  }
   return (
     <StyledGrid container direction='column'>
       <Grid item>
