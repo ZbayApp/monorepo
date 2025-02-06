@@ -1,10 +1,7 @@
 # Quiet Mobile
 
 Quiet Mobile is a React Native app for Android and iOS that shares a Node.js [backend](https://github.com/TryQuiet/monorepo/tree/master/packages/backend) and a JavaScript/Redux [state manager](https://github.com/TryQuiet/monorepo/tree/master/packages/state-manager) with [Quiet Desktop](https://github.com/TryQuiet/monorepo/tree/master/packages/desktop).
-
-## Setting up Android environment
-
-### Prerequisites
+## Prerequisites
 
 1. If not on Mac (which comes preinstalled with `patch`), install `patch` (e.g. via your Linux package manager).
 
@@ -17,25 +14,20 @@ Quiet Mobile is a React Native app for Android and iOS that shares a Node.js [ba
     npm run bootstrap
     ```
 
+## Android development
+
+The Android app can be built in the provided Docker container or on your local machine.
+
+### Local Environment Setup
+
 1. On your host, install [adb](https://developer.android.com/studio/command-line/adb) (Android Debug Bridge) to communicate with your Android device.
 
 1. If running on a physical device, enable USB debugging on your device and connect it to your computer via USB. If running on an emulator, start the emulator.
 
-      [React Native: Running on Device](https://reactnative.dev/docs/running-on-device)
-      [Android Developers: Configure Developer Options](https://developer.android.com/studio/debug/dev-options)
+      - [React Native: Running on Device](https://reactnative.dev/docs/running-on-device)
+      - [Android Developers: Configure Developer Options](https://developer.android.com/studio/debug/dev-options)
 
-1. Add the path to the java binary installed by Android Studio JAVA_HOME to your environment variables. Ensure that you have followed the SDK installation instructions in the [React Native Development Environment](https://reactnative.dev/docs/set-up-your-environment) guide.
-
-    For example, on macOS with Android Studio installed in the default location,
-    Add the following line to your `~/.bash_profile` or `~/.zprofile` file,
-
-    ```bash
-    export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-    ```
-
-### Local development
-
-Follow the steps in [React Native Development Environment](https://reactnative.dev/docs/set-up-your-environment) to set up your development environment.
+1. Follow the environemnt setup guide in the [React Native Development Environment](https://reactnative.dev/docs/set-up-your-environment) guide. Our pipeline uses the temurin@17 JDK which you may substitute for the version specified in the React Native guide. At the end of this step, you should have a JDK @ version 17 installed, the JAVA_HOME environment variable set, Android Studio installed, and the Android SDK installed.
 
 #### Running Android App from Command Line
 
@@ -49,11 +41,18 @@ Follow the steps in [React Native Development Environment](https://reactnative.d
 
 #### Running from Android Studio
 
+1. Open Android Studio
+    1. If using nvm to manage node versions, you may need to open Android studio from a terminal which has the correct node version set. This is because Android Studio may not be able to find the correct node version if it is not set in the terminal.
+    ```
+    nvm install 18.20.4
+    nvm use 18.20.4
+    open -a "Android Studio"
+    ```
 1. Open the `android` directory in Android Studio.
 1. If necessary, sync the Gradle files by hitting the "Sync Project with Gradle Files" button in the top right corner.
 1. Select the target device or emulator and press the play button.
 
-### Docker container
+### Docker
 
 Docker container with Android development environment can be found in `packages/mobile/android-environment`.
 
@@ -145,9 +144,9 @@ const watchFolders = [
 ]
 ```
 
-## Setting up iOS environment
+## iOS Development
 
-### Prerequisites for iOS development
+### Local Environment Setup
 
 1. Install [Xcode](https://developer.apple.com/xcode/) from the Mac App Store.
 1. Follow the [React Native Development Environment](https://reactnative.dev/docs/set-up-your-environment) instructions to set up your development environment.
@@ -184,17 +183,13 @@ const watchFolders = [
 
 1. If planning to run on device, setup the signing certificate and provisioning profile in Xcode.
 
-    [React Native: Running on Device](https://reactnative.dev/docs/running-on-device)
+    - [React Native: Running on Device](https://reactnative.dev/docs/running-on-device)
 
-### Running iOS App With Command Line
+### Building the iOS App
 
-1. Start the Metro bundler,
+The iOS app can be built and run in two ways: from the command line or from Xcode. The command line is preferred as it is faster and more reliable especially when using nvm to manage node versions.
 
-    From the `packages/mobile` directory,
-
-    ```bash
-    npm run start
-    ```
+#### Command Line (preferred)
 
 1. Build and run the application,
 
@@ -204,11 +199,9 @@ const watchFolders = [
       npm run ios
       ```
 
-      or from Xcode, select the target device and press the play button.
+      The application should now be installed on your device, and a new terminal window will open with the Metro bundler running.
 
-      The application should now be running on your device.
-
-### Xcode
+#### Xcode (alternative)
 
 1. Start the metro bundler,
 
@@ -300,6 +293,8 @@ xcrun simctl get_app_container booted com.quietmobile data
 
 enter it and find directory data within `/Documents` folder
 
+## Troubleshooting
+
 ### The app is stuck on splash screen
 
 Sometimes metro loader takes long enough to cause a race condition failure with the native service notifying javascript code about the data of websocket server
@@ -314,8 +309,6 @@ The easiest solution is to close the app and open it again by tapping it's icon 
 or to follow `Product -> Perform Action -> Run Without Building` in Xcode. (iOS)
 
 If it's not enough, you can locally increase the `WEBSOCKET_CONNECTION_DELAY` for emitting the event at `mobile/android/app/src/main/java/com/quietmobile/Utils/Const.kt` (Android)
-
-## Troubleshooting
 
 ### Could not set file mode 644 on
 
@@ -336,19 +329,3 @@ Usage of native methods (like the ones for file management) must be adapted for 
 1. Shim packages with `rn-dodeify` <https://www.npmjs.com/package/rn-nodeify>
 2. Blacklist certain files in `metro.config.js:30`
 3. Use diff & patch <https://www.freecodecamp.org/news/compare-files-with-diff-in-linux/>
-
-### Process already running on :8081
-
-If you encounter a problem with metro bundler, make sure there's no other process running on the same port. If it's the case, kill the process and try again.
-
-Get the PID of the process:
-
-```bash
-lsof -i :8081
-```
-
-Kill the process:
-
-```bash
-kill -9 <PID>
-```
