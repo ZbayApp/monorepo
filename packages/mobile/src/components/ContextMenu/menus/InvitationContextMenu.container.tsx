@@ -91,34 +91,24 @@ export const InvitationContextMenu: FC = () => {
     invitationContextMenu.handleClose()
   }, [screen])
 
+  const title = 'Add members'
+
   if (!invitationLink) {
     if (!invitationReady) {
-      return (
-        <ContextMenu
-          title={'Add members'}
-          items={[]}
-          hint={'Generating invitation link...'}
-          {...invitationContextMenu}
-        />
-      )
+      return <ContextMenu title={title} items={[]} hint={'Generating invitation link...'} {...invitationContextMenu} />
     }
     return (
       <ContextMenu
-        title={'Add members'}
-        items={[
-          {
-            title: 'Cancel',
-            action: () => invitationContextMenu.handleClose(),
-          },
-        ]}
-        hint={'Only admins can generate invitation links.'}
+        title={title}
+        items={[]}
+        hint={'Only admins can invite new members to this community. Ask the community creator for a link to share.'}
         {...invitationContextMenu}
       />
     )
   }
   return (
     <ContextMenu
-      title={'Add members'}
+      title={title}
       items={items}
       hint={'Anyone with Quiet app can follow this link to join this community. Only share with people you trust.'}
       link={invitationLink}
