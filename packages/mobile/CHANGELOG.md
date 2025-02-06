@@ -1,28 +1,17 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-# [4.0.0-alpha.1](https://github.com/TryQuiet/quiet/compare/@quiet/mobile@4.0.0-alpha.0...@quiet/mobile@4.0.0-alpha.1) (2025-02-06)
-
-**Note:** Version bump only for package @quiet/mobile
-
-
-
-
-
 # Changelog
 
-## Unreleased
+## [4.0.0]
 
 ### New features
 
 * Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 * Add local-first/auth powered libp2p authentication service ([#2629](https://github.com/TryQuiet/quiet/issues/2629))
+* Adds admin-only screens when non-admins try to access add members screens ([#2729](https://github.com/TryQuiet/quiet/issues/2729))
 
 ### Chores
 
 * Add `trace` level logs to `@quiet/logger` ([#2716](https://github.com/TryQuiet/quiet/issues/2716))
+* Add slack notifications to release workflows ([#2722](https://github.com/TryQuiet/quiet/issues/2722))
 
 ## [3.0.0]
 
