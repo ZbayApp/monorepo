@@ -1,27 +1,43 @@
 ## Running e2e tests locally
 
-*  Install dependencies:
+### Prerequisites
 
-`npm run bootstrap`
+1. Follow the setup instructions in the root `README.md` to install dependencies and bootstrap the project.
 
-*  Run individual tests:
+2. Install Chromium:
+   - Linux: `sudo apt install chromium-browser`
+   - Mac: `brew install chromium`
+
+3. Install electron-chromedriver globally:
+
+`npm install -g electron-chromedriver@23.3.13`
+
+4. Set Electron version:
+
+`export ELECTRON_CUSTOM_VERSION=23.0.0`
+
+### Building and Running Tests
+
+1. In the `desktop` package, build the application:
+   - Mac: `npm run distMac:local` # you may have to copy the binary from /Applications to the `e2e-tests/Quiet` directory
+   - Linux: `npm run distUbuntu`
+
+2. In the `e2e-tests` package:
+
+`npm run linux:copy` # copy the binary to the `e2e-tests/Quiet` directory
+`npm run test` # run all tests
+
+To run individual tests:
 
 `npm run test oneClient.test.ts`
 
-`npm run test` # Run all tests
+### Known Issues & Tips
 
-### Locally-built Binaries
-
-To run tests against locally built binaries:
-
-1. In the `desktop` package, build the application:
-   - Mac: `electron-builder --mac`
-   - Linux: `npm run distUbuntu`
-
-2. Run the tests:
-`npm run test`
-
-See the README in the `desktop` package for detailed build instructions for each OS.
+- For Mac: We may need to manually mount the .dmg and copy to /Applications (need to verify exact steps)
+- For Linux: The `linux:copy` script handles moving the binary to `e2e-tests/Quiet/`
+- Tests can be flaky - use the retry flag if needed: `npm run test oneClient.test.ts -- --retry 3`
+- Set `DEBUG=backend*,quiet*` for more verbose logging
+- The tests expect a clean state - you may need to clear application data between runs
 
 ## Test Suite
 
