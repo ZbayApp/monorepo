@@ -1,14 +1,11 @@
 # Changelog
 
-## [4.0.0]
+## Unreleased
 
 ### New features
 
 * Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 * Add local-first/auth powered libp2p authentication service ([#2629](https://github.com/TryQuiet/quiet/issues/2629))
-* Adds admin-only screens when non-admins try to access add members screens ([#2729](https://github.com/TryQuiet/quiet/issues/2729))
-* Adds e2ee (encryption-side) for messages ([#2631](https://github.com/TryQuiet/quiet/issues/2631))
-* Adds e2ee (decryption-side) for messages ([#2632](https://github.com/TryQuiet/quiet/issues/2632))
 
 ### Chores
 

@@ -49,7 +49,7 @@ export const connectionSlice = createSlice({
     setTorInitialized: state => {
       state.isTorInitialized = true
     },
-    setLongLivedInvite: (state, action: PayloadAction<InviteResult | undefined>) => {
+    setLongLivedInvite: (state, action: PayloadAction<InviteResult>) => {
       state.longLivedInvite = action.payload
     },
     setSocketIOSecret: (state, action: PayloadAction<string>) => {

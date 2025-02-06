@@ -102,6 +102,6 @@ jobs:
         if: always()
         with:
           os-name: IOS
-          version: ${{ steps.extract_version.outputs.version }}
+          version: ${{ steps.extract_version.outputs.current-version }}
           status: ${{ job.status }}
           slack_oauth_token: ${{ secrets.SLACK_BOT_OAUTH_TOKEN }}

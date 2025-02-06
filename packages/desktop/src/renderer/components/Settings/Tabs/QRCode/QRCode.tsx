@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
+import { Site } from '@quiet/common'
 import { connection } from '@quiet/state-manager'
 
 import { QRCodeComponent } from './QRCode.component'
-import { createLogger } from '../../../../logger'
-
-const logger = createLogger('QRCode')
 
 export const QRCode: React.FC = () => {
   const dispatch = useDispatch()
@@ -20,7 +18,7 @@ export const QRCode: React.FC = () => {
 
   useEffect(() => {
     if (invitationReady) {
-      setInvitationLink(inviteLink)
+      setInvitationLink(inviteLink || Site.MAIN_PAGE)
     }
   }, [invitationReady, inviteLink])
 

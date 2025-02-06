@@ -24,8 +24,6 @@ import {
 import { isPSKcodeValid } from '../libp2p'
 import { createLogger } from '../logger'
 
-import base64url from 'base64url'
-
 const logger = createLogger('invite:validator')
 
 const ONION_ADDRESS_REGEX = /^[a-z0-9]{56}$/g
@@ -63,7 +61,7 @@ export class UrlParamValidatorError extends Error {
  */
 export const encodeAuthData = (authData: InvitationAuthData): string => {
   const encodedAuthData = `${COMMUNITY_NAME_KEY}=${encodeURIComponent(authData.communityName)}&${INVITATION_SEED_KEY}=${encodeURIComponent(authData.seed)}`
-  return base64url.encode(Buffer.from(encodedAuthData, 'utf8'))
+  return Buffer.from(encodedAuthData, 'utf8').toString('base64url')
 }
 
 /**
@@ -78,7 +76,7 @@ export const encodeAuthData = (authData: InvitationAuthData): string => {
  * @returns {string} URL-encoded string of the InvitationAuthData object as URL with parameters
  */
 export const decodeAuthData: InvitationLinkUrlNamedParamProcessorFun<string> = (authDataString: string): string => {
-  return `${DEEP_URL_SCHEME_WITH_SEPARATOR}?${base64url.toBuffer(authDataString).toString('utf-8')}`
+  return `${DEEP_URL_SCHEME_WITH_SEPARATOR}?${Buffer.from(authDataString, 'base64url').toString('utf8')}`
 }
 
 /**
