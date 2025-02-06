@@ -4,7 +4,7 @@ import { renderComponent } from '../../../../testUtils/renderComponent'
 
 import QRCodeComponent from './QRCode.component'
 
-describe('LeaveCommunity', () => {
+describe('QRCode', () => {
   it('renders component', () => {
     const result = renderComponent(
       <QRCodeComponent value={'https://tryquiet.org/join#ytzoaxku26gobduqogx6ydhezgf6aumpcted27qx7tz6z77lzj2zb6ad'} />
@@ -59,6 +59,38 @@ describe('LeaveCommunity', () => {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </body>
+    `)
+  })
+  it('renders admin only screen when invite link is empty', () => {
+    const inviteLink = ''
+    const result = renderComponent(<QRCodeComponent value={inviteLink} />)
+    expect(result.baseElement).toMatchInlineSnapshot(`
+      <body>
+        <div>
+          <div
+            class="MuiGrid-root MuiGrid-container MuiGrid-direction-xs-column css-1mgw62b-MuiGrid-root"
+          >
+            <div
+              class="MuiGrid-root MuiGrid-item css-13i4rnv-MuiGrid-root"
+            >
+              <h5
+                class="MuiTypography-root MuiTypography-h5 css-11l3dv4-MuiTypography-root"
+              >
+                Only admins can invite new members
+              </h5>
+            </div>
+            <div
+              class="MuiGrid-root MuiGrid-item css-13i4rnv-MuiGrid-root"
+            >
+              <p
+                class="MuiTypography-root MuiTypography-body2 css-16d47hw-MuiTypography-root"
+              >
+                Only admins can invite new members to this community. Ask the community creator for a QR code to share.
+              </p>
             </div>
           </div>
         </div>

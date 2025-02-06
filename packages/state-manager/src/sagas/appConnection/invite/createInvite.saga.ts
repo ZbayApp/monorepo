@@ -1,4 +1,4 @@
-import { apply, select, putResolve } from 'typed-redux-saga'
+import { apply, select, putResolve, delay } from 'typed-redux-saga'
 import { type PayloadAction } from '@reduxjs/toolkit'
 import { InviteResult } from '@localfirst/auth'
 
@@ -29,8 +29,7 @@ export function* createInviteSaga(
     logger.info(`Existing long-lived invite was invalid, the invite has been replaced`)
     yield* putResolve(connectionActions.setLongLivedInvite(lfaInviteData.newInvite))
   } else if (!lfaInviteData?.valid && lfaInviteData?.newInvite == null) {
-    logger.warn(
-      `Existing invalid was missing or undefined and we failed to generate a new one - your sig chain may not be configured!`
-    )
+    yield* putResolve(connectionActions.setLongLivedInvite(undefined))
+    logger.info(`Failed to validate/create a new long-lived invite. Clearing invite data`)
   }
 }

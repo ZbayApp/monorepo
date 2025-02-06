@@ -1,5 +1,11 @@
 export class NoCryptoEngineError extends Error {}
 
+export class PermissionsError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'PermissionsError'
+  }
+}
 export interface ErrorPayload {
   type: string
   code?: number

@@ -83,6 +83,20 @@ export const InviteComponent: FC<InviteComponentProps> = ({
   handleClickInputReveal,
 }) => {
   const hiddenInvitationLink = '••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••'
+  if (!invitationLink) {
+    return (
+      <StyledGrid container direction='column'>
+        <Grid item>
+          <Typography variant='h5'>Only admins can invite new members</Typography>
+        </Grid>
+        <Grid item>
+          <Typography variant='body2'>
+            Only admins can invite new members to this community. Ask the community creator for a link to share.
+          </Typography>
+        </Grid>
+      </StyledGrid>
+    )
+  }
   return (
     <StyledGrid container direction='column'>
       <Grid container item justifyContent='space-between' alignItems='center' className={classes.titleDiv}>

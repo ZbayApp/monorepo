@@ -92,8 +92,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.get_release.outputs.upload_url }}
-          asset_path: ./packages/desktop/dist/Quiet-${{ steps.extract_version.outputs.current-version}}.AppImage
-          asset_name: Quiet-${{ steps.extract_version.outputs.current-version}}.AppImage
+          asset_path: ./packages/desktop/dist/Quiet-${{ steps.extract_version.outputs.version }}.AppImage
+          asset_name: Quiet-${{ steps.extract_version.outputs.version }}.AppImage
           asset_content_type: application/.AppImage
 
       - name: Send Release Notificaton
@@ -101,7 +101,7 @@ jobs:
         if: always()
         with:
           os-name: Linux
-          version: ${{ steps.extract_version.outputs.current-version }}
+          version: ${{ steps.extract_version.outputs.version }}
           status: ${{ job.status }}
           slack_oauth_token: ${{ secrets.SLACK_BOT_OAUTH_TOKEN }}
 
@@ -186,7 +186,7 @@ jobs:
         if: always()
         with:
           os-name: MacOS
-          version: ${{ steps.extract_version.outputs.current-version }}
+          version: ${{ steps.extract_version.outputs.version }}
           status: ${{ job.status }}
           slack_oauth_token: ${{ secrets.SLACK_BOT_OAUTH_TOKEN }}
 
@@ -273,6 +273,6 @@ jobs:
         if: always()
         with:
           os-name: Windows
-          version: ${{ steps.extract_version.outputs.current-version }}
+          version: ${{ steps.extract_version.outputs.version }}
           status: ${{ job.status }}
           slack_oauth_token: ${{ secrets.SLACK_BOT_OAUTH_TOKEN }}

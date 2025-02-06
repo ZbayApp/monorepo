@@ -50,7 +50,8 @@ export const InvitationContextMenu: FC = () => {
   )
 
   const copyLink = async () => {
-    Clipboard.setString(invitationLink!)
+    if (!invitationLink) return
+    Clipboard.setString(invitationLink)
     await confirmationBox.flash()
   }
 
@@ -90,6 +91,31 @@ export const InvitationContextMenu: FC = () => {
     invitationContextMenu.handleClose()
   }, [screen])
 
+  if (!invitationLink) {
+    if (!invitationReady) {
+      return (
+        <ContextMenu
+          title={'Add members'}
+          items={[]}
+          hint={'Generating invitation link...'}
+          {...invitationContextMenu}
+        />
+      )
+    }
+    return (
+      <ContextMenu
+        title={'Add members'}
+        items={[
+          {
+            title: 'Cancel',
+            action: () => invitationContextMenu.handleClose(),
+          },
+        ]}
+        hint={'Only admins can generate invitation links.'}
+        {...invitationContextMenu}
+      />
+    )
+  }
   return (
     <ContextMenu
       title={'Add members'}

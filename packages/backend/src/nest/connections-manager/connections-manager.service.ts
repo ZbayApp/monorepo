@@ -58,6 +58,7 @@ import {
   PeerId as QuietPeerId,
   InvitationDataVersion,
   InvitationDataV2,
+  PermissionsError,
 } from '@quiet/types'
 import { CONFIG_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { Libp2pService } from '../libp2p/libp2p.service'
@@ -947,13 +948,23 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE,
       async (callback?: (response: InviteResult | undefined) => void) => {
         this.logger.info(`socketService - ${SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE}`)
-        if (this.sigChainService.activeChainTeamName != null) {
+
+        if (!this.sigChainService.activeChainTeamName) {
+          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code generation!`)
+          callback?.(undefined)
+        }
+        try {
           const invite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
           this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, invite)
-          if (callback) callback(invite)
-        } else {
-          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code generation!`)
-          if (callback) callback(undefined)
+          callback?.(invite)
+        } catch (e) {
+          if (e instanceof PermissionsError) {
+            this.logger.info(e.message)
+            callback?.(undefined)
+          } else {
+            this.logger.error(`Failed to generate a new long lived LFA invite code!`, e)
+            callback?.(undefined)
+          }
         }
       }
     )
@@ -965,19 +976,25 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         callback: (response: { valid: boolean; newInvite?: InviteResult } | undefined) => void
       ) => {
         this.logger.info(`socketService - ${SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE}`)
-        if (this.sigChainService.activeChainTeamName != null) {
-          if (this.sigChainService.getActiveChain().invites.isValidLongLivedUserInvite(inviteId)) {
-            this.logger.info(`Invite is a valid long lived LFA invite code!`)
-            callback({ valid: true })
-          } else {
-            this.logger.info(`Invite is an invalid long lived LFA invite code!  Generating a new code!`)
+
+        if (!this.sigChainService.activeChainTeamName) {
+          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code validation/generation!`)
+          callback(undefined)
+        }
+
+        if (this.sigChainService.getActiveChain().invites.isValidLongLivedUserInvite(inviteId)) {
+          callback({ valid: true })
+        } else {
+          try {
             const newInvite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
             this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, newInvite)
             callback({ valid: false, newInvite })
+          } catch (e) {
+            e instanceof PermissionsError
+              ? this.logger.info(e.message)
+              : this.logger.error(`Failed to generate a new long lived LFA invite code!`, e)
+            callback({ valid: false })
           }
-        } else {
-          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code validation/generation!`)
-          callback(undefined)
         }
       }
     )
