@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 
-import { styled } from '@mui/material/styles'
-import Typography from '@mui/material/Typography'
-
-import { Site } from '@quiet/common'
 import { connection } from '@quiet/state-manager'
 
 import { QRCodeComponent } from './QRCode.component'
-import { createLogger } from 'packages/desktop/src/renderer/logger'
+import { createLogger } from '../../../../logger'
 
 const logger = createLogger('QRCode')
 
