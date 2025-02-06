@@ -91,8 +91,7 @@ export const InviteComponent: FC<InviteComponentProps> = ({
         </Grid>
         <Grid item>
           <Typography variant='body2'>
-            For security reasons, only admins can invite new members to this community. Ask the community creator for a
-            link to share.
+            Only admins can invite new members to this community. Ask the community creator for a link to share.
           </Typography>
         </Grid>
       </StyledGrid>

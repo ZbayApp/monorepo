@@ -89,7 +89,7 @@ describe('QRCode', () => {
               <p
                 class="MuiTypography-root MuiTypography-body2 css-16d47hw-MuiTypography-root"
               >
-                For security reasons, only admins can invite new members to this community. Ask the community creator for a QR code to share.
+                Only admins can invite new members to this community. Ask the community creator for a QR code to share.
               </p>
             </div>
           </div>

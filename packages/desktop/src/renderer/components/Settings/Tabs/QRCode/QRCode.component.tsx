@@ -38,8 +38,7 @@ export const QRCodeComponent: FC<QRCodeProps> = ({ value }) => {
         </Grid>
         <Grid item>
           <Typography variant='body2'>
-            For security reasons, only admins can invite new members to this community. Ask the community creator for a
-            QR code to share.
+            Only admins can invite new members to this community. Ask the community creator for a QR code to share.
           </Typography>
         </Grid>
       </StyledGrid>
