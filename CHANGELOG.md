@@ -10,8 +10,9 @@
 ### Chores
 
 * Add `trace` level logs to `@quiet/logger` ([#2716](https://github.com/TryQuiet/quiet/issues/2716))
-* Refactor the `StorageService` and create `ChannelService`, `MessageService` and `ChannelStore` for handling channel-related persistence ([#2631](https://github.com/TryQuiet/quiet/issues/2631)) 
+* Refactor the `StorageService` and create `ChannelService`, `MessageService` and `ChannelStore` for handling channel-related persistence ([#2631](https://github.com/TryQuiet/quiet/issues/2631))
 * Add slack notifications to release workflows ([#2722](https://github.com/TryQuiet/quiet/issues/2722))
+* Update mobile development README with correct JDK ([#2739](https://github.com/TryQuiet/quiet/issues/2739))
 
 ## [3.0.0]
 
