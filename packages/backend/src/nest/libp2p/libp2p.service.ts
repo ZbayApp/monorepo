@@ -212,6 +212,9 @@ export class Libp2pService extends EventEmitter {
 
       this.logger.info('Disconnecting auth service gracefully')
       this.authService?.closeAuthConnection(peerId)
+
+      // Isla's Note: I found this useful in letting the communications over the auth connection fully finish
+      // thus avoiding errors
       await sleep(5_000)
 
       this.logger.info('Hanging up connection on libp2p')
