@@ -201,18 +201,30 @@ export class Libp2pAuth {
       this.logger.warn(`No connection available for ephemeral stream to ${peerId.toString()}`)
       return
     }
+
+    const abortController = new AbortController()
     try {
       this.logger.info(`Opening ephemeral outbound stream to ${peerId.toString()}`)
       const stream = await connection.newStream(this.protocol, {
         runOnLimitedConnection: false,
         negotiateFully: false,
+        signal: abortController.signal,
       })
       this.logger.info(`Ephemeral stream opened to ${peerId.toString()}, sending message`)
+      if (stream.status !== 'open') {
+        this.logger.warn(
+          `Attempted to send message to ${peerId.toString()} on ephemeral stream that had already closed`
+        )
+        return
+      }
       await pipe([encode.single(message)], stream)
       await stream.close()
       this.logger.info(`Ephemeral stream closed to ${peerId.toString()}`)
     } catch (e) {
       this.logger.error(`Error sending ephemeral message to ${peerId.toString()}`, e)
+      if (!abortController.signal.aborted) {
+        abortController.abort(e)
+      }
     }
   }
 
