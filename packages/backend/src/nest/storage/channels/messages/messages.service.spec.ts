@@ -116,7 +116,7 @@ describe('MessagesService', () => {
       })
     })
 
-    it('throws an error when the signature is invalid', async () => {
+    it('returns undefined when the signature is invalid', async () => {
       const encryptedMessage = await messagesService.onSend(message)
       const invalidEncryptedMessage: EncryptedMessage = {
         ...encryptedMessage,
@@ -130,13 +130,7 @@ describe('MessagesService', () => {
         },
       }
 
-      let err: Error | undefined = undefined
-      try {
-        await messagesService.onConsume(invalidEncryptedMessage)
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
+      expect(await messagesService.onConsume(invalidEncryptedMessage)).toBeUndefined()
     })
   })
 })
