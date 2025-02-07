@@ -147,7 +147,10 @@
     "react-markdown": "^6.0.3",
     "react-qr-code": "^2.0.11",
     "remark-gfm": "^1.0.0",
-    "socket.io-client": "^4.7.4"
+    "socket.io-client": "^4.7.4",
+    "cypress": "^12.17.4",
+    "@cypress/webpack-preprocessor": "^5.17.1",
+    "cypress-visual-regression": "^3.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",
@@ -208,9 +211,7 @@
     "cross-env": "^5.2.0",
     "css-loader": "^6.7.2",
     "custom-electron-titlebar": "^3.2.2-hotfix62",
-    "cypress": "12.6.0",
     "cypress-storybook": "0.5.1",
-    "cypress-visual-regression": "2.1.0",
     "electron": "^23.0.0",
     "electron-build-env": "^0.2.0",
     "electron-builder": "^23.6.0",

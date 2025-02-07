@@ -15,6 +15,12 @@ export default defineConfig({
   },
 
   component: {
+    devServer: {
+      framework: "react",
+      bundler: "webpack",
+      webpackConfig,
+    },
+
     setupNodeEvents(on, config) {
       getCompareSnapshotsPlugin(on, config)
 
@@ -30,10 +36,5 @@ export default defineConfig({
 
     specPattern: "src/**/*regression.cy.{js,jsx,ts,tsx}",
     excludeSpecPattern: ["**/__snapshots__/*", "**/__image_snapshots__/*"],
-    devServer: {
-      framework: "react",
-      bundler: "webpack",
-      webpackConfig,
-    }
   }
 })
