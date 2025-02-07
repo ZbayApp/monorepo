@@ -483,7 +483,7 @@ const useTheme = (): Theme => {
     }
   }, [])
 
-  return isDarkTheme
+  return useDarkTheme ? darkTheme : lightTheme
 }
 
 export { lightTheme, darkTheme, defaultTheme, useTheme }
