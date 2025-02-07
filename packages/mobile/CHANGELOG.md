@@ -1,16 +1,3 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-# [4.0.0-alpha.3](https://github.com/TryQuiet/quiet/compare/@quiet/mobile@4.0.0-alpha.2...@quiet/mobile@4.0.0-alpha.3) (2025-02-07)
-
-**Note:** Version bump only for package @quiet/mobile
-
-
-
-
-
 # Changelog
 
 ## [4.0.0]
@@ -25,6 +12,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 * Add `trace` level logs to `@quiet/logger` ([#2716](https://github.com/TryQuiet/quiet/issues/2716))
 * Add slack notifications to release workflows ([#2722](https://github.com/TryQuiet/quiet/issues/2722))
+* Refactor the `StorageService` and create `ChannelService`, `MessageService` and `ChannelStore` for handling channel-related persistence ([#2631](https://github.com/TryQuiet/quiet/issues/2631)) 
 
 ## [3.0.0]
 
