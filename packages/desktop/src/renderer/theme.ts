@@ -455,7 +455,7 @@ const getCurrentTheme = (useDarkTheme: boolean | undefined): Theme => {
     return defaultTheme
   }
 
-  return darkTheme
+  return useDarkTheme ? darkTheme : lightTheme
 }
 
 /**
@@ -483,7 +483,7 @@ const useTheme = (): Theme => {
     }
   }, [])
 
-  return useDarkTheme ? darkTheme : lightTheme
+  return isDarkTheme
 }
 
 export { lightTheme, darkTheme, defaultTheme, useTheme }

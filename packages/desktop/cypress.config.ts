@@ -8,7 +8,8 @@ export default defineConfig({
   video: false,
 
   // Add the env block so cypress-visual-regression knows whether to generate base or actual snapshots.
-  // You can override this by running: cypress run -e type=base
+  // You can override this by running: npx cypress run --component --env type=base
+
   env: {
     type: "actual"
   },
