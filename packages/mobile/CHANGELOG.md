@@ -1,3 +1,16 @@
+# Change Log
+
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [4.0.0-alpha.4](https://github.com/TryQuiet/quiet/compare/@quiet/mobile@4.0.0-alpha.3...@quiet/mobile@4.0.0-alpha.4) (2025-02-10)
+
+**Note:** Version bump only for package @quiet/mobile
+
+
+
+
+
 # Changelog
 
 ## [4.0.0]
