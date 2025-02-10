@@ -3,7 +3,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import { composeStories, setGlobalConfig } from '@storybook/testing-react'
 import { it, beforeEach, cy, Cypress, describe } from 'local-cypress'
 
-import * as stories from './Channel.stories.cy'
+import * as stories from './Channel.stories'
 import { withTheme } from '../../storybook/decorators'
 import compareSnapshotCommand from 'cypress-visual-regression/dist/command'
 import { mount } from 'cypress/react18'

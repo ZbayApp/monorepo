@@ -1,48 +1,98 @@
 import React from 'react'
+import { useState } from 'react'
 
 import { ComponentStory, ComponentMeta } from '@storybook/react'
 
 import { withTheme } from '../../storybook/decorators'
-import { mock_messages } from '../../storybook/utils'
+import { mock_messages, users } from '../../storybook/utils'
 
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 
 import ChannelComponent, { ChannelComponentProps } from './ChannelComponent'
 import { UploadFilesPreviewsProps } from './File/UploadingPreview'
-import { DownloadState } from '@quiet/types'
+import { DownloadState, DisplayableMessage } from '@quiet/types'
+
+// Provide a user object that satisfies 'Identity'
+const validUser = {
+  id: 'id',
+  nickname: 'vader',
+  hiddenService: {
+    onionAddress: 'onionAddress',
+    privateKey: 'privateKey',
+  },
+  peerId: {
+    id: 'myPeerId',
+    privKey: 'myPrivKey',
+    noiseKey: 'myNoiseKey',
+  },
+  userCsr: {
+    userCsr: 'fakeCsr',
+    userKey: 'fakeUserKey',
+    pkcs10: {
+      publicKey: 'fakePubKey',
+      privateKey: 'fakePrivKey',
+      pkcs10: 'fakePkcs10',
+    },
+  },
+  userCertificate: 'fakeCertificate',
+  joinTimestamp: null,
+}
+
+// Replace "ModalName.uploadedFileModal" etc. with the REAL enum/constant your store uses
+enum ModalName {
+  uploadedFileModal = 'uploadedFileModal',
+  duplicatedUsernameModal = 'duplicatedUsernameModal',
+  unregisteredUsernameModal = 'unregisteredUsernameModal',
+}
+
+// Add placeholders for the required fields
+const dummyFn = () => {}
+
+const dummyRemoveFile = (_fileId: string) => {}
+
+const defaultIsCommunityInitialized = true
 
 const args: Partial<ChannelComponentProps & UploadFilesPreviewsProps> = {
-  user: {
-    id: 'id',
-    nickname: 'vader',
-    hiddenService: {
-      onionAddress: 'onionAddress',
-      privateKey: 'privateKey',
-    },
-    peerId: {
-      id: 'id',
-      privKey: 'privKey',
-      noiseKey: 'noiseKey',
-    },
-    userCsr: {
-      userCsr: 'userCsr',
-      userKey: 'userKey',
-      pkcs10: {
-        publicKey: 'publicKey',
-        privateKey: 'privateKey',
-        pkcs10: 'pkcs10',
-      },
-    },
-    userCertificate: 'userCertificate',
-    joinTimestamp: null,
-  },
+  // Use the valid user object
+  user: validUser,
+
+  // Return a Redux-like object instead of '(...) => void'
   uploadedFileModal: {
     open: false,
-    handleOpen: function (_args?: any): any {},
-    handleClose: function (): any {},
+    handleOpen(_args?: { src: string }) {
+      return {
+        type: 'Modals/openModal',
+        payload: {
+          name: ModalName.uploadedFileModal,
+          args: { src: _args?.src || '' },
+        },
+      }
+    },
+    handleClose() {
+      return {
+        type: 'Modals/closeModal',
+        payload: ModalName.uploadedFileModal,
+      }
+    },
     src: 'images/butterfly.jpeg',
   },
+
+  // If these are causing the same "() => void" error,
+  // return a Redux action shape here, too:
+  duplicatedUsernameModalHandleOpen() {
+    return {
+      type: 'Modals/openModal',
+      payload: { name: ModalName.duplicatedUsernameModal },
+    }
+  },
+  unregisteredUsernameModalHandleOpen() {
+    return {
+      type: 'Modals/openModal',
+      payload: { name: ModalName.unregisteredUsernameModal },
+    }
+  },
+
   messages: mock_messages(),
   newestMessage: {
     id: '31',
@@ -60,23 +110,26 @@ const args: Partial<ChannelComponentProps & UploadFilesPreviewsProps> = {
   onInputChange: function (_value: string): void {},
   onInputEnter: function (_message: string): void {},
   filesData: {},
+  removeFile: dummyRemoveFile,
+  openUrl: dummyFn,
+  openFilesDialog: dummyFn,
+  handleFileDrop: dummyFn,
+  isCommunityInitialized: defaultIsCommunityInitialized,
+  handleClipboardFiles: dummyFn,
 }
 
 const Template: ComponentStory<typeof ChannelComponent> = args => {
   return (
-    <>
-      <DndProvider backend={HTML5Backend}>
-        <ChannelComponent {...args} />
-      </DndProvider>
-    </>
+    <DndProvider backend={HTML5Backend}>
+      <ChannelComponent {...args} />
+    </DndProvider>
   )
 }
 
-// States
-export const Normal = Template.bind({})
+export const Component = Template.bind({})
 export const Pending = Template.bind({})
 
-Normal.args = args
+Component.args = args
 Pending.args = {
   ...args,
   pendingMessages: {
@@ -602,3 +655,82 @@ const component: ComponentMeta<typeof ChannelComponent> = {
 }
 
 export default component
+
+export const InteractiveLocalState: ComponentStory<typeof ChannelComponent> = () => {
+  // Example of local state logic from older "Channel.stories.cy.tsx"
+  const [messages, setMessages] = useState<{
+    count: number
+    groups: { [day: string]: DisplayableMessage[][] }
+  }>(mock_messages())
+
+  const onInputEnter = (message: string) => {
+    const newMessage: DisplayableMessage = {
+      id: '32',
+      type: 1,
+      message,
+      createdAt: 0,
+      date: '12:46',
+      nickname: users.vader.username,
+      isDuplicated: false,
+      isRegistered: true,
+      pubKey: users.vader.pubkey,
+    }
+    setMessages(mock_messages(newMessage))
+  }
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <ChannelComponent
+        onInputEnter={onInputEnter}
+        messages={messages}
+        pendingMessages={{}}
+        newestMessage={{
+          id: '31',
+          type: 1,
+          message: 'I agree!',
+          createdAt: 0,
+          channelId: 'general',
+          signature: 'signature',
+          pubKey: 'pubKey',
+        }}
+        user={validUser}
+        uploadedFileModal={{
+          open: false,
+          handleOpen: (_args?: { src: string }) => ({
+            type: 'Modals/openModal',
+            payload: {
+              name: ModalName.uploadedFileModal,
+              args: _args ? { src: _args.src } : {},
+            },
+          }),
+          handleClose: () => ({
+            type: 'Modals/closeModal',
+            payload: ModalName.uploadedFileModal,
+          }),
+          src: 'images/butterfly.jpeg',
+        }}
+        channelId='general'
+        channelName='general'
+        lazyLoading={() => {}}
+        onInputChange={() => {}}
+        filesData={{}}
+        enableContextMenu={false}
+        pendingGeneralChannelRecreation={false}
+        duplicatedUsernameModalHandleOpen={() => ({
+          type: 'Modals/openModal',
+          payload: { name: ModalName.duplicatedUsernameModal },
+        })}
+        unregisteredUsernameModalHandleOpen={() => ({
+          type: 'Modals/openModal',
+          payload: { name: ModalName.unregisteredUsernameModal },
+        })}
+        removeFile={dummyRemoveFile}
+        openUrl={dummyFn}
+        openFilesDialog={dummyFn}
+        handleFileDrop={dummyFn}
+        isCommunityInitialized={defaultIsCommunityInitialized}
+        handleClipboardFiles={dummyFn}
+      />
+    </DndProvider>
+  )
+}

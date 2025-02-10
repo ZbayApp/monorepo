@@ -8,8 +8,6 @@ export class App {
 
   constructor(values?: Partial<App>) {
     Object.assign(this, values)
-    // @ts-expect-error - expression of type 'unique symbol' can't be used to index type 'App'
-    this[immerable] = true
   }
 }
 

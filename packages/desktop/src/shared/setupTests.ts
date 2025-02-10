@@ -38,27 +38,36 @@ jest.mock('electron-store', () => {
   }
 })
 
-jest.mock('@electron/remote', () => {
-  const mock = {
-    BrowserWindow: {
-      getAllWindows: () => {
-        return [
-          {
-            isFocused: () => true,
-            show: jest.fn(),
-          },
-        ]
-      },
-    },
+// Setup a type that includes [Symbol.iterator]
+type ElectronRemoteMock = {
+  BrowserWindow: {
+    getAllWindows: () => Array<{
+      isFocused: () => boolean
+      show: jest.Mock
+    }>
   }
+  [Symbol.iterator]: () => Generator<number, void, unknown>
+}
 
-  // @ts-expect-error - expression of type 'unique symbol' can't be used to index type
-  mock[Symbol.iterator] = function* () {
+// Then define your mock like this:
+jest.mock('@electron/remote', () => {
+  function* mockIterator(): Generator<number, void, unknown> {
     yield 1
     yield 2
     yield 3
   }
 
+  const mock: ElectronRemoteMock = {
+    BrowserWindow: {
+      getAllWindows: () => [
+        {
+          isFocused: () => true,
+          show: jest.fn(),
+        },
+      ],
+    },
+    [Symbol.iterator]: mockIterator,
+  }
   return mock
 })
 
