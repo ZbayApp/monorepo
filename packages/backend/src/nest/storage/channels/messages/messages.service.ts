@@ -17,6 +17,7 @@ import { EncryptionScopeType } from '../../../auth/services/crypto/types'
 import { SigChainService } from '../../../auth/sigchain.service'
 import { EncryptedMessage } from './messages.types'
 import { SignedEnvelope } from '3rd-party/auth/packages/auth/dist'
+import { RoleName } from '../../../auth/services/roles/roles'
 
 @Injectable()
 export class MessagesService extends EventEmitter {
@@ -78,7 +79,7 @@ export class MessagesService extends EventEmitter {
       const chain = this.sigChainService.getActiveChain()
       const encryptedMessage = chain.crypto.encryptAndSign(
         rawMessage.message,
-        { type: EncryptionScopeType.TEAM },
+        { type: EncryptionScopeType.ROLE, name: RoleName.MEMBER },
         chain.localUserContext
       )
       return {
