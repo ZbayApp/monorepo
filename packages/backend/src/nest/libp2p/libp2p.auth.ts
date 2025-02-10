@@ -361,11 +361,11 @@ export class Libp2pAuth {
   private async onPeerDisconnected(peerId: PeerId) {
     if (this.authConnections.has(peerId.toString())) {
       this.logger.warn(`Auth connection with ${peerId.toString()} was disconnected`)
-      this.closeAuthConnection(peerId)
+      this.closeAuthConnection(peerId, false)
     }
   }
 
-  public closeAuthConnection(peerId: PeerId | string) {
+  public closeAuthConnection(peerId: PeerId | string, sendPeerDisconnect = true) {
     this.logger.info(`Attempting to close auth connection with ${peerId.toString()}`)
     const key = peerId.toString()
 
@@ -376,7 +376,7 @@ export class Libp2pAuth {
 
     if (this.authConnections.has(key)) {
       try {
-        this.authConnections.get(key)?.stop()
+        this.authConnections.get(key)?.stop(sendPeerDisconnect)
       } catch (e) {
         // do nothing
       }

@@ -213,10 +213,6 @@ export class Libp2pService extends EventEmitter {
       this.logger.info('Disconnecting auth service gracefully')
       this.authService?.closeAuthConnection(peerId)
 
-      // Isla's Note: I found this useful in letting the communications over the auth connection fully finish
-      // thus avoiding errors
-      await sleep(5_000)
-
       this.logger.info('Hanging up connection on libp2p')
       await this.libp2pInstance?.hangUp(ma, { signal: controller.signal })
 
@@ -255,7 +251,7 @@ export class Libp2pService extends EventEmitter {
     this.logger.info(`Re-dialing ${dialed.length} peers`)
 
     // TODO: Sort peers
-    await this.hangUpPeers(dialed)
+    await this.hangUpPeers(dialed, true)
 
     await this.dialPeers(toDial)
   }
