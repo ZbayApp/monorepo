@@ -78,7 +78,6 @@ describe('ChannelMessages', () => {
             <ul
               class="MuiList-root ChannelMessagesComponentlist css-1mk9mw3-MuiList-root"
               id="messages-scroll"
-              tabindex="0"
             >
               <div>
                 <div
