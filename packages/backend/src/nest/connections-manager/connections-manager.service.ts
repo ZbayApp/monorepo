@@ -949,12 +949,15 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       async (callback?: (response: InviteResult | undefined) => void) => {
         this.logger.info(`socketService - ${SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE}`)
 
-        if (!this.sigChainService.activeChainTeamName) {
+        if (this.sigChainService.activeChainTeamName == null) {
           this.logger.warn(`No sigchain configured, skipping long lived LFA invite code generation!`)
           callback?.(undefined)
+          return
         }
+
         try {
           const invite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
+          await this.sigChainService.saveChain(this.sigChainService.activeChainTeamName)
           this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, invite)
           callback?.(invite)
         } catch (e) {
@@ -977,9 +980,10 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       ) => {
         this.logger.info(`socketService - ${SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE}`)
 
-        if (!this.sigChainService.activeChainTeamName) {
+        if (this.sigChainService.activeChainTeamName == null) {
           this.logger.warn(`No sigchain configured, skipping long lived LFA invite code validation/generation!`)
           callback(undefined)
+          return
         }
 
         if (this.sigChainService.getActiveChain().invites.isValidLongLivedUserInvite(inviteId)) {
@@ -987,6 +991,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         } else {
           try {
             const newInvite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
+            await this.sigChainService.saveChain(this.sigChainService.activeChainTeamName)
             this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, newInvite)
             callback({ valid: false, newInvite })
           } catch (e) {

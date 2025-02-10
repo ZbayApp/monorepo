@@ -87,6 +87,7 @@ exports[`Libp2pAuth gracefully disconnects: disconnectEventsB 1`] = `
   "authStateChanged:synchronizing",
   "authConnected",
   "authStateChanged:connected",
+  "authDisconnected",
   "authStateChanged:disconnected",
   "peerDisconnected",
 ]
@@ -116,6 +117,7 @@ exports[`Libp2pAuth gracefully disconnects: eventTimeline after disconnection 1`
   "authStateChanged:connected",
   "authConnected",
   "authStateChanged:connected",
+  "authDisconnected",
   "authStateChanged:disconnected",
   "peerDisconnected",
   "peerDisconnected",

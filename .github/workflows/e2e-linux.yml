@@ -23,6 +23,24 @@ jobs:
         with:
           submodules: 'recursive'
 
+      - name: Extract version
+        id: extract_version
+        uses: Saionaro/extract-package-version@fdb5b74adc1278ddb777dfed4c988b9d098bb48d # v1.2.1
+        with:
+          path: packages/mobile
+
+      - name: Check for major version
+        id: major-ver
+        run: |
+          echo ${{ steps.extract_version.outputs.version }}
+          if [[ "${{ steps.extract_version.outputs.version }}" =~ ^[[:digit:]]+\.0\.0(-alpha.[[:digit:]]+)?$ ]]; then
+              echo "This is a major version"
+              echo "match=true" >> $GITHUB_OUTPUT
+          else
+              echo "This is NOT a major version"
+              echo "match=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install WM
         run: sudo apt install fluxbox
 
@@ -79,7 +97,7 @@ jobs:
 
       - name: Run Backwards Compatibility test
         uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2.9.0
-        if: ${{ !contains(fromJson(env.SKIP_BACK_COMPAT_TEST_BRANCHES), github.head_ref) }}
+        if: ${{ steps.major-ver.outputs.match == 'false' }}
         with:
           timeout_minutes: 15
           max_attempts: 3
