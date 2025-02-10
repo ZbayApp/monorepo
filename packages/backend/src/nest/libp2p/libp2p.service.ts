@@ -194,16 +194,16 @@ export class Libp2pService extends EventEmitter {
     return { psk: psk.toString('base64'), fullKey }
   }
 
-  public async hangUpPeers(peers?: string[], deleteFromPeerStore = false) {
+  public async hangUpPeers(peers?: string[]) {
     this.logger.info('Hanging up on all peers')
     const peersToHangUp = peers ?? Array.from(this.dialedPeers)
     for (const peer of peersToHangUp) {
-      await this.hangUpPeer(peer, deleteFromPeerStore)
+      await this.hangUpPeer(peer)
     }
     this.logger.info('All peers hung up')
   }
 
-  public async hangUpPeer(peerAddress: string, deleteFromPeerStore = false) {
+  public async hangUpPeer(peerAddress: string) {
     this.logger.info('Hanging up on peer', peerAddress)
     const controller = new AbortController()
     try {
@@ -216,10 +216,8 @@ export class Libp2pService extends EventEmitter {
       this.logger.info('Hanging up connection on libp2p')
       await this.libp2pInstance?.hangUp(ma, { signal: controller.signal })
 
-      if (deleteFromPeerStore) {
-        this.logger.info('Removing peer from peer store')
-        await this.libp2pInstance?.peerStore.delete(peerId as any)
-      }
+      this.logger.info('Removing peer from peer store')
+      await this.libp2pInstance?.peerStore.delete(peerId as any)
 
       this.logger.info('Clearing local data')
       this.dialedPeers.delete(peerAddress)
@@ -251,7 +249,7 @@ export class Libp2pService extends EventEmitter {
     this.logger.info(`Re-dialing ${dialed.length} peers`)
 
     // TODO: Sort peers
-    await this.hangUpPeers(dialed, true)
+    await this.hangUpPeers(dialed)
 
     await this.dialPeers(toDial)
   }
@@ -508,7 +506,7 @@ export class Libp2pService extends EventEmitter {
     this.logger.info('Closing libp2p service')
     clearTimeout(this.redialTimeout)
     clearInterval(this._connectedPeersInterval)
-    await this.hangUpPeers(undefined, true)
+    await this.hangUpPeers(undefined)
     await this.libp2pInstance?.stop()
     await this.libp2pDatastore?.close()
 
