@@ -3,7 +3,13 @@
  */
 import * as bs58 from 'bs58'
 
-import { EncryptedAndSignedPayload, EncryptedPayload, EncryptionScope, EncryptionScopeType } from './types'
+import {
+  DecryptedPayload,
+  EncryptedAndSignedPayload,
+  EncryptedPayload,
+  EncryptionScope,
+  EncryptionScopeType,
+} from './types'
 import { ChainServiceBase } from '../chainServiceBase'
 import { SigChain } from '../../sigchain'
 import { asymmetric, Base58, Keyset, LocalUserContext, Member, SignedEnvelope } from '@localfirst/auth'
@@ -96,28 +102,45 @@ class CryptoService extends ChainServiceBase {
     }
   }
 
-  public decryptAndVerify(encrypted: EncryptedPayload, signature: SignedEnvelope, context: LocalUserContext): any {
-    const isValid = this.sigChain.team!.verify(signature)
-    if (!isValid) {
+  public decryptAndVerify<T>(
+    encrypted: EncryptedPayload,
+    signature: SignedEnvelope,
+    context: LocalUserContext,
+    failOnInvalid = true
+  ): DecryptedPayload<T> {
+    const isValid = this.verifyMessage(signature)
+    if (!isValid && failOnInvalid) {
       throw new Error(`Couldn't verify signature on message`)
     }
 
+    let contents: T
     switch (encrypted.scope.type) {
       // Symmetrical Encryption Types
       case EncryptionScopeType.CHANNEL:
       case EncryptionScopeType.ROLE:
       case EncryptionScopeType.TEAM:
-        return this.symDecrypt(encrypted)
+        contents = this.symDecrypt<T>(encrypted)
+        break
       // Asymmetrical Encryption Types
       case EncryptionScopeType.USER:
-        return this.asymUserDecrypt(encrypted, signature, context)
+        contents = this.asymUserDecrypt<T>(encrypted, signature, context)
+        break
       // Unknown Type
       default:
         throw new Error(`Unknown encryption scope type ${encrypted.scope.type}`)
     }
+
+    return {
+      contents,
+      isValid,
+    }
   }
 
-  private symDecrypt(encrypted: EncryptedPayload): any {
+  public verifyMessage(signature: SignedEnvelope): boolean {
+    return this.sigChain.team!.verify(signature)
+  }
+
+  private symDecrypt<T>(encrypted: EncryptedPayload): T {
     if (encrypted.scope.type !== EncryptionScopeType.TEAM && encrypted.scope.name == null) {
       throw new Error(`Must provide a scope name when encryption scope is set to ${encrypted.scope.type}`)
     }
@@ -129,10 +152,10 @@ class CryptoService extends ChainServiceBase {
         // you don't need a name on the scope when encrypting but you need one for decrypting because of how LFA searches for keys in lockboxes
         name: encrypted.scope.type === EncryptionScopeType.TEAM ? EncryptionScopeType.TEAM : encrypted.scope.name!,
       },
-    })
+    }) as T
   }
 
-  private asymUserDecrypt(encrypted: EncryptedPayload, signature: SignedEnvelope, context: LocalUserContext): any {
+  private asymUserDecrypt<T>(encrypted: EncryptedPayload, signature: SignedEnvelope, context: LocalUserContext): T {
     if (encrypted.scope.name == null) {
       throw new Error(`Must provide a user ID when encryption scope is set to ${encrypted.scope.type}`)
     }
@@ -145,7 +168,7 @@ class CryptoService extends ChainServiceBase {
       cipher: encrypted.contents,
       senderPublicKey: senderKey,
       recipientSecretKey: recipientKey,
-    })
+    }) as T
   }
 }
 

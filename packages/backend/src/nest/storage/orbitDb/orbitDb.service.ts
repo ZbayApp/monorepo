@@ -3,7 +3,7 @@ import { ORBIT_DB_DIR } from '../../const'
 import { createLogger } from '../../common/logger'
 import { posixJoin } from './util'
 import { type PeerId } from '@libp2p/interface'
-import { MessagesAccessController } from './MessagesAccessController'
+import { MessagesAccessController } from '../channels/messages/orbitdb/MessagesAccessController'
 import {
   createOrbitDB,
   type OrbitDBType,

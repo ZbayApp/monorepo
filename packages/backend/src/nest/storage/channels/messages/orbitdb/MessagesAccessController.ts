@@ -15,11 +15,17 @@ import { getCrypto } from 'pkijs'
 import { stringToArrayBuffer } from 'pvutils'
 import { keyObjectFromString, verifySignature } from '@quiet/identity'
 import { ChannelMessage, NoCryptoEngineError } from '@quiet/types'
-import { posixJoin } from './util'
+import { posixJoin } from '../../../orbitDb/util'
+import { EncryptedMessage } from '../messages.types'
+import { SigChainService } from 'packages/backend/src/nest/auth/sigchain.service'
+import { MessagesService } from '../messages.service'
+import { createLogger } from '../../../../common/logger'
 
 const codec = dagCbor
 const hasher = sha256
 const hashStringEncoding = base58btc
+
+const logger = createLogger(`storage:channels:messages:orbitdb:access-control`)
 
 const AccessControlList = async ({
   storage,
@@ -43,7 +49,7 @@ const AccessControlList = async ({
 const type = 'messagesaccess'
 
 export const MessagesAccessController =
-  ({ write }: { write: string[] }) =>
+  ({ write, messagesService }: { write: string[]; messagesService: MessagesService }) =>
   async ({ orbitdb, identities, address }: { orbitdb: OrbitDBType; identities: IdentitiesType; address: string }) => {
     const storage = await ComposedStorage(
       await LRUStorage({ size: 1000 }),
@@ -65,7 +71,7 @@ export const MessagesAccessController =
     const crypto = getCrypto()
     const keyMapping: Map<string, CryptoKey> = new Map()
 
-    const canAppend = async (entry: LogEntry<ChannelMessage>) => {
+    const canAppend = async (entry: LogEntry<EncryptedMessage>) => {
       if (!crypto) throw new NoCryptoEngineError()
 
       const writerIdentity = await identities.getIdentity(entry.identity)
@@ -86,16 +92,9 @@ export const MessagesAccessController =
 
       if (message) {
         try {
-          const signature = stringToArrayBuffer(message.signature)
-          let cryptoKey = keyMapping.get(message.pubKey)
-
-          if (!cryptoKey) {
-            cryptoKey = await keyObjectFromString(message.pubKey, crypto)
-            keyMapping.set(message.pubKey, cryptoKey)
-          }
-
-          return await verifySignature(signature, message.message, cryptoKey)
+          return messagesService.verifyMessage(message)
         } catch (e) {
+          logger.error(`Couldn't verify signature on message ${message.id}, can't append!`, e)
           return true
         }
       } else {
