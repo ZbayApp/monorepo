@@ -8,10 +8,15 @@ import MessagesDivider from '../MessagesDivider'
 import BasicMessageComponent from './BasicMessage'
 import SpinnerLoader from '../../ui/Spinner/SpinnerLoader'
 
-import { DownloadStatus, MessagesDailyGroups, MessageSendingStatus } from '@quiet/state-manager'
+import {
+  DownloadStatus,
+  MessagesDailyGroups,
+  MessageSendingStatus,
+  FileMetadata,
+  CancelDownload,
+} from '@quiet/state-manager'
 import { UseModalType } from '../../../containers/hooks'
 import { HandleOpenModalType } from '../userLabel/UserLabel.types'
-import { FileMetadata, CancelDownload } from '@quiet/state-manager'
 
 const PREFIX = 'ChannelMessagesComponent'
 
@@ -99,7 +104,6 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const spinnerMessage = pendingGeneralChannelRecreation ? DELETING_CHANNEL : FETCHING_MESSAGES
 
-  // Keep a ref for each day block
   Object.keys(messages).forEach(day => {
     if (!dayRefs.current[day]) {
       dayRefs.current[day] = null
@@ -108,7 +112,6 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
 
   const updateFloatingDate = useCallback(() => {
     if (!scrollbarRef.current) return
-
     const containerRect = scrollbarRef.current.getBoundingClientRect()
     const floatOffset = 23
     const floatPos = containerRect.top + floatOffset
@@ -129,7 +132,6 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
     setCurrentDay(bestDay)
   }, [scrollbarRef])
 
-  // Only set isScrolling if user physically scrolled (wheel or PageUp/PageDown).
   const handleScroll = useCallback(() => {
     onScroll()
     if (!scrollbarRef.current) return
@@ -146,36 +148,31 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
     }, 1000)
   }, [onScroll, updateFloatingDate, userHasInitiatedScroll])
 
-  // PageUp/PageDown events
-  const handleKeyDown = useCallback(
-    (evt: KeyboardEvent) => {
-      if (!scrollbarRef.current) return
-      if (evt.key === 'PageUp' || evt.key === 'PageDown') {
-        setUserHasInitiatedScroll(true)
-        listRef.current?.focus()
-
-        if (evt.key === 'PageUp') {
-          scrollbarRef.current.scrollTop -= 40
-        } else {
-          scrollbarRef.current.scrollTop += 40
-        }
-      }
-    },
-    [listRef, scrollbarRef]
-  )
-
-  // Wheel event means user definitely scrolled
   const handleWheel = useCallback(() => {
     setUserHasInitiatedScroll(true)
   }, [])
 
-  // Register key events on the document
+  // Attach a single document‐level keydown listener, once
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown, false)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown, false)
+    const handleKeyDown = (evt: KeyboardEvent) => {
+      if (!scrollbarRef.current) return
+
+      if (evt.key === 'PageUp' || evt.key === 'PageDown') {
+        evt.preventDefault()
+
+        // Get viewport height (minus ~10% for overlap)
+        const scrollAmount = scrollbarRef.current.clientHeight * 0.9
+
+        setUserHasInitiatedScroll(true)
+        scrollbarRef.current.scrollTop += evt.key === 'PageUp' ? -scrollAmount : scrollAmount
+      }
     }
-  }, [handleKeyDown])
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [scrollbarRef])
 
   // Register scroll/wheel on the container
   useEffect(() => {
@@ -204,10 +201,9 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
         <SpinnerLoader size={40} message={spinnerMessage} className={classes.spinner} color='black' />
       )}
 
-      {/* Only show FloatingDate after user input and while they're actively scrolling */}
       <FloatingDate title={currentDay || 'Today'} isVisible={userHasInitiatedScroll && isScrolling} />
 
-      <List disablePadding className={classes.list} id='messages-scroll' ref={listRef} tabIndex={0}>
+      <List disablePadding className={classes.list} id='messages-scroll' ref={listRef}>
         {Object.keys(messages).map(day => (
           <div
             key={day}
