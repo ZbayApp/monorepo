@@ -10,6 +10,7 @@ import {
 import { Dictionary } from '@reduxjs/toolkit'
 import { useContextMenu } from '../../hooks/useContextMenu'
 import { DocumentPickerResponse } from 'react-native-document-picker'
+import { Asset } from 'react-native-image-picker'
 import { UserLabelHandlers } from '../UserLabel/UserLabel.types'
 
 export interface ChatProps extends UserLabelHandlers {
@@ -28,6 +29,7 @@ export interface ChatProps extends UserLabelHandlers {
   setImagePreview?: (media: FileMetadata | null) => void
   openImagePreview: (media: FileMetadata) => void
   updateUploadedFiles: (filesData: DocumentPickerResponse[]) => void
+  updateUploadedImages: (assets: Asset[]) => void
   removeFilePreview: (id: string) => void
   uploadedFiles?: FilePreviewData
   openUrl: (url: string) => void

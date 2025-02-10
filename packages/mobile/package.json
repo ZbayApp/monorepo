@@ -58,6 +58,7 @@
     "react-native-fast-image": "git+https://github.com/siepra/react-native-fast-image.git#f98be76a06b8a4a57ae92de85975aad9053634c5",
     "react-native-fs": "git+https://github.com/siepra/react-native-fs.git#3be3f17040c1b2230ded7225550444c8f7c95b16",
     "react-native-gesture-handler": "^2.14.1",
+    "react-native-image-picker": "8.0.0",
     "react-native-level-fs": "^3.0.1",
     "react-native-mathjax-html-to-svg": "^1.1.0",
     "react-native-popup-menu": "^0.16.1",

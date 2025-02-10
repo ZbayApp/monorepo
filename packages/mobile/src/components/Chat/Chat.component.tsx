@@ -11,6 +11,7 @@ import { ChannelMessagesComponentProps, ChatProps } from './Chat.types'
 import { FileActionsProps } from '../UploadedFile/UploadedFile.types'
 import { AttachmentButton } from '../AttachmentButton/AttachmentButton.component'
 import DocumentPicker, { DocumentPickerResponse, types } from 'react-native-document-picker'
+import { launchImageLibrary, ImagePickerResponse } from 'react-native-image-picker'
 import UploadFilesPreviewsComponent from '../FileUploadingPreview/UploadingPreview.component'
 import { defaultTheme } from '../../styles/themes/default.theme'
 import { createLogger } from '../../utils/logger'
@@ -35,6 +36,7 @@ export const Chat: FC<ChatProps & FileActionsProps> = ({
   setImagePreview,
   openImagePreview,
   updateUploadedFiles,
+  updateUploadedImages,
   removeFilePreview,
   uploadedFiles,
   openUrl,
@@ -107,6 +109,31 @@ export const Chat: FC<ChatProps & FileActionsProps> = ({
     if (response) {
       updateUploadedFiles(response)
     }
+  }
+
+  const openImages = async () => {
+    launchImageLibrary(
+      {
+        presentationStyle: 'fullScreen',
+        mediaType: 'mixed', // photos and videos
+        selectionLimit: 5, // we don't want to overwhelm helia or libp2p
+      },
+      (response: ImagePickerResponse) => {
+        if (response.didCancel === true) {
+          logger.debug(`User cancelled image library fetch`)
+          return
+        }
+
+        if (response.errorCode != null || response.errorMessage != null) {
+          logger.error(`Error while fetching image library`, response.errorCode, response.errorMessage)
+          return
+        }
+
+        if (response.assets != null && response.assets.length > 0) {
+          updateUploadedImages(response.assets)
+        }
+      }
+    )
   }
 
   const onPress = () => {
@@ -207,7 +234,7 @@ export const Chat: FC<ChatProps & FileActionsProps> = ({
                         justifyContent: 'center',
                       }}
                     >
-                      <AttachmentButton onPress={openAttachments} />
+                      <AttachmentButton onPress={openImages} />
                     </View>
                   </View>
                   {(didKeyboardShow || areFilesUploaded) && (

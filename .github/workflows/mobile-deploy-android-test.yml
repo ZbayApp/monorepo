@@ -1,0 +1,85 @@
+name: Test Android Build
+
+on:
+  pull_request:
+    paths:
+      - packages/mobile/**
+      - packages/common/**
+      - packages/helia/**
+      - packages/identity/**
+      - packages/logger/**
+      - packages/state-manager/**
+      - packages/types/**
+
+jobs:
+  test-build-android:
+    # needs: detox-android
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest-m]
+
+    steps:
+      - name: "Print OS"
+        run: echo ${{ matrix.os }}
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: "Set up JDK"
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: "Set up NDK"
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r25b
+          add-to-path: false
+
+      - name: "Install Bundletool"
+        run: |
+          wget https://github.com/google/bundletool/releases/download/1.15.6/bundletool-all-1.15.6.jar -O /usr/local/bin/bundletool.jar
+
+      - name: "Setup environment"
+        uses: ./.github/actions/setup-env
+        with:
+          bootstrap-packages: "@quiet/eslint-config,@quiet/logger,@quiet/common,@quiet/types,@quiet/state-manager,@quiet/backend,@quiet/identity,@quiet/mobile,backend-bundle,helia"
+
+      - name: "Create gradle configuration directory"
+        run: mkdir -p $HOME/.gradle
+
+      - name: "Prepare ndk configuration"
+        run: |
+          printf "\
+          NDK_PATH=${{ steps.setup-ndk.outputs.ndk-path }}\n\
+          " > $HOME/.gradle/gradle.properties
+
+      - name: "Prepare signing configuration"
+        run: |
+          printf "\
+          STORE_FILE=quietmobile.keystore\n\
+          STORE_PASSWORD=${{ SECRETS.GOOGLE_KEYSTORE_PASSWORD }}\n\
+          KEY_ALIAS=${{ SECRETS.GOOGLE_KEYSTORE_ALIAS }}\n\
+          KEY_PASSWORD=${{ SECRETS.GOOGLE_KEYSTORE_PASSWORD }}\
+          " >> $HOME/.gradle/gradle.properties
+
+      - name: "Decode keystore"
+        run: echo ${{ SECRETS.GOOGLE_KEYSTORE }} | base64 --decode > ./packages/mobile/android/app/quietmobile.keystore
+
+      - name: "Build .aab"
+        run: cd ./packages/mobile/android && ENVFILE=../.env.staging ./gradlew bundleStandardRelease
+
+      - name: "Build .apks"
+        run: |
+          java -jar /usr/local/bin/bundletool.jar build-apks \
+            --bundle=./packages/mobile/android/app/build/outputs/bundle/standardRelease/app-standard-release.aab \
+            --output=./packages/mobile/android/app/build/outputs/bundle/standardRelease/app-standard-release.apks \
+            --ks=./packages/mobile/android/app/quietmobile.keystore \
+            --ks-pass=pass:${{ SECRETS.GOOGLE_KEYSTORE_PASSWORD }} \
+            --ks-key-alias=${{ SECRETS.GOOGLE_KEYSTORE_ALIAS }}
+

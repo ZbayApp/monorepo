@@ -10,6 +10,7 @@ import { UseContextMenuType, useContextMenu } from '../../hooks/useContextMenu'
 import { MenuName } from '../../const/MenuNames.enum'
 import { initSelectors } from '../../store/init/init.selectors'
 import { DocumentPickerResponse } from 'react-native-document-picker'
+import { Asset } from 'react-native-image-picker'
 import { getFilesData } from '@quiet/common'
 
 export const ChannelScreen: FC = () => {
@@ -103,6 +104,23 @@ export const ChannelScreen: FC = () => {
     })
   }
 
+  const updateUploadedImages = (assets: Asset[]) => {
+    const assetData: FilePreviewData = getFilesData(
+      assets.map(assetObj => {
+        return {
+          path: assetObj.uri || assetObj.originalPath || '',
+          isTmp: false,
+        }
+      })
+    )
+
+    // FilePreviewData
+    setUploadingFiles(existingFiles => {
+      const updatedFiles = { ...existingFiles, ...assetData }
+      return updatedFiles
+    })
+  }
+
   const removeFilePreview = (id: string) =>
     setUploadingFiles(existingFiles => {
       delete existingFiles[id]
@@ -174,6 +192,7 @@ export const ChannelScreen: FC = () => {
       setImagePreview={setImagePreview}
       openImagePreview={setImagePreview}
       updateUploadedFiles={updateUploadedFiles}
+      updateUploadedImages={updateUploadedImages}
       removeFilePreview={removeFilePreview}
       openUrl={openUrl}
       uploadedFiles={uploadingFiles}

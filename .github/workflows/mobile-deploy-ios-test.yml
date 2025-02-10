@@ -2,6 +2,14 @@ name: Test IOS build
 
 on:
   pull_request:
+    paths:
+      - packages/mobile/**
+      - packages/common/**
+      - packages/helia/**
+      - packages/identity/**
+      - packages/logger/**
+      - packages/state-manager/**
+      - packages/types/**
 
 jobs:
   test-build-ios:
