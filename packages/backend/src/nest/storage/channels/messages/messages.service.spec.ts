@@ -12,6 +12,7 @@ import { ChannelMessage, Community, Identity, PublicChannel, TestMessage } from 
 import { isBase58 } from 'class-validator'
 import { FactoryGirl } from 'factory-girl'
 import { EncryptionScopeType } from '../../../auth/services/crypto/types'
+import { RoleName } from '../../../auth/services/roles/roles'
 import { SigChainService } from '../../../auth/sigchain.service'
 import { createLogger } from '../../../common/logger'
 import { TestModule } from '../../../common/test.module'
@@ -97,7 +98,8 @@ describe('MessagesService', () => {
           message: expect.objectContaining({
             scope: {
               generation: 0,
-              type: EncryptionScopeType.TEAM,
+              type: EncryptionScopeType.ROLE,
+              name: RoleName.MEMBER,
             },
           }),
         })
