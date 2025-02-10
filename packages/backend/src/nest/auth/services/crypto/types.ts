@@ -25,3 +25,8 @@ export type EncryptedAndSignedPayload = {
   ts: number
   username: string
 }
+
+export type DecryptedPayload<T> = {
+  contents: T
+  isValid: boolean
+}
