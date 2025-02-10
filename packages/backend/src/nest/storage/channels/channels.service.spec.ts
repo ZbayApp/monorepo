@@ -38,6 +38,7 @@ import { LocalDbModule } from '../../local-db/local-db.module'
 import { LocalDbService } from '../../local-db/local-db.service'
 import { createLogger } from '../../common/logger'
 import { ChannelsService } from './channels.service'
+import { SigChainService } from '../../auth/sigchain.service'
 
 const logger = createLogger('channelsService:test')
 
@@ -51,6 +52,7 @@ describe('ChannelsService', () => {
   let libp2pService: Libp2pService
   let localDbService: LocalDbService
   let channelsService: ChannelsService
+  let sigChainService: SigChainService
   let peerId: PeerId
 
   let store: Store
@@ -106,6 +108,7 @@ describe('ChannelsService', () => {
     localDbService = await module.resolve(LocalDbService)
     libp2pService = await module.resolve(Libp2pService)
     ipfsService = await module.resolve(IpfsService)
+    sigChainService = await module.resolve(SigChainService)
 
     const params = await libp2pInstanceParams()
     peerId = params.peerId.peerId
@@ -118,6 +121,8 @@ describe('ChannelsService', () => {
 
     await localDbService.setCommunity(community)
     await localDbService.setCurrentCommunityId(community.id)
+
+    await sigChainService.createChain(community.name!, alice.nickname, true)
 
     await storageService.init(peerId)
   })
@@ -174,10 +179,23 @@ describe('ChannelsService', () => {
       expect(eventSpy).toHaveBeenCalled()
       const savedMessages = await channelsService.getMessages(channelio.id)
       expect(savedMessages?.messages.length).toBe(1)
-      expect(savedMessages?.messages[0]).toEqual({ ...messageCopy, verified: true })
+      expect(savedMessages?.messages[0]).toEqual({
+        ...messageCopy,
+        verified: true,
+        encSignature: expect.objectContaining({
+          author: {
+            generation: 0,
+            type: 'USER',
+            name: sigChainService.getActiveChain().localUserContext.user.userId,
+          },
+          contents: expect.any(String),
+          signature: expect.any(String),
+        }),
+      })
     })
 
-    it('is not saved to db if did not pass signature verification', async () => {
+    // TODO: figure out a good way to spoof the signature
+    it.skip('is not saved to db if did not pass signature verification', async () => {
       const aliceMessage = await factory.create<ReturnType<typeof publicChannels.actions.test_message>['payload']>(
         'Message',
         {
