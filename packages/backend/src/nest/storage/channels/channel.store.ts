@@ -231,7 +231,7 @@ export class ChannelStore extends EventStoreBase<EncryptedMessage, ConsumedChann
   }
 
   /**
-   * Read a list of entries on the OrbitDB event store
+   * Read a list of entries on the OrbitDB event store and decrypt
    *
    * @param ids Optional list of message IDs to filter by
    * @returns All matching entries on the event store
@@ -244,13 +244,32 @@ export class ChannelStore extends EventStoreBase<EncryptedMessage, ConsumedChann
 
     for await (const x of this.getStore().iterator()) {
       if (ids == null || ids?.includes(x.value.id)) {
-        // NOTE: we skipped the verification process when reading many messages in the previous version
-        // so I'm skipping it here - is that really the correct behavior?
         const decryptedMessage = await this.messagesService.onConsume(x.value)
         if (decryptedMessage == null) {
           continue
         }
         messages.push(decryptedMessage)
+      }
+    }
+
+    return messages
+  }
+
+  /**
+   * Read a list of entries on the OrbitDB event store without decrypting
+   *
+   * @param ids Optional list of message IDs to filter by
+   * @returns All matching entries on the event store
+   */
+  public async getEncryptedEntries(): Promise<EncryptedMessage[]>
+  public async getEncryptedEntries(ids: string[] | undefined): Promise<EncryptedMessage[]>
+  public async getEncryptedEntries(ids?: string[] | undefined): Promise<EncryptedMessage[]> {
+    this.logger.info(`Getting all encrypted messages for channel`, this.channelData.id, this.channelData.name)
+    const messages: EncryptedMessage[] = []
+
+    for await (const x of this.getStore().iterator()) {
+      if (ids == null || ids?.includes(x.value.id)) {
+        messages.push(x.value)
       }
     }
 
