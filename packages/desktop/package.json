@@ -150,7 +150,8 @@
     "socket.io-client": "^4.7.4",
     "cypress": "^12.17.4",
     "@cypress/webpack-preprocessor": "^5.17.1",
-    "cypress-visual-regression": "^3.0.0"
+    "cypress-visual-regression": "^3.0.0",
+    "cypress-real-events": "^1.10.0"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",

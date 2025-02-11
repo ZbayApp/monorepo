@@ -40,6 +40,7 @@ describe('Scroll behavior test', () => {
 
   const channelContent = '[data-testid="channelContent"]'
   const messageInput = '[data-testid="messageInput"]'
+  const floatingDateSelector = '[class*="FloatingDatetitleDiv"]'
 
   it('scroll should be at the bottom after entering channel', () => {
     // Check if scrolled to bottom
@@ -172,6 +173,53 @@ describe('Scroll behavior test', () => {
       // Scrollable width should not exceed the container width
       // (meaning text is wrapping, not horizontally scrolling)
       expect(element.scrollWidth).to.equal(element.offsetWidth)
+    })
+  })
+
+  describe('FloatingDate displays correctly', () => {
+
+    // The scroll wheel was difficult to test, even with cypress-real-events
+    // so we're just going to test the pageup and pagedown keys
+
+    it('should not display on channel load', () => {
+      cy.get(messageInput).focus().type('{pageup}')
+      // Wait for the pageup key event to be processed
+        .wait(0)
+      
+      cy.get(floatingDateSelector).should('not.be.visible')
+    })
+
+
+    it('should display on pageup', () => {
+      cy.get(messageInput).focus().type('{pageup}')
+      // Wait for the pageup key event to be processed
+        .wait(0)
+      
+      cy.get(floatingDateSelector).should('be.visible')
+    })
+
+    it('should disappear within 3 seconds after scrolling stops', () => {
+      cy.clock()
+      
+      cy.get(messageInput).focus().type('{pageup}')
+      // Wait for the pageup key event to be processed
+        .wait(0)
+
+      cy.get(floatingDateSelector).should('be.visible')
+      
+      cy.tick(3000)
+      
+      cy.get(floatingDateSelector).should('not.be.visible')
+    })
+
+    it('should display the correct date text', () => {
+      cy.get(channelContent)
+      cy.get(messageInput).focus().type('{pageup}')
+      
+      cy.get(floatingDateSelector)
+        .should('be.visible')
+        .invoke('text')
+        .should('contain', '28 Oct')
     })
   })
 })
