@@ -3,7 +3,7 @@ import { type Helia } from 'helia'
 import { createLogger } from '../../common/logger'
 import { OrbitDbService } from './orbitDb.service'
 
-const logger = createLogger('orbitdb:keyValueWrapper')
+const logger = createLogger('orbitdb:eventsWithStorage')
 
 export const EventsWithStorage =
   (pinIpfs = true) =>

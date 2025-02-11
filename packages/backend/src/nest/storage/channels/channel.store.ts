@@ -6,6 +6,7 @@ import { QuietLogger } from '@quiet/logger'
 import {
   ChannelMessage,
   CompoundError,
+  ConsumedChannelMessage,
   MessagesLoadedPayload,
   PublicChannel,
   PushNotificationPayload,
@@ -14,19 +15,20 @@ import {
 import { createLogger } from '../../common/logger'
 import { EventStoreBase } from '../base.store'
 import { EventsWithStorage } from '../orbitDb/eventsWithStorage'
-import { MessagesAccessController } from '../orbitDb/MessagesAccessController'
+import { MessagesAccessController } from './messages/orbitdb/MessagesAccessController'
 import { OrbitDbService } from '../orbitDb/orbitDb.service'
 import validate from '../../validation/validators'
 import { MessagesService } from './messages/messages.service'
 import { DBOptions, StorageEvents } from '../storage.types'
 import { LocalDbService } from '../../local-db/local-db.service'
 import { CertificatesStore } from '../certificates/certificates.store'
+import { EncryptedMessage } from './messages/messages.types'
 
 /**
  * Manages storage-level logic for a given channel in Quiet
  */
 @Injectable()
-export class ChannelStore extends EventStoreBase<ChannelMessage> {
+export class ChannelStore extends EventStoreBase<EncryptedMessage, ConsumedChannelMessage> {
   private channelData: PublicChannel
   private _subscribing: boolean = false
 
@@ -60,12 +62,15 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
     this.logger = createLogger(`storage:channels:channelStore:${this.channelData.name}`)
     this.logger.info(`Initializing channel store for channel ${this.channelData.name}`)
 
-    this.store = await this.orbitDbService.orbitDb.open<EventsType<ChannelMessage>>(`channels.${this.channelData.id}`, {
-      type: 'events',
-      Database: EventsWithStorage(),
-      AccessController: MessagesAccessController({ write: ['*'] }),
-      sync: options.sync,
-    })
+    this.store = await this.orbitDbService.orbitDb.open<EventsType<EncryptedMessage>>(
+      `channels.${this.channelData.id}`,
+      {
+        type: 'events',
+        Database: EventsWithStorage(),
+        AccessController: MessagesAccessController({ write: ['*'], messagesService: this.messagesService }),
+        sync: options.sync,
+      }
+    )
 
     this.logger.info('Initialized')
     return this
@@ -95,10 +100,14 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
     this.logger.info('Subscribing to channel ', this.channelData.id)
     this._subscribing = true
 
-    this.getStore().events.on('update', async (entry: LogEntry<ChannelMessage>) => {
+    this.getStore().events.on('update', async (entry: LogEntry<EncryptedMessage>) => {
       this.logger.info(`${this.channelData.id} database updated`, entry.hash, entry.payload.value?.channelId)
 
       const message = await this.messagesService.onConsume(entry.payload.value!)
+      if (message == null) {
+        this.logger.error(`Couldn't consume message ${entry.payload.value!.id}`)
+        return
+      }
 
       this.emit(StorageEvents.MESSAGES_STORED, {
         messages: [message],
@@ -147,25 +156,28 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
    *
    * @param message Message to add to the OrbitDB database
    */
-  public async sendMessage(message: ChannelMessage): Promise<void> {
+  public async sendMessage(message: ChannelMessage): Promise<boolean> {
     this.logger.info(`Sending message with ID ${message.id} on channel ${this.channelData.id}`)
     if (!validate.isMessage(message)) {
       this.logger.error('Public channel message is invalid')
-      return
+      return false
     }
 
     if (message.channelId != this.channelData.id) {
       this.logger.error(
         `Could not send message. Message is for channel ID ${message.channelId} which does not match channel ID ${this.channelData.id}`
       )
-      return
+      return false
     }
 
     try {
       await this.addEntry(message)
+      return true
     } catch (e) {
-      this.logger.error(`Could not append message (entry not allowed to write to the log). Details: ${e.message}`)
+      this.logger.error(`Error while sending message`, e)
     }
+
+    return false
   }
 
   /**
@@ -219,23 +231,45 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
   }
 
   /**
-   * Read a list of entries on the OrbitDB event store
+   * Read a list of entries on the OrbitDB event store and decrypt
    *
    * @param ids Optional list of message IDs to filter by
    * @returns All matching entries on the event store
    */
-  public async getEntries(): Promise<ChannelMessage[]>
-  public async getEntries(ids: string[] | undefined): Promise<ChannelMessage[]>
-  public async getEntries(ids?: string[] | undefined): Promise<ChannelMessage[]> {
+  public async getEntries(): Promise<ConsumedChannelMessage[]>
+  public async getEntries(ids: string[] | undefined): Promise<ConsumedChannelMessage[]>
+  public async getEntries(ids?: string[] | undefined): Promise<ConsumedChannelMessage[]> {
     this.logger.info(`Getting all messages for channel`, this.channelData.id, this.channelData.name)
-    const messages: ChannelMessage[] = []
+    const messages: ConsumedChannelMessage[] = []
 
     for await (const x of this.getStore().iterator()) {
       if (ids == null || ids?.includes(x.value.id)) {
-        // NOTE: we skipped the verification process when reading many messages in the previous version
-        // so I'm skipping it here - is that really the correct behavior?
-        const processedMessage = await this.messagesService.onConsume(x.value, false)
-        messages.push(processedMessage)
+        const decryptedMessage = await this.messagesService.onConsume(x.value)
+        if (decryptedMessage == null) {
+          continue
+        }
+        messages.push(decryptedMessage)
+      }
+    }
+
+    return messages
+  }
+
+  /**
+   * Read a list of entries on the OrbitDB event store without decrypting
+   *
+   * @param ids Optional list of message IDs to filter by
+   * @returns All matching entries on the event store
+   */
+  public async getEncryptedEntries(): Promise<EncryptedMessage[]>
+  public async getEncryptedEntries(ids: string[] | undefined): Promise<EncryptedMessage[]>
+  public async getEncryptedEntries(ids?: string[] | undefined): Promise<EncryptedMessage[]> {
+    this.logger.info(`Getting all encrypted messages for channel`, this.channelData.id, this.channelData.name)
+    const messages: EncryptedMessage[] = []
+
+    for await (const x of this.getStore().iterator()) {
+      if (ids == null || ids?.includes(x.value.id)) {
+        messages.push(x.value)
       }
     }
 

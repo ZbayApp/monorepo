@@ -4,12 +4,20 @@ import EventEmitter from 'events'
 import { getCrypto, ICryptoEngine } from 'pkijs'
 
 import { keyObjectFromString, verifySignature } from '@quiet/identity'
-import { ChannelMessage, ConsumedChannelMessage, NoCryptoEngineError } from '@quiet/types'
+import {
+  ChannelMessage,
+  CompoundError,
+  ConsumedChannelMessage,
+  EncryptionSignature,
+  NoCryptoEngineError,
+} from '@quiet/types'
 
 import { createLogger } from '../../../common/logger'
-import { EncryptedAndSignedPayload, EncryptedPayload } from '../../../auth/services/crypto/types'
-import { SignedEnvelope } from '3rd-party/auth/packages/auth/dist'
+import { EncryptionScopeType } from '../../../auth/services/crypto/types'
 import { SigChainService } from '../../../auth/sigchain.service'
+import { EncryptedMessage } from './messages.types'
+import { SignedEnvelope } from '3rd-party/auth/packages/auth/dist'
+import { RoleName } from '../../../auth/services/roles/roles'
 
 @Injectable()
 export class MessagesService extends EventEmitter {
@@ -29,60 +37,78 @@ export class MessagesService extends EventEmitter {
   /**
    * Handle processing of message to be added to OrbitDB and sent to peers
    *
-   * NOTE: This will call the encryption method below (https://github.com/TryQuiet/quiet/issues/2631)
-   *
    * @param message Message to send
    * @returns Processed message
    */
-  public async onSend(message: ChannelMessage): Promise<ChannelMessage> {
-    return message
+  public async onSend(message: ChannelMessage): Promise<EncryptedMessage> {
+    return this._encryptPublicChannelMessage(message)
   }
 
   /**
    * Handle processing of message consumed from OrbitDB
    *
-   * NOTE: This will call the decryption method below (https://github.com/TryQuiet/quiet/issues/2632)
-   *
    * @param message Message consumed from OrbitDB
    * @returns Processed message
    */
-  public async onConsume(message: ChannelMessage, verify: boolean = true): Promise<ConsumedChannelMessage> {
-    const verified = verify ? await this.verifyMessage(message) : true
-    return {
-      ...message,
-      verified,
+  public async onConsume(message: EncryptedMessage): Promise<ConsumedChannelMessage | undefined> {
+    try {
+      return this._decryptPublicChannelMessage(message)
+    } catch (e) {
+      this.logger.error(`Failed to process message on consume`, e)
+      return undefined
     }
   }
 
   /**
-   * Verify signature on message
+   * Verify encryption signature on message
    *
    * @param message Message to verify
    * @returns True if message is valid
    */
-  public async verifyMessage(message: ChannelMessage): Promise<boolean> {
-    const crypto = this.getCrypto()
-    const signature = stringToArrayBuffer(message.signature)
-    let cryptoKey = this.publicKeysMap.get(message.pubKey)
-
-    if (!cryptoKey) {
-      cryptoKey = await keyObjectFromString(message.pubKey, crypto)
-      this.publicKeysMap.set(message.pubKey, cryptoKey)
+  public verifyMessage(message: EncryptedMessage): boolean {
+    try {
+      const chain = this.sigChainService.getActiveChain()
+      return chain.crypto.verifyMessage(message.encSignature)
+    } catch (e) {
+      throw new CompoundError(`Failed to verify message signature`, e)
     }
-
-    return await verifySignature(signature, message.message, cryptoKey)
   }
 
-  // TODO: https://github.com/TryQuiet/quiet/issues/2631
-  // NOTE: the signature here may not be correct
-  private async encryptMessage(message: ChannelMessage): Promise<EncryptedAndSignedPayload> {
-    throw new Error(`MessagesService.encryptMessage is not implemented!`)
+  private _encryptPublicChannelMessage(rawMessage: ChannelMessage): EncryptedMessage {
+    try {
+      const chain = this.sigChainService.getActiveChain()
+      const encryptedMessage = chain.crypto.encryptAndSign(
+        rawMessage.message,
+        { type: EncryptionScopeType.ROLE, name: RoleName.MEMBER },
+        chain.localUserContext
+      )
+      return {
+        ...rawMessage,
+        encSignature: encryptedMessage.signature,
+        message: encryptedMessage.encrypted,
+      }
+    } catch (e) {
+      throw new CompoundError(`Failed to encrypt message with error`, e)
+    }
   }
 
-  // TODO: https://github.com/TryQuiet/quiet/issues/2632
-  // NOTE: the signature here may not be correct
-  private async decryptMessage(encrypted: EncryptedPayload, signature: SignedEnvelope): Promise<ChannelMessage> {
-    throw new Error(`MessagesService.decryptMessage is not implemented!`)
+  private _decryptPublicChannelMessage(encryptedMessage: EncryptedMessage): ConsumedChannelMessage {
+    try {
+      const chain = this.sigChainService.getActiveChain()
+      const decryptedMessage = chain.crypto.decryptAndVerify<string>(
+        encryptedMessage.message,
+        encryptedMessage.encSignature,
+        chain.localUserContext,
+        false
+      )
+      return {
+        ...encryptedMessage,
+        message: decryptedMessage.contents,
+        verified: decryptedMessage.isValid,
+      }
+    } catch (e) {
+      throw new CompoundError(`Failed to decrypt message with error`, e)
+    }
   }
 
   /**
