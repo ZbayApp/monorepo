@@ -102,7 +102,7 @@
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll",
     "rtl-test": "jest ./src/rtl-tests",
-    "cypress:open": "cypress open --component --browser electron",
+    "cypress:open": "cypress open --component",
     "cypress:run": "cypress run --component",
     "cypress:run:ci": "cypress install --force && cypress run --component",
     "prepare": "npm run build:main",

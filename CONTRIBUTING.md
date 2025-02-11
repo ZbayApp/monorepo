@@ -5,8 +5,7 @@
 > **New to open source?** You can learn how from this _free_ series: [How to Contribute to an Open Source Project on GitHub](https://egghead.io/courses/how-to-contribute-to-an-open-source-project-on-github).
 
 1. Fork the repo and create your branch from `develop` (a guide on [how to fork a repository](https://help.github.com/articles/fork-a-repo/)).
-2. Being in the root directory, run `npm i` and then `lerna bootstrap`, to setup the development environment.
-3. Check out [desktop](https://github.com/TryQuiet/quiet/blob/develop/packages/desktop/README.md) and [mobile](https://github.com/TryQuiet/quiet/blob/develop/packages/mobile/README.md) README.md for more instructions.
+2. See the [desktop](https://github.com/TryQuiet/quiet/blob/develop/packages/desktop/README.md) and [mobile](https://github.com/TryQuiet/quiet/blob/develop/packages/mobile/README.md) README.md to get started.
 
 ## Commit message convention
 
