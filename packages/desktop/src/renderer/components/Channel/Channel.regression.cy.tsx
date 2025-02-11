@@ -162,7 +162,7 @@ describe('Scroll behavior test', () => {
     // 1. Height increased to accommodate the wrapped text
     // 2. The full text is visible
     cy.get(messageInput).then($el => {
-      const element = $el[0]
+      const element = $el[0] as HTMLTextAreaElement
       // Height should be greater after typing long word
       expect(element.offsetHeight).to.be.greaterThan(initialHeight)
       
