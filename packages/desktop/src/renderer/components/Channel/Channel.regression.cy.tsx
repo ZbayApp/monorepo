@@ -8,6 +8,23 @@ import { withTheme } from '../../storybook/decorators'
 import compareSnapshotCommand from 'cypress-visual-regression/dist/command'
 import { mount } from 'cypress/react18'
 
+declare global {
+  namespace Cypress {
+    interface Chainable {
+      assertScrolledToBottom(): Chainable<void>
+    }
+  }
+}
+
+// Custom command to check if the channel content is scrolled to the bottom
+Cypress.Commands.add('assertScrolledToBottom', { prevSubject: 'element' }, (subject) => {
+  const el = subject[0]
+  const isScrolledToBottom = Math.abs(
+    (el.scrollHeight - el.scrollTop) - el.clientHeight
+  ) <= 1 // Allow 1px difference for rounding
+  expect(isScrolledToBottom).to.be.true
+})
+
 compareSnapshotCommand() // Workaround. This should be only in cypress/commands.ts but typescript complains when it's not here
 
 const resizeObserverLoopErrRe = /^[^(ResizeObserver loop limit exceeded)]/
@@ -43,69 +60,31 @@ describe('Scroll behavior test', () => {
   const floatingDateSelector = '[class*="FloatingDatetitleDiv"]'
 
   it('scroll should be at the bottom after entering channel', () => {
-    // Check if scrolled to bottom
-    cy.get(channelContent).then($el => {
-      const container = $el[0]      
-      const isScrolledToBottom = Math.abs(
-        (container.scrollHeight - container.scrollTop) - container.clientHeight
-      ) <= 1
-      expect(isScrolledToBottom).to.be.true
-    })
+    cy.get(channelContent).assertScrolledToBottom()
   })
 
   it('scroll should be at the bottom after sending messages', () => {
-    // Send one message
     cy.get(messageInput).focus().type('luke where are you?').type('{enter}')
-
-    // Wait for message to appear in the message list
     cy.get(channelContent).within(() => {
       cy.contains('luke where are you?')
     })
-
-    // After sending message , check if scrolled to bottom
-    cy.get('[data-testid="channelContent"]').then($el => {
-      const container = $el[0]      
-      const isScrolledToBottom = Math.abs(
-        (container.scrollHeight - container.scrollTop) - container.clientHeight
-      ) <= 1
-      expect(isScrolledToBottom).to.be.true
-    })
+    cy.get(channelContent).assertScrolledToBottom()
   })
 
   it('should scroll to the bottom when scroll is in the middle and user sends new message', () => {
     cy.get(channelContent).scrollTo(0, 100)
     cy.get(messageInput).focus().type('actually, he is on the dark side').type('{enter}')
-
-    // Wait for message to appear in the message list
     cy.get(channelContent).within(() => {
       cy.contains('actually, he is on the dark side')
     })
-
-    // After sending message , check if scrolled to bottom
-    cy.get(channelContent).then($el => {
-      const container = $el[0]      
-      const isScrolledToBottom = Math.abs(
-        (container.scrollHeight - container.scrollTop) - container.clientHeight
-      ) <= 1
-      expect(isScrolledToBottom).to.be.true
-    })
+    cy.get(channelContent).assertScrolledToBottom()
   })
 
   it('should scroll to the bottom when scroll is at the top and user sends new message', () => {
     cy.get(messageInput).focus().type('hi').type('{enter}')
     cy.get(channelContent).scrollTo(0, 0)
-
-    // Send only one message because previous bug was only after sending one message
     cy.get(messageInput).focus().type('and yoda too').type('{enter}')
-
-    // After sending message , check if scrolled to bottom
-    cy.get(channelContent).then($el => {
-      const container = $el[0]      
-      const isScrolledToBottom = Math.abs(
-        (container.scrollHeight - container.scrollTop) - container.clientHeight
-      ) <= 1
-      expect(isScrolledToBottom).to.be.true
-    })
+    cy.get(channelContent).assertScrolledToBottom()
   })
 
   it('PageUp keydown should scroll message list up.', () => {
@@ -124,14 +103,7 @@ describe('Scroll behavior test', () => {
   it('PageDown keydown should scroll message list down.', () => {
     cy.get(channelContent).scrollTo(0, 0)
     cy.get(messageInput).focus().type('{pagedown}{pagedown}{pagedown}{pagedown}{pagedown}{pagedown}{pagedown}')
-    // After pagedown, check if scrolled to bottom
-    cy.get(channelContent).then($el => {
-      const container = $el[0]      
-      const isScrolledToBottom = Math.abs(
-        (container.scrollHeight - container.scrollTop) - container.clientHeight
-      ) <= 1
-      expect(isScrolledToBottom).to.be.true
-    })
+    cy.get(channelContent).assertScrolledToBottom()
   })
 
   it('Shift+Enter should not send message', () => {
@@ -182,33 +154,21 @@ describe('Scroll behavior test', () => {
     // so we're just going to test the pageup and pagedown keys
 
     it('should not display on channel load', () => {
-      cy.get(messageInput).focus().type('{pageup}')
-      // Wait for the pageup key event to be processed
-        .wait(0)
-      
+      cy.get(messageInput).focus().type('{pageup}')      
       cy.get(floatingDateSelector).should('not.be.visible')
     })
 
 
     it('should display on pageup', () => {
       cy.get(messageInput).focus().type('{pageup}')
-      // Wait for the pageup key event to be processed
-        .wait(0)
-      
       cy.get(floatingDateSelector).should('be.visible')
     })
 
     it('should disappear within 3 seconds after scrolling stops', () => {
       cy.clock()
-      
       cy.get(messageInput).focus().type('{pageup}')
-      // Wait for the pageup key event to be processed
-        .wait(0)
-
       cy.get(floatingDateSelector).should('be.visible')
-      
       cy.tick(3000)
-      
       cy.get(floatingDateSelector).should('not.be.visible')
     })
 
