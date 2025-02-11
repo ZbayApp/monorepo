@@ -1,10 +1,5 @@
-
-
-import compareSnapshotCommand from 'cypress-visual-regression/dist/command'
 import { mount } from 'cypress/react18'
 import { Cypress } from 'local-cypress'
-
-compareSnapshotCommand()
 
 Cypress.Commands.add('mount', mount)
 

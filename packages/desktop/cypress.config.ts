@@ -1,18 +1,8 @@
 import { defineConfig } from "cypress"
-import getCompareSnapshotsPlugin from 'cypress-visual-regression/dist/plugin'
 import webpackConfig from "./cypress/webpack.config"
 
 export default defineConfig({
-  screenshotsFolder: "./cypress/snapshots/actual",
-  trashAssetsBeforeRuns: true,
   video: false,
-
-  // Add the env block so cypress-visual-regression knows whether to generate base or actual snapshots.
-  // You can override this by running: npx cypress run --component --env type=base
-
-  env: {
-    type: "actual"
-  },
 
   component: {
     devServer: {
@@ -22,8 +12,6 @@ export default defineConfig({
     },
 
     setupNodeEvents(on, config) {
-      getCompareSnapshotsPlugin(on, config)
-
       on('before:browser:launch', (browser, launchOptions) => {
         if (browser.name === 'electron' && browser.isHeadless) {
           launchOptions.preferences.width = 1400
@@ -34,7 +22,7 @@ export default defineConfig({
       return config
     },
 
-    specPattern: "src/**/*regression.cy.{js,jsx,ts,tsx}",
+    specPattern: "src/**/*.cy.{js,jsx,ts,tsx}",
     excludeSpecPattern: ["**/__snapshots__/*", "**/__image_snapshots__/*"],
   }
 })

@@ -102,11 +102,9 @@
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll",
     "rtl-test": "jest ./src/rtl-tests",
-    "regression-test:update": "npx cypress run --component --env type=base,SNAPSHOT_BASE_DIRECTORY=cypress/snapshots/base --config screenshotsFolder=cypress/snapshots/base",
-    "regression-test:update:ci": "cypress install && ./node_modules/.bin/cypress run --component --env type=base,SNAPSHOT_BASE_DIRECTORY=cypress/snapshots/base --config screenshotsFolder=cypress/snapshots/base",
-    "regression-test": "npx cypress run --component --env type=actual,SNAPSHOT_BASE_DIRECTORY=cypress/snapshots/base --config screenshotsFolder=cypress/snapshots/actual",
-    "regression-test:ci": "cypress install --force && ./node_modules/.bin/cypress run --component --env type=actual,SNAPSHOT_BASE_DIRECTORY=cypress/snapshots/base --config screenshotsFolder=cypress/snapshots/actual",
-    "cypress:open": "cypress open --component --browser electron --env type=actual,SNAPSHOT_BASE_DIRECTORY=cypress/snapshots/base --config screenshotsFolder=cypress/snapshots/actual",
+    "cypress:open": "cypress open --component --browser electron",
+    "cypress:run": "cypress run --component",
+    "cypress:run:ci": "cypress install --force && cypress run --component",
     "prepare": "npm run build:main",
     "build:prod": "concurrently \"npm run build:main:prod\" \"npm run build:renderer:prod\"",
     "build:dev": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
@@ -149,9 +147,7 @@
     "remark-gfm": "^1.0.0",
     "socket.io-client": "^4.7.4",
     "cypress": "^12.17.4",
-    "@cypress/webpack-preprocessor": "^5.17.1",
-    "cypress-visual-regression": "^3.0.0",
-    "cypress-real-events": "^1.10.0"
+    "@cypress/webpack-preprocessor": "^5.17.1"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",

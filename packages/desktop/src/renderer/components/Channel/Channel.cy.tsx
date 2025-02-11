@@ -5,7 +5,6 @@ import { it, beforeEach, cy, Cypress, describe } from 'local-cypress'
 
 import * as stories from './Channel.stories'
 import { withTheme } from '../../storybook/decorators'
-import compareSnapshotCommand from 'cypress-visual-regression/dist/command'
 import { mount } from 'cypress/react18'
 
 declare global {
@@ -24,8 +23,6 @@ Cypress.Commands.add('assertScrolledToBottom', { prevSubject: 'element' }, (subj
   ) <= 1 // Allow 1px difference for rounding
   expect(isScrolledToBottom).to.be.true
 })
-
-compareSnapshotCommand() // Workaround. This should be only in cypress/commands.ts but typescript complains when it's not here
 
 const resizeObserverLoopErrRe = /^[^(ResizeObserver loop limit exceeded)]/
 Cypress.on('uncaught:exception', err => {
