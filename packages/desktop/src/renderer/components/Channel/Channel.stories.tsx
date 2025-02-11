@@ -718,6 +718,7 @@ export const InteractiveLocalState: ComponentStory<typeof ChannelComponent> = ()
           payload: { name: ModalName.unregisteredUsernameModal },
         })}
         pendingGeneralChannelRecreation={false}
+        removeFile={dummyRemoveFile}
         {...args}
         messages={localMessages}
         onInputEnter={handleSend}

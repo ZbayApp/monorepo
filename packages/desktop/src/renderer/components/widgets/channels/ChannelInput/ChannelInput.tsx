@@ -71,6 +71,7 @@ const StyledChannelInput = styled(Grid)(({ theme }) => ({
     height: '48px',
     lineHeight: '24px',
     backgroundColor: theme.palette.background.default,
+    color: theme.palette.colors.contrastText,
     '&:empty': {
       '&:before': {
         content: 'attr(placeholder)',
