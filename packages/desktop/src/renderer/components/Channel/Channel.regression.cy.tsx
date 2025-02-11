@@ -34,8 +34,8 @@ describe('Scroll behavior test', () => {
         </CssBaseline>
       </React.Fragment>
     )
-    // Wait for component to render
-    cy.wait(3000)
+    // Wait 0 is a workaround to ensure the component is rendered. See: https://github.com/cypress-io/cypress/issues/3817#issuecomment-1186705536
+    cy.wait(0)
   })
 
   const channelContent = '[data-testid="channelContent"]'
