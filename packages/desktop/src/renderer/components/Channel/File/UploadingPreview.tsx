@@ -135,7 +135,7 @@ const FilePreviewComponent: React.FC<FilePreviewComponentProps> = ({ fileData, o
 
 export interface UploadFilesPreviewsProps {
   filesData: FilePreviewData
-  removeFile: (id: string) => void
+  removeFile?: (id: string) => void
 }
 
 const UploadFilesPreviewsComponent: React.FC<UploadFilesPreviewsProps> = ({ filesData, removeFile }) => {

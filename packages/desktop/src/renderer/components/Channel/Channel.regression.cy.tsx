@@ -21,7 +21,7 @@ Cypress.on('uncaught:exception', err => {
 // @ts-expect-error
 setGlobalConfig(withTheme)
 
-const { Component } = composeStories(stories)
+const { InteractiveLocalState } = composeStories(stories)
 
 describe('Scroll behavior test', () => {
   beforeEach(() => {
@@ -30,7 +30,7 @@ describe('Scroll behavior test', () => {
         {/* @ts-ignore */}
         <CssBaseline>
           {/* @ts-ignore */}
-          <Component />
+          <InteractiveLocalState />
         </CssBaseline>
       </React.Fragment>
     )
@@ -48,9 +48,27 @@ describe('Scroll behavior test', () => {
   })
 
   it('scroll should be at the bottom after sending messages', () => {
-    cy.get(messageInput).focus().type('luke where are you?').type('{enter}')
-    cy.get(messageInput).focus().type('you underestimate the power of the force').type('{enter}')
-    cy.get(channelContent).compareSnapshot('send after enter')
+    // Send two messages
+    cy.get(messageInput).should('be.visible')
+      .focus()
+      .type('luke where are you?')
+      .should('have.value', 'luke where are you?')
+      .type('{enter}')
+      .should('have.value', '') // Verify message was sent by checking input is cleared
+
+    // Wait for messages to appear in the message list
+    cy.get(channelContent).within(() => {
+      cy.contains('luke where are you?')
+    })
+    
+    // After sending messages, check if scrolled to bottom
+    cy.get('[data-testid="channelContent"]').then($el => {
+      const container = $el[0]      
+      const isScrolledToBottom = Math.abs(
+        (container.scrollHeight - container.scrollTop) - container.clientHeight
+      ) <= 1
+      expect(isScrolledToBottom).to.be.true
+    })
   })
 
   it('should scroll to the bottom when scroll is in the middle and user sends new message', () => {

@@ -116,6 +116,7 @@ const args: Partial<ChannelComponentProps & UploadFilesPreviewsProps> = {
   handleFileDrop: dummyFn,
   isCommunityInitialized: defaultIsCommunityInitialized,
   handleClipboardFiles: dummyFn,
+  pendingGeneralChannelRecreation: false,
 }
 
 const Template: ComponentStory<typeof ChannelComponent> = args => {
@@ -657,65 +658,57 @@ const component: ComponentMeta<typeof ChannelComponent> = {
 export default component
 
 export const InteractiveLocalState: ComponentStory<typeof ChannelComponent> = () => {
-  // Example of local state logic from older "Channel.stories.cy.tsx"
-  const [messages, setMessages] = useState<{
+  const [localMessages, setLocalMessages] = useState<{
     count: number
     groups: { [day: string]: DisplayableMessage[][] }
   }>(mock_messages())
 
-  const onInputEnter = (message: string) => {
+  const handleSend = (message: string) => {
     const newMessage: DisplayableMessage = {
-      id: '32',
+      id: String(Date.now()),
       type: 1,
       message,
-      createdAt: 0,
-      date: '12:46',
-      nickname: users.vader.username,
-      isDuplicated: false,
+      createdAt: Date.now(),
+      nickname: 'vader',
       isRegistered: true,
-      pubKey: users.vader.pubkey,
+      isDuplicated: false,
+      date: new Date().toLocaleTimeString(),
+      pubKey: 'pubKey',
     }
-    setMessages(mock_messages(newMessage))
+    setLocalMessages(prev => mock_messages(newMessage))
   }
 
   return (
     <DndProvider backend={HTML5Backend}>
       <ChannelComponent
-        onInputEnter={onInputEnter}
-        messages={messages}
-        pendingMessages={{}}
-        newestMessage={{
-          id: '31',
-          type: 1,
-          message: 'I agree!',
-          createdAt: 0,
-          channelId: 'general',
-          signature: 'signature',
-          pubKey: 'pubKey',
-        }}
         user={validUser}
-        uploadedFileModal={{
-          open: false,
-          handleOpen: (_args?: { src: string }) => ({
-            type: 'Modals/openModal',
-            payload: {
-              name: ModalName.uploadedFileModal,
-              args: _args ? { src: _args.src } : {},
-            },
-          }),
-          handleClose: () => ({
-            type: 'Modals/closeModal',
-            payload: ModalName.uploadedFileModal,
-          }),
-          src: 'images/butterfly.jpeg',
-        }}
         channelId='general'
         channelName='general'
+        newestMessage={{
+          id: String(Date.now()),
+          type: 1,
+          message: '',
+          createdAt: Date.now(),
+          channelId: 'general',
+          pubKey: 'pubKey',
+          signature: 'signature',
+        }}
+        pendingMessages={{}}
+        downloadStatuses={{}}
+        filesData={{}}
         lazyLoading={() => {}}
         onInputChange={() => {}}
-        filesData={{}}
-        enableContextMenu={false}
-        pendingGeneralChannelRecreation={false}
+        openUrl={() => {}}
+        openFilesDialog={() => {}}
+        handleFileDrop={() => {}}
+        isCommunityInitialized={true}
+        handleClipboardFiles={() => {}}
+        uploadedFileModal={{
+          open: false,
+          handleOpen: () => ({ type: 'Modals/openModal', payload: { name: ModalName.uploadedFileModal } }),
+          handleClose: () => ({ type: 'Modals/closeModal', payload: ModalName.uploadedFileModal }),
+          src: '',
+        }}
         duplicatedUsernameModalHandleOpen={() => ({
           type: 'Modals/openModal',
           payload: { name: ModalName.duplicatedUsernameModal },
@@ -724,12 +717,10 @@ export const InteractiveLocalState: ComponentStory<typeof ChannelComponent> = ()
           type: 'Modals/openModal',
           payload: { name: ModalName.unregisteredUsernameModal },
         })}
-        removeFile={dummyRemoveFile}
-        openUrl={dummyFn}
-        openFilesDialog={dummyFn}
-        handleFileDrop={dummyFn}
-        isCommunityInitialized={defaultIsCommunityInitialized}
-        handleClipboardFiles={dummyFn}
+        pendingGeneralChannelRecreation={false}
+        {...args}
+        messages={localMessages}
+        onInputEnter={handleSend}
       />
     </DndProvider>
   )
