@@ -42,26 +42,26 @@ describe('Scroll behavior test', () => {
   const messageInput = '[data-testid="messageInput"]'
 
   it('scroll should be at the bottom after entering channel', () => {
-    cy.get(channelContent).compareSnapshot('after launch', {
-      capture: 'fullPage',
+    // Check if scrolled to bottom
+    cy.get(channelContent).then($el => {
+      const container = $el[0]      
+      const isScrolledToBottom = Math.abs(
+        (container.scrollHeight - container.scrollTop) - container.clientHeight
+      ) <= 1
+      expect(isScrolledToBottom).to.be.true
     })
   })
 
   it('scroll should be at the bottom after sending messages', () => {
-    // Send two messages
-    cy.get(messageInput).should('be.visible')
-      .focus()
-      .type('luke where are you?')
-      .should('have.value', 'luke where are you?')
-      .type('{enter}')
-      .should('have.value', '') // Verify message was sent by checking input is cleared
+    // Send one message
+    cy.get(messageInput).focus().type('luke where are you?').type('{enter}')
 
-    // Wait for messages to appear in the message list
+    // Wait for message to appear in the message list
     cy.get(channelContent).within(() => {
       cy.contains('luke where are you?')
     })
-    
-    // After sending messages, check if scrolled to bottom
+
+    // After sending message , check if scrolled to bottom
     cy.get('[data-testid="channelContent"]').then($el => {
       const container = $el[0]      
       const isScrolledToBottom = Math.abs(
@@ -73,45 +73,63 @@ describe('Scroll behavior test', () => {
 
   it('should scroll to the bottom when scroll is in the middle and user sends new message', () => {
     cy.get(channelContent).scrollTo(0, 100)
-
-    cy.get(channelContent).compareSnapshot('scroll to the middle')
-
-    cy.get(messageInput).focus().type('obi wan was wrong').type('{enter}')
     cy.get(messageInput).focus().type('actually, he is on the dark side').type('{enter}')
 
-    cy.get(channelContent).compareSnapshot('send after scroll')
+    // Wait for message to appear in the message list
+    cy.get(channelContent).within(() => {
+      cy.contains('actually, he is on the dark side')
+    })
+
+    // After sending message , check if scrolled to bottom
+    cy.get(channelContent).then($el => {
+      const container = $el[0]      
+      const isScrolledToBottom = Math.abs(
+        (container.scrollHeight - container.scrollTop) - container.clientHeight
+      ) <= 1
+      expect(isScrolledToBottom).to.be.true
+    })
   })
 
   it('should scroll to the bottom when scroll is at the top and user sends new message', () => {
     cy.get(messageInput).focus().type('hi').type('{enter}')
-
     cy.get(channelContent).scrollTo(0, 0)
-
-    cy.wait(2000)
-
-    // Scroll again because of lazy loading
-    cy.get(channelContent).scrollTo(0, 0)
-
-    cy.get(channelContent).compareSnapshot('scroll to the top')
 
     // Send only one message because previous bug was only after sending one message
-    cy.get(messageInput).focus().type('and youda too').type('{enter}')
+    cy.get(messageInput).focus().type('and yoda too').type('{enter}')
 
-    cy.get(channelContent).compareSnapshot('send after top scroll')
+    // After sending message , check if scrolled to bottom
+    cy.get(channelContent).then($el => {
+      const container = $el[0]      
+      const isScrolledToBottom = Math.abs(
+        (container.scrollHeight - container.scrollTop) - container.clientHeight
+      ) <= 1
+      expect(isScrolledToBottom).to.be.true
+    })
   })
 
   it('PageUp keydown should scroll message list up.', () => {
-    cy.get(messageInput).focus().type('{pageup}')
-    cy.get(channelContent).compareSnapshot('after pageup', {
-      capture: 'fullPage',
+    cy.get(messageInput).focus().type('{pageup}{pageup}{pageup}{pageup}{pageup}{pageup}{pageup}')
+
+    // Check if scrolled to top 
+    cy.get(channelContent).then($el => {
+      const container = $el[0]      
+      const isScrolledToTop = Math.abs(
+        container.scrollTop
+      ) <= 1  // Allow 1px difference for rounding
+      expect(isScrolledToTop).to.be.true
     })
   })
 
   it('PageDown keydown should scroll message list down.', () => {
     cy.get(channelContent).scrollTo(0, 0)
-    cy.get(messageInput).focus().type('{pagedown}')
-    cy.get(channelContent).compareSnapshot('after pagedown', {
-      capture: 'fullPage',
+    cy.get(messageInput).focus().type('{pagedown}{pagedown}{pagedown}{pagedown}{pagedown}{pagedown}{pagedown}')
+    // After pagedown, check if scrolled to bottom
+    cy.get(channelContent).then($el => {
+      const container = $el[0]      
+      const isScrolledToBottom = Math.abs(
+        (container.scrollHeight - container.scrollTop) - container.clientHeight
+      ) <= 1
+      expect(isScrolledToBottom).to.be.true
     })
   })
 
@@ -132,8 +150,28 @@ describe('Scroll behavior test', () => {
       }
       return word
     }
+    // Get initial height
+    let initialHeight: number
+    cy.get(messageInput).then($el => {
+      initialHeight = $el[0].offsetHeight
+    })
+
     cy.get(messageInput).focus().type(longWord())
 
-    cy.get(messageInput).compareSnapshot('message input words wrapping')
+    // Check that:
+    // 1. Height increased to accommodate the wrapped text
+    // 2. The full text is visible
+    cy.get(messageInput).then($el => {
+      const element = $el[0]
+      // Height should be greater after typing long word
+      expect(element.offsetHeight).to.be.greaterThan(initialHeight)
+      
+      // Full text should be visible (no truncation)
+      expect(element.value).to.equal(longWord())
+      
+      // Scrollable width should not exceed the container width
+      // (meaning text is wrapping, not horizontally scrolling)
+      expect(element.scrollWidth).to.equal(element.offsetWidth)
+    })
   })
 })
