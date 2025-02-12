@@ -194,6 +194,9 @@ export class QuietLogger {
       return
     }
 
+    const formattedLogStrings = this.formatLog(LogLevel.TIMER, name, `- timer started`)
+    this.printLog(LogLevel.LOG, ...formattedLogStrings)
+
     const startMs = DateTime.utc().toMillis()
     this.timers.set(name, startMs)
   }
