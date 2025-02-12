@@ -4,6 +4,7 @@
 
 ### New features
 
+* Adds sticky date markers to the chat view [#505](https://github.com/TryQuiet/quiet/issues/505)
 * Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 * Add local-first/auth powered libp2p authentication service ([#2629](https://github.com/TryQuiet/quiet/issues/2629))
 
@@ -12,13 +13,6 @@
 * Add `trace` level logs to `@quiet/logger` ([#2716](https://github.com/TryQuiet/quiet/issues/2716))
 * Refactor the `StorageService` and create `ChannelService`, `MessageService` and `ChannelStore` for handling channel-related persistence ([#2631](https://github.com/TryQuiet/quiet/issues/2631)) 
 * Add slack notifications to release workflows ([#2722](https://github.com/TryQuiet/quiet/issues/2722))
-
-## Unreleased
-
-### New features
-
-* Adds sticky date markers to the chat view [#505](https://github.com/TryQuiet/quiet/issues/505)
-
 
 ## [3.0.0]
 
