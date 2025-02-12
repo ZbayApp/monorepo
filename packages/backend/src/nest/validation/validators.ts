@@ -20,6 +20,18 @@ const messageMediaSchema = joi.object({
     channelId: joi.string(),
     channelAddress: joi.string(),
   }),
+  enc: joi
+    .object({
+      header: joi.binary().required(),
+      recipient: joi
+        .object({
+          generation: joi.number().required(),
+          type: joi.string().required(),
+          name: joi.string().allow(null),
+        })
+        .required(),
+    })
+    .allow(null),
 })
 
 const messageSchema = joi.object({
