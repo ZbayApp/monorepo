@@ -1,4 +1,4 @@
-name: Desktop scroll regression tests
+name: Desktop scroll cypress tests
 
 on:
   pull_request:
@@ -52,7 +52,7 @@ jobs:
         if: steps.filter.outputs.desktop == 'true'
         with:
           install: false
-          command: npm run regression-test:ci
+          command: npm run cypress:run:ci
           working-directory: packages/desktop
           cache-key: os-${{ runner.os }}-hash-${{ hashFiles('package-lock.json') }}
 
