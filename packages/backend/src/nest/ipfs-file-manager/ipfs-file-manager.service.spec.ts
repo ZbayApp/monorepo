@@ -21,6 +21,10 @@ import { IpfsFilesManagerEvents } from './ipfs-file-manager.types'
 import { sleep } from '../common/sleep'
 import { LocalDbModule } from '../local-db/local-db.module'
 import { LocalDbService } from '../local-db/local-db.service'
+import { SigChainModule } from '../auth/sigchain.service.module'
+import { SigChainService } from '../auth/sigchain.service'
+import { EncryptionScopeType } from '../auth/services/crypto/types'
+import { RoleName } from '../auth/services/roles/roles'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -31,6 +35,7 @@ describe('IpfsFileManagerService', () => {
   let localDbService: LocalDbService
   let ipfsService: IpfsService
   let libp2pService: Libp2pService
+  let sigChainService: SigChainService
 
   let tmpDir: DirResult
   let filePath: string
@@ -41,8 +46,19 @@ describe('IpfsFileManagerService', () => {
     filePath = path.join(dirname, '/testUtils/500kB-file.txt')
 
     module = await Test.createTestingModule({
-      imports: [TestModule, IpfsFileManagerModule, IpfsModule, SocketModule, Libp2pModule, LocalDbModule],
+      imports: [
+        TestModule,
+        IpfsFileManagerModule,
+        IpfsModule,
+        SocketModule,
+        Libp2pModule,
+        LocalDbModule,
+        SigChainModule,
+      ],
     }).compile()
+
+    sigChainService = await module.resolve(SigChainService)
+    await sigChainService.createChain('community', 'username', true)
 
     ipfsFileManagerService = await module.resolve(IpfsFileManagerService)
     localDbService = await module.resolve(LocalDbService)
@@ -115,19 +131,27 @@ describe('IpfsFileManagerService', () => {
         2,
         StorageEvents.FILE_UPLOADED,
         expect.objectContaining({
-          cid: expect.stringContaining('bafk'),
+          cid: expect.stringContaining('bafy'),
           ext: '.png',
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15847,
+          size: 15886,
           width: 824,
+          enc: {
+            header: expect.any(String),
+            recipient: {
+              generation: 0,
+              type: EncryptionScopeType.ROLE,
+              name: RoleName.MEMBER,
+            },
+          },
         })
       )
     })
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(3, StorageEvents.DOWNLOAD_PROGRESS, {
-        cid: expect.stringContaining('bafk'),
+        cid: expect.stringContaining('bafy'),
         downloadProgress: undefined,
         downloadState: 'hosted',
         mid: 'id',
@@ -159,19 +183,27 @@ describe('IpfsFileManagerService', () => {
         2,
         StorageEvents.FILE_UPLOADED,
         expect.objectContaining({
-          cid: expect.stringContaining('bafk'),
+          cid: expect.stringContaining('bafy'),
           ext: '.pdf',
           height: undefined,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-file',
-          size: 761797,
+          size: 761860,
           width: undefined,
+          enc: {
+            header: expect.any(String),
+            recipient: {
+              generation: 0,
+              type: EncryptionScopeType.ROLE,
+              name: RoleName.MEMBER,
+            },
+          },
         })
       )
     })
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(3, StorageEvents.DOWNLOAD_PROGRESS, {
-        cid: expect.stringContaining('bafk'),
+        cid: expect.stringContaining('bafy'),
         downloadProgress: undefined,
         downloadState: 'hosted',
         mid: 'id',
@@ -182,12 +214,12 @@ describe('IpfsFileManagerService', () => {
         4,
         StorageEvents.MESSAGE_MEDIA_UPDATED,
         expect.objectContaining({
-          cid: expect.stringContaining('bafk'),
+          cid: expect.stringContaining('bafy'),
           ext: '.pdf',
           height: undefined,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-file',
-          size: 761797,
+          size: 761860,
           width: undefined,
         })
       )
@@ -229,20 +261,28 @@ describe('IpfsFileManagerService', () => {
         2,
         StorageEvents.FILE_UPLOADED,
         expect.objectContaining({
-          cid: expect.stringContaining('bafk'),
+          cid: expect.stringContaining('bafy'),
           ext: '.png',
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15847,
+          size: 15886,
           width: 824,
           tmpPath: undefined,
+          enc: {
+            header: expect.any(String),
+            recipient: {
+              generation: 0,
+              type: EncryptionScopeType.ROLE,
+              name: RoleName.MEMBER,
+            },
+          },
         })
       )
     })
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(3, StorageEvents.DOWNLOAD_PROGRESS, {
-        cid: expect.stringContaining('bafk'),
+        cid: expect.stringContaining('bafy'),
         downloadProgress: undefined,
         downloadState: 'hosted',
         mid: 'id',
@@ -298,19 +338,27 @@ describe('IpfsFileManagerService', () => {
         2,
         StorageEvents.FILE_UPLOADED,
         expect.objectContaining({
-          cid: expect.stringContaining('bafk'),
+          cid: expect.stringContaining('bafy'),
           ext: '.pdf',
           height: undefined,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-file',
-          size: 761797,
+          size: 761860,
           width: undefined,
+          enc: {
+            header: expect.any(String),
+            recipient: {
+              generation: 0,
+              type: EncryptionScopeType.ROLE,
+              name: RoleName.MEMBER,
+            },
+          },
         })
       )
     })
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(3, StorageEvents.DOWNLOAD_PROGRESS, {
-        cid: expect.stringContaining('bafk'),
+        cid: expect.stringContaining('bafy'),
         downloadProgress: undefined,
         downloadState: 'hosted',
         mid: 'id',
@@ -321,12 +369,12 @@ describe('IpfsFileManagerService', () => {
         4,
         StorageEvents.MESSAGE_MEDIA_UPDATED,
         expect.objectContaining({
-          cid: expect.stringContaining('bafk'),
+          cid: expect.stringContaining('bafy'),
           ext: '.pdf',
           height: undefined,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-file',
-          size: 761797,
+          size: 761860,
           width: undefined,
         })
       )
@@ -350,7 +398,7 @@ describe('IpfsFileManagerService', () => {
 
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(6, StorageEvents.DOWNLOAD_PROGRESS, {
-        cid: expect.stringContaining('bafk'),
+        cid: expect.stringContaining('bafy'),
         downloadProgress: undefined,
         downloadState: 'malicious',
         mid: 'id',
@@ -375,8 +423,6 @@ describe('IpfsFileManagerService', () => {
       },
     }
 
-    const imageCid = 'bafkreigemnq7fljgbxdqjhq5nhj5pprt4qkvyl7vcymbnucc5azkxms4v4'
-
     await ipfsFileManagerService.uploadFile(metadata)
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(1, StorageEvents.REMOVE_DOWNLOAD_STATUS, { cid: 'uploading_id' })
@@ -387,20 +433,28 @@ describe('IpfsFileManagerService', () => {
         2,
         StorageEvents.FILE_UPLOADED,
         expect.objectContaining({
-          cid: imageCid,
+          cid: expect.stringContaining('bafy'),
           ext: '.png',
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15847,
+          size: 15886,
           width: 824,
+          enc: {
+            header: expect.any(String),
+            recipient: {
+              generation: 0,
+              type: EncryptionScopeType.ROLE,
+              name: RoleName.MEMBER,
+            },
+          },
         })
       )
     }, 10_000)
 
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(3, StorageEvents.DOWNLOAD_PROGRESS, {
-        cid: imageCid,
+        cid: expect.stringContaining('bafy'),
         downloadProgress: undefined,
         downloadState: 'hosted',
         mid: 'id',
@@ -412,12 +466,12 @@ describe('IpfsFileManagerService', () => {
         4,
         StorageEvents.MESSAGE_MEDIA_UPDATED,
         expect.objectContaining({
-          cid: imageCid,
+          cid: expect.stringContaining('bafy'),
           ext: '.png',
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15847,
+          size: 15886,
           width: 824,
           path: expect.stringContaining('_test-image.png'),
         })
@@ -435,16 +489,25 @@ describe('IpfsFileManagerService', () => {
     }, 10_000)
 
     await waitForExpect(() => {
+      expect(eventSpy).toHaveBeenNthCalledWith(6, StorageEvents.DOWNLOAD_PROGRESS, {
+        cid: expect.stringContaining('bafy'),
+        downloadProgress: { downloaded: 15886, size: 15886, transferSpeed: 0 },
+        downloadState: 'downloading',
+        mid: 'id',
+      })
+    }, 20_000)
+
+    await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(
-        6,
+        7,
         StorageEvents.MESSAGE_MEDIA_UPDATED,
         expect.objectContaining({
-          cid: expect.stringContaining('bafk'),
+          cid: expect.stringContaining('bafy'),
           ext: '.png',
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15847,
+          size: 15886,
           width: 824,
           path: expect.stringContaining('.png'),
         })
@@ -452,15 +515,15 @@ describe('IpfsFileManagerService', () => {
     }, 20_000)
 
     await waitForExpect(() => {
-      expect(eventSpy).toHaveBeenNthCalledWith(7, StorageEvents.DOWNLOAD_PROGRESS, {
-        cid: expect.stringContaining('bafk'),
-        downloadProgress: { downloaded: 15847, size: 15847, transferSpeed: 0 },
+      expect(eventSpy).toHaveBeenNthCalledWith(8, StorageEvents.DOWNLOAD_PROGRESS, {
+        cid: expect.stringContaining('bafy'),
+        downloadProgress: { downloaded: 15886, size: 15886, transferSpeed: 0 },
         downloadState: 'completed',
         mid: 'id',
       })
     }, 20_000)
 
-    expect(eventSpy).toBeCalledTimes(7)
+    expect(eventSpy).toBeCalledTimes(8)
   })
 
   // this case causes other tests to fail
