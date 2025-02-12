@@ -40,5 +40,5 @@ export interface CsrReplicatedPromiseValues {
 }
 
 export interface DBOptions {
-  replicate: boolean
+  sync: boolean
 }

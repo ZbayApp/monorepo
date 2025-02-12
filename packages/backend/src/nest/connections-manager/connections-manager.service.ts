@@ -36,8 +36,6 @@ import {
   FileMetadata,
   GetMessagesPayload,
   InitCommunityPayload,
-  InvitationDataV2,
-  InvitationDataVersion,
   MessagesLoadedPayload,
   NetworkDataPayload,
   NetworkInfo,
@@ -58,6 +56,8 @@ import {
   InitUserCsrPayload,
   UserCsr,
   PeerId as QuietPeerId,
+  InvitationDataVersion,
+  InvitationDataV2,
 } from '@quiet/types'
 import { CONFIG_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { Libp2pService } from '../libp2p/libp2p.service'
@@ -71,7 +71,6 @@ import { SocketService } from '../socket/socket.service'
 import { StorageService } from '../storage/storage.service'
 import { StorageEvents } from '../storage/storage.types'
 import { StorageServiceClient } from '../storageServiceClient/storageServiceClient.service'
-import { ServerStoredCommunityMetadata } from '../storageServiceClient/storageServiceClient.types'
 import { Tor } from '../tor/tor.service'
 import { ConfigOptions, GetPorts, ServerIoProviderTypes } from '../types'
 import { ServiceState, TorInitState } from './connections-manager.types'
@@ -81,6 +80,8 @@ import { peerIdFromString } from '@libp2p/peer-id'
 import { PeerId } from '@libp2p/interface'
 import { privateKeyFromRaw } from '@libp2p/crypto/keys'
 import { SigChainService } from '../auth/sigchain.service'
+import { Base58, InviteResult } from '3rd-party/auth/packages/auth/dist'
+import { UserService } from '../auth/services/members/user.service'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -240,10 +241,13 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     if (community.name) {
       try {
+        this.logger.info('Loading sigchain for community', community.name)
         await this.sigChainService.loadChain(community.name, true)
       } catch (e) {
         this.logger.warn('Failed to load sigchain', e)
       }
+    } else {
+      this.logger.warn('No community name found in storage')
     }
 
     const sortedPeers = await this.localDbService.getSortedPeers(community.peerList ?? [])
@@ -590,6 +594,14 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       id: payload.id,
     }
     await this.storageService.setIdentity(identity)
+
+    if (!community.name) {
+      this.logger.error('Community name is required to create sigchain')
+      return community
+    }
+    this.logger.info(`Creating new LFA chain`)
+    await this.sigChainService.createChain(community.name, identity.nickname, true)
+
     await this.launchCommunity(community)
 
     const meta = await this.storageService.updateCommunityMetadata({
@@ -612,12 +624,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
     }
 
-    // create sigchain
-    if (!community.name) {
-      this.logger.error('Community name is required to create sigchain')
-      return community
-    }
-    this.sigChainService.createChain(community.name, identity.nickname, true)
+    // this is the forever invite that all users get
+    this.logger.info(`Creating long lived LFA invite code`)
+    this.socketService.emit(SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE)
     return community
   }
 
@@ -656,26 +665,15 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       psk: payload.psk,
       peers: payload.peers,
       ownerOrbitDbIdentity: payload.ownerOrbitDbIdentity,
+      name: payload.name,
     }
 
     const inviteData = payload.inviteData
-    // TODO: add back when QSS is implemented
-    // if (inviteData) {
-    //   this.logger.info(`Joining community: inviteData version: ${inviteData.version}`)
-    //   switch (inviteData.version) {
-    //     case InvitationDataVersion.v2:
-    //       const downloadedData = await this.downloadCommunityData(inviteData)
-    //       if (!downloadedData) {
-    //         emitError(this.serverIoProvider.io, {
-    //           type: SocketActionTypes.LAUNCH_COMMUNITY,
-    //           message: ErrorMessages.STORAGE_SERVER_CONNECTION_FAILED,
-    //         })
-    //         return
-    //       }
-    //       metadata = downloadedData
-    //       break
-    //   }
-    // }
+    let communityName: string | undefined
+    if (inviteData && inviteData?.version == InvitationDataVersion.v2) {
+      communityName = (payload.inviteData as InvitationDataV2).authData.communityName
+      this.sigChainService.createChainFromInvite(identity.nickname, communityName, inviteData.authData.seed, true)
+    }
 
     if (!metadata.peers || metadata.peers.length === 0) {
       this.logger.error('Joining community: Peers required')
@@ -706,21 +704,20 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     const community = {
       id: payload.id,
+      name: communityName,
       peerList: [...new Set([localAddress, ...metadata.peers])],
       psk: metadata.psk,
       ownerOrbitDbIdentity: metadata.ownerOrbitDbIdentity,
       inviteData,
     }
 
-    // TODO: Add initialization of sigchain from invite
     await this.localDbService.setCommunity(community)
     await this.localDbService.setCurrentCommunityId(community.id)
-
     await this.launchCommunity(community)
-    this.logger.info(`Joined and launched community ${community.id}`)
     if (identity.userCsr?.userCsr) {
       await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
     }
+    this.logger.info(`Joined and launched community ${community.id}`)
     return community
   }
 
@@ -899,7 +896,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         this.serverIoProvider.io.emit(SocketActionTypes.CERTIFICATES_STORED, {
           certificates: await this.storageService?.loadAllCertificates(),
         })
-        await this.storageService?.loadAllChannels()
+        await this.storageService?.channels.loadAllChannels()
       }
     })
     this.socketService.on(
@@ -944,17 +941,60 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       callback(await this.leaveCommunity())
     })
 
+    // Local First Auth
+
+    this.socketService.on(
+      SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE,
+      async (callback?: (response: InviteResult | undefined) => void) => {
+        this.logger.info(`socketService - ${SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE}`)
+        if (this.sigChainService.activeChainTeamName != null) {
+          const invite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
+          this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, invite)
+          if (callback) callback(invite)
+        } else {
+          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code generation!`)
+          if (callback) callback(undefined)
+        }
+      }
+    )
+
+    this.socketService.on(
+      SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE,
+      async (
+        inviteId: Base58,
+        callback: (response: { valid: boolean; newInvite?: InviteResult } | undefined) => void
+      ) => {
+        this.logger.info(`socketService - ${SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE}`)
+        if (this.sigChainService.activeChainTeamName != null) {
+          if (this.sigChainService.getActiveChain().invites.isValidLongLivedUserInvite(inviteId)) {
+            this.logger.info(`Invite is a valid long lived LFA invite code!`)
+            callback({ valid: true })
+          } else {
+            this.logger.info(`Invite is an invalid long lived LFA invite code!  Generating a new code!`)
+            const newInvite = this.sigChainService.getActiveChain().invites.createLongLivedUserInvite()
+            this.serverIoProvider.io.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, newInvite)
+            callback({ valid: false, newInvite })
+          }
+        } else {
+          this.logger.warn(`No sigchain configured, skipping long lived LFA invite code validation/generation!`)
+          callback(undefined)
+        }
+      }
+    )
+
     // Username registration
+
     this.socketService.on(SocketActionTypes.ADD_CSR, async (payload: SaveCSRPayload) => {
       this.logger.info(`socketService - ${SocketActionTypes.ADD_CSR}`)
       await this.storageService?.saveCSR(payload)
     })
 
     // Public Channels
+
     this.socketService.on(
       SocketActionTypes.CREATE_CHANNEL,
       async (args: CreateChannelPayload, callback: (response?: CreateChannelResponse) => void) => {
-        callback(await this.storageService?.subscribeToChannel(args.channel))
+        callback(await this.storageService?.channels.subscribeToChannel(args.channel))
       }
     )
     this.socketService.on(
@@ -963,39 +1003,39 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
         payload: { channelId: string; ownerPeerId: string },
         callback: (response: DeleteChannelResponse) => void
       ) => {
-        callback(await this.storageService?.deleteChannel(payload))
+        callback(await this.storageService?.channels.deleteChannel(payload))
       }
     )
     this.socketService.on(
       SocketActionTypes.DELETE_FILES_FROM_CHANNEL,
       async (payload: DeleteFilesFromChannelSocketPayload) => {
         this.logger.info(`socketService - ${SocketActionTypes.DELETE_FILES_FROM_CHANNEL}`)
-        await this.storageService?.deleteFilesFromChannel(payload)
+        await this.storageService?.channels.deleteFilesFromChannel(payload)
         // await this.deleteFilesFromTemporaryDir() //crashes on mobile, will be fixes in next versions
       }
     )
     this.socketService.on(SocketActionTypes.SEND_MESSAGE, async (args: SendMessagePayload) => {
-      await this.storageService?.sendMessage(args.message)
+      await this.storageService?.channels.sendMessage(args.message)
     })
     this.socketService.on(
       SocketActionTypes.GET_MESSAGES,
       async (payload: GetMessagesPayload, callback: (response?: MessagesLoadedPayload) => void) => {
-        callback(await this.storageService?.getMessages(payload.channelId, payload.ids))
+        callback(await this.storageService?.channels.getMessages(payload.channelId, payload.ids))
       }
     )
 
     // Files
     this.socketService.on(SocketActionTypes.DOWNLOAD_FILE, async (metadata: FileMetadata) => {
-      await this.storageService?.downloadFile(metadata)
+      await this.storageService?.channels.downloadFile(metadata)
     })
     this.socketService.on(SocketActionTypes.UPLOAD_FILE, async (metadata: FileMetadata) => {
-      await this.storageService?.uploadFile(metadata)
+      await this.storageService?.channels.uploadFile(metadata)
     })
     this.socketService.on(SocketActionTypes.FILE_UPLOADED, async (args: FileMetadata) => {
-      await this.storageService?.uploadFile(args)
+      await this.storageService?.channels.uploadFile(args)
     })
     this.socketService.on(SocketActionTypes.CANCEL_DOWNLOAD, mid => {
-      this.storageService?.cancelDownload(mid)
+      this.storageService?.channels.cancelDownload(mid)
     })
 
     // System
@@ -1011,6 +1051,38 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
   private attachStorageListeners() {
     if (!this.storageService) return
+    // Channel and Message Events
+    this.storageService.channels.on(StorageEvents.CHANNELS_STORED, (payload: ChannelsReplicatedPayload) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.CHANNELS_STORED, payload)
+    })
+    this.storageService.channels.on(StorageEvents.MESSAGES_STORED, (payload: MessagesLoadedPayload) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.MESSAGES_STORED, payload)
+    })
+    this.storageService.channels.on(StorageEvents.MESSAGE_IDS_STORED, (payload: ChannelMessageIdsResponse) => {
+      if (payload.ids.length === 0) {
+        return
+      }
+      this.serverIoProvider.io.emit(SocketActionTypes.MESSAGE_IDS_STORED, payload)
+    })
+    this.storageService.channels.on(StorageEvents.CHANNEL_SUBSCRIBED, (payload: ChannelSubscribedPayload) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.CHANNEL_SUBSCRIBED, payload)
+    })
+    this.storageService.channels.on(StorageEvents.REMOVE_DOWNLOAD_STATUS, (payload: RemoveDownloadStatus) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.REMOVE_DOWNLOAD_STATUS, payload)
+    })
+    this.storageService.channels.on(StorageEvents.FILE_UPLOADED, (payload: UploadFilePayload) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.FILE_UPLOADED, payload)
+    })
+    this.storageService.channels.on(StorageEvents.DOWNLOAD_PROGRESS, (payload: DownloadStatus) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.DOWNLOAD_PROGRESS, payload)
+    })
+    this.storageService.channels.on(StorageEvents.MESSAGE_MEDIA_UPDATED, (payload: FileMetadata) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.MESSAGE_MEDIA_UPDATED, payload)
+    })
+    this.storageService.channels.on(StorageEvents.SEND_PUSH_NOTIFICATION, (payload: PushNotificationPayload) => {
+      this.serverIoProvider.io.emit(SocketActionTypes.PUSH_NOTIFICATION, payload)
+    })
+    // Other Events
     this.storageService.on(SocketActionTypes.CONNECTION_PROCESS_INFO, data => {
       this.serverIoProvider.io.emit(SocketActionTypes.CONNECTION_PROCESS_INFO, data)
     })
@@ -1018,38 +1090,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       this.logger.info(`Storage - ${StorageEvents.CERTIFICATES_STORED}`)
       this.serverIoProvider.io.emit(SocketActionTypes.CERTIFICATES_STORED, payload)
     })
-    this.storageService.on(StorageEvents.CHANNELS_STORED, (payload: ChannelsReplicatedPayload) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.CHANNELS_STORED, payload)
-    })
-    this.storageService.on(StorageEvents.MESSAGES_STORED, (payload: MessagesLoadedPayload) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.MESSAGES_STORED, payload)
-    })
-    this.storageService.on(StorageEvents.MESSAGE_IDS_STORED, (payload: ChannelMessageIdsResponse) => {
-      if (payload.ids.length === 0) {
-        return
-      }
-      this.serverIoProvider.io.emit(SocketActionTypes.MESSAGE_IDS_STORED, payload)
-    })
-    this.storageService.on(StorageEvents.CHANNEL_SUBSCRIBED, (payload: ChannelSubscribedPayload) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.CHANNEL_SUBSCRIBED, payload)
-    })
-    this.storageService.on(StorageEvents.REMOVE_DOWNLOAD_STATUS, (payload: RemoveDownloadStatus) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.REMOVE_DOWNLOAD_STATUS, payload)
-    })
-    this.storageService.on(StorageEvents.FILE_UPLOADED, (payload: UploadFilePayload) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.FILE_UPLOADED, payload)
-    })
-    this.storageService.on(StorageEvents.DOWNLOAD_PROGRESS, (payload: DownloadStatus) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.DOWNLOAD_PROGRESS, payload)
-    })
-    this.storageService.on(StorageEvents.MESSAGE_MEDIA_UPDATED, (payload: FileMetadata) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.MESSAGE_MEDIA_UPDATED, payload)
-    })
     this.storageService.on(StorageEvents.COMMUNITY_UPDATED, (payload: Community) => {
       this.serverIoProvider.io.emit(SocketActionTypes.COMMUNITY_UPDATED, payload)
-    })
-    this.storageService.on(StorageEvents.SEND_PUSH_NOTIFICATION, (payload: PushNotificationPayload) => {
-      this.serverIoProvider.io.emit(SocketActionTypes.PUSH_NOTIFICATION, payload)
     })
     this.storageService.on(StorageEvents.CSRS_STORED, async (payload: { csrs: string[] }) => {
       this.logger.info(`Storage - ${StorageEvents.CSRS_STORED}`)

@@ -59,13 +59,13 @@ export function* createNetworkSaga(
 
   if (payload.inviteData) {
     switch (payload.inviteData.version) {
+      case InvitationDataVersion.v2: // TODO: update to have actual logic https://github.com/TryQuiet/quiet/issues/2628
       case InvitationDataVersion.v1:
         community.psk = payload.inviteData.psk
         community.ownerOrbitDbIdentity = payload.inviteData.ownerOrbitDbIdentity
-        const invitationPeers = payload.inviteData.pairs
-        if (invitationPeers) {
+        if (payload.inviteData.pairs) {
           logger.info('Setting invitation codes')
-          yield* put(communitiesActions.setInvitationCodes(invitationPeers))
+          yield* put(communitiesActions.setInvitationCodes(payload.inviteData.pairs))
         }
         break
     }

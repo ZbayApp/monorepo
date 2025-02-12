@@ -41,6 +41,7 @@ import {
 
 import { createLogger } from '../../../utils/logger'
 import { identitySelectors } from '../../identity/identity.selectors'
+import { InviteResult } from '@localfirst/auth'
 
 const logger = createLogger('startConnectionSaga')
 
@@ -78,6 +79,8 @@ export function subscribe(socket: Socket) {
     | ReturnType<typeof filesActions.checkForMissingFiles>
     | ReturnType<typeof connectionActions.onConnectionProcessInfo>
     | ReturnType<typeof connectionActions.torBootstrapped>
+    | ReturnType<typeof connectionActions.createInvite>
+    | ReturnType<typeof connectionActions.setLongLivedInvite>
     | ReturnType<typeof communitiesActions.clearInvitationCodes>
     | ReturnType<typeof identityActions.saveUserCsr>
     | ReturnType<typeof connectionActions.setTorInitialized>
@@ -146,6 +149,12 @@ export function subscribe(socket: Socket) {
       emit(communitiesActions.updateCommunityData(payload))
     })
 
+    // Local First Auth
+
+    socket.on(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, (payload: InviteResult) => {
+      emit(connectionActions.setLongLivedInvite(payload))
+    })
+
     // Errors
     socket.on(SocketActionTypes.ERROR, (payload: ErrorPayload) => {
       // FIXME: It doesn't look like log errors have the red error
@@ -209,7 +218,7 @@ export function* useIO(socket: Socket): Generator {
       fork(communitiesMasterSaga, socket),
       fork(usersMasterSaga, socket),
       fork(appMasterSaga, socket),
-      fork(connectionMasterSaga),
+      fork(connectionMasterSaga, socket),
       fork(errorsMasterSaga),
     ])
   } finally {

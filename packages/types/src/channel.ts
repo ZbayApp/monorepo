@@ -31,6 +31,14 @@ export interface PublicChannelSubscription {
   subscribed: boolean
 }
 
+// NOTE: These are all typed as any because they are all LFA types and I don't wanna import LFA into
+// the types package.
+export interface EncryptionSignature {
+  contents: any
+  signature: any
+  author: any
+}
+
 export interface ChannelMessage {
   id: string
   type: number
@@ -38,8 +46,13 @@ export interface ChannelMessage {
   createdAt: number
   channelId: string
   signature: string
+  encSignature?: EncryptionSignature
   pubKey: string
   media?: FileMetadata
+}
+
+export interface ConsumedChannelMessage extends ChannelMessage {
+  verified?: boolean
 }
 
 export interface DisplayableMessage {

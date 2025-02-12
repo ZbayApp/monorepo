@@ -29,7 +29,7 @@ import { ConnectionProcessInfo, type NetworkDataPayload, SocketActionTypes, type
 import { getUsersAddresses } from '../common/utils'
 import { LIBP2P_DB_PATH, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { ServerIoProviderTypes } from '../types'
-import { webSockets } from '../websocketOverTor'
+import { webSockets as webSocketsOverTor } from '../websocketOverTor'
 import {
   CreatedLibp2pPeerId,
   Libp2pConnectedPeer,
@@ -40,6 +40,8 @@ import {
 import { createLogger } from '../common/logger'
 import { Libp2pDatastore } from './libp2p.datastore'
 import { WEBSOCKET_CIPHER_SUITE } from './libp2p.const'
+import { libp2pAuth, Libp2pAuth } from './libp2p.auth'
+import { SigChainService } from '../auth/sigchain.service'
 
 const KEY_LENGTH = 32
 export const LIBP2P_PSK_METADATA = '/key/swarm/psk/1.0.0/\n/base16/\n'
@@ -52,21 +54,31 @@ export class Libp2pService extends EventEmitter {
   public dialedPeers: Set<string>
   public libp2pDatastore: Libp2pDatastore
   private redialTimeout: NodeJS.Timeout
-  private localAddress: string
+  public localAddress: string
   private _connectedPeersInterval: NodeJS.Timer
+  private authService: Libp2pAuth | undefined
 
-  private readonly logger = createLogger(Libp2pService.name)
+  private logger = createLogger(Libp2pService.name)
 
   constructor(
     @Inject(SERVER_IO_PROVIDER) public readonly serverIoProvider: ServerIoProviderTypes,
     @Inject(SOCKS_PROXY_AGENT) public readonly socksProxyAgent: Agent,
-    @Inject(LIBP2P_DB_PATH) public readonly datastorePath: string
+    @Inject(LIBP2P_DB_PATH) public readonly datastorePath: string,
+    private sigchainService: SigChainService
   ) {
     super()
 
     this.dialQueue = []
     this.connectedPeers = new Map()
     this.dialedPeers = new Set()
+  }
+
+  public emit(event: string, ...args: any[]): boolean {
+    this.logger.info(`Emitting event: ${event}`, args)
+    if (event === Libp2pEvents.AUTH_LOCAL_ERROR || event === Libp2pEvents.AUTH_REMOTE_ERROR) {
+      this.hangUpPeer(args[0].connection.remoteAddr.toString())
+    }
+    return super.emit(event, ...args)
   }
 
   public dialPeer = async (peerAddress: string) => {
@@ -193,6 +205,9 @@ export class Libp2pService extends EventEmitter {
       const ma = multiaddr(peerAddress)
       const peerId = peerIdFromString(ma.getPeerId()!)
 
+      this.logger.info('Disconnecting auth service gracefully')
+      this.authService?.closeAuthConnection(peerId)
+
       this.logger.info('Hanging up connection on libp2p')
       await this.libp2pInstance?.hangUp(ma)
 
@@ -232,6 +247,9 @@ export class Libp2pService extends EventEmitter {
   }
 
   public async createInstance(params: Libp2pNodeParams): Promise<Libp2p> {
+    if (params.instanceName != null) {
+      this.logger = this.logger.extend(params.instanceName)
+    }
     this.logger.info(`Creating new libp2p instance`)
 
     if (this.libp2pInstance) {
@@ -272,7 +290,10 @@ export class Libp2pService extends EventEmitter {
           pingInterval: 60_000,
           enabled: true,
         },
-        connectionProtector: preSharedKey({ psk: params.psk }),
+        connectionProtector:
+          params.useConnectionProtector || params.useConnectionProtector == null
+            ? preSharedKey({ psk: params.psk })
+            : undefined,
         streamMuxers: [
           mplex({
             disconnectThreshold: 20,
@@ -287,22 +308,25 @@ export class Libp2pService extends EventEmitter {
         ],
         // @ts-ignore
         connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
-        transports: [
-          webSockets({
-            filter: filters.all,
-            websocket: {
-              agent: params.agent,
-              handshakeTimeout: 15_000,
-              ciphers: WEBSOCKET_CIPHER_SUITE,
-              followRedirects: true,
-            },
-            localAddress: params.localAddress,
-            targetPort: params.targetPort,
-            inboundConnectionUpgradeTimeout: 30_000,
-            closeOnEnd: false,
-          }),
-        ],
+        transports: params.transport
+          ? params.transport
+          : [
+              webSocketsOverTor({
+                filter: filters.all,
+                websocket: {
+                  agent: params.agent,
+                  handshakeTimeout: 30_000,
+                  ciphers: WEBSOCKET_CIPHER_SUITE,
+                  followRedirects: true,
+                },
+                localAddress: params.localAddress,
+                targetPort: params.targetPort,
+                inboundConnectionUpgradeTimeout: 30_000,
+                closeOnEnd: false,
+              }),
+            ],
         services: {
+          auth: libp2pAuth(this.sigchainService, this),
           ping: ping({ timeout: 30_000 }),
           pubsub: gossipsub({
             // neccessary to run a single peer
@@ -333,6 +357,10 @@ export class Libp2pService extends EventEmitter {
     }
 
     this.libp2pInstance = libp2p
+    const maybeAuth = libp2p.services['auth']
+    if (maybeAuth != null) {
+      this.authService = maybeAuth as Libp2pAuth
+    }
     await this.afterCreation(params.peerId)
     return libp2p
   }
@@ -366,7 +394,7 @@ export class Libp2pService extends EventEmitter {
     })
 
     this.libp2pInstance.addEventListener('transport:close', event => {
-      this.logger.warn(`Transport closing`)
+      this.logger.info(`Transport closing`)
     })
 
     this.libp2pInstance.addEventListener('peer:connect', async event => {
@@ -426,7 +454,7 @@ export class Libp2pService extends EventEmitter {
 
     await this.libp2pInstance.start()
 
-    this.logger.warn(
+    this.logger.info(
       `Libp2p Multiaddrs:`,
       this.libp2pInstance.getMultiaddrs().map(addr => addr.toString())
     )

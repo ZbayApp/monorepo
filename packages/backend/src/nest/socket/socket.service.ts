@@ -25,6 +25,7 @@ import { ConfigOptions, ServerIoProviderTypes } from '../types'
 import { suspendableSocketEvents } from './suspendable.events'
 import { createLogger } from '../common/logger'
 import type net from 'node:net'
+import { Base58, InviteResult } from '@localfirst/auth'
 
 @Injectable()
 export class SocketService extends EventEmitter implements OnModuleInit {
@@ -203,6 +204,29 @@ export class SocketService extends EventEmitter implements OnModuleInit {
 
       socket.on(SocketActionTypes.SET_USER_PROFILE, (profile: UserProfile) => {
         this.emit(SocketActionTypes.SET_USER_PROFILE, profile)
+      })
+
+      // ====== Local First Auth ======
+
+      socket.on(
+        SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE,
+        async (callback: (response: InviteResult | undefined) => void) => {
+          this.logger.info(`Creating long lived LFA invite code`)
+          this.emit(SocketActionTypes.CREATE_LONG_LIVED_LFA_INVITE, callback)
+        }
+      )
+
+      socket.on(
+        SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE,
+        async (inviteId: Base58, callback: (response: InviteResult | undefined) => void) => {
+          this.logger.info(`Validating long lived LFA invite with ID ${inviteId} or creating a new one`)
+          this.emit(SocketActionTypes.VALIDATE_OR_CREATE_LONG_LIVED_LFA_INVITE, inviteId, callback)
+        }
+      )
+
+      socket.on(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, (invite: InviteResult) => {
+        this.logger.info(`Created new long lived LFA invite code with id ${invite.id}`)
+        this.emit(SocketActionTypes.CREATED_LONG_LIVED_LFA_INVITE, invite)
       })
 
       // ====== Misc ======
