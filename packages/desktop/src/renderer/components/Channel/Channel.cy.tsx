@@ -21,7 +21,7 @@ Cypress.Commands.add('assertScrolledToBottom', { prevSubject: 'element' }, (subj
   const isScrolledToBottom = Math.abs(
     (el.scrollHeight - el.scrollTop) - el.clientHeight
   ) <= 1 // Allow 1px difference for rounding
-  expect(isScrolledToBottom).to.be.true
+  cy.wrap(isScrolledToBottom).should('be.true')
 })
 
 const resizeObserverLoopErrRe = /^[^(ResizeObserver loop limit exceeded)]/
@@ -87,13 +87,12 @@ describe('Scroll behavior test', () => {
   it('PageUp keydown should scroll message list up.', () => {
     cy.get(messageInput).focus().type('{pageup}{pageup}{pageup}{pageup}{pageup}{pageup}{pageup}')
 
-    // Check if scrolled to top 
     cy.get(channelContent).then($el => {
       const container = $el[0]      
       const isScrolledToTop = Math.abs(
         container.scrollTop
       ) <= 1  // Allow 1px difference for rounding
-      expect(isScrolledToTop).to.be.true
+      cy.wrap(isScrolledToTop).should('be.true')
     })
   })
 
@@ -134,14 +133,14 @@ describe('Scroll behavior test', () => {
     cy.get(messageInput).then($el => {
       const element = $el[0] as HTMLTextAreaElement
       // Height should be greater after typing long word
-      expect(element.offsetHeight).to.be.greaterThan(initialHeight)
+      cy.wrap(element.offsetHeight).should('be.gt', initialHeight)
       
       // Full text should be visible (no truncation)
-      expect(element.value).to.equal(longWord())
+      cy.wrap(element.value).should('eq', longWord())
       
       // Scrollable width should not exceed the container width
       // (meaning text is wrapping, not horizontally scrolling)
-      expect(element.scrollWidth).to.equal(element.offsetWidth)
+      cy.wrap(element.scrollWidth).should('eq', element.offsetWidth)
     })
   })
 
