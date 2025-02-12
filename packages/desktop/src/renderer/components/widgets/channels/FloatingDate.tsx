@@ -11,6 +11,18 @@ const classes = {
   dateText: `${PREFIX}dateText`,
 }
 
+const FLOATING_DATE = {
+  WIDTH: '109px',
+  HEIGHT: '25px',
+  TOP_OFFSET: '20px',
+  PADDING: '5px 18px',
+  GAP: '8px',
+  FONT_SIZE: '13px',
+  BORDER_RADIUS: '72px',
+  Z_INDEX: 1000,
+  TRANSITION_DURATION: '200ms',
+} as const
+
 const StyledGrid = styled(Grid)(({ theme }) => ({
   [`& .${classes.root}`]: {
     padding: 0,
@@ -27,30 +39,39 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: '5px 18px',
+    padding: FLOATING_DATE.PADDING,
     position: 'absolute',
-    width: '109px',
-    height: '25px',
-    top: '20px',
+    width: FLOATING_DATE.WIDTH,
+    height: FLOATING_DATE.HEIGHT,
+    top: FLOATING_DATE.TOP_OFFSET,
     background: theme.palette.background.default,
     border: `1px solid ${theme.palette.colors.border01}`,
     boxShadow: theme.shadows[5],
-    borderRadius: '72px',
-    zIndex: 1000,
-    transition: 'opacity 200ms ease-out',
+    borderRadius: FLOATING_DATE.BORDER_RADIUS,
+    zIndex: FLOATING_DATE.Z_INDEX,
+    transition: `opacity ${FLOATING_DATE.TRANSITION_DURATION} ease-out`,
   },
 
   [`& .${classes.dateText}`]: {
-    fontSize: '13px',
+    fontSize: FLOATING_DATE.FONT_SIZE,
   },
 }))
 
 interface FloatingDateProps {
   title: string
   isVisible?: boolean
+  className?: string
+  style?: React.CSSProperties
+  onVisibilityChange?: (isVisible: boolean) => void
 }
 
-export const FloatingDate: React.FC<FloatingDateProps> = ({ title, isVisible = false }) => {
+export const FloatingDate: React.FC<FloatingDateProps> = ({
+  title,
+  isVisible = false,
+  className,
+  style,
+  onVisibilityChange,
+}) => {
   return (
     <StyledGrid container justifyContent='center' alignItems='center'>
       <Grid item xs />
@@ -59,6 +80,7 @@ export const FloatingDate: React.FC<FloatingDateProps> = ({ title, isVisible = f
         className={classes.titleDiv}
         style={{
           opacity: isVisible ? 1 : 0,
+          pointerEvents: isVisible ? 'auto' : 'none',
         }}
       >
         <Typography variant='body1' className={classes.dateText}>

@@ -4,7 +4,7 @@ import { styled } from '@mui/material/styles'
 
 import { Grid, Typography } from '@mui/material'
 
-const PREFIX = 'MessagesDivider'
+const PREFIX = 'DateDivider'
 
 const classes = {
   root: `${PREFIX}root`,
@@ -45,13 +45,13 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
   },
 }))
 
-interface MessagesDividerProps {
+interface DateDividerProps {
   title: string
 }
 
-export const MessagesDivider: React.FC<MessagesDividerProps> = ({ title }) => {
+export const DateDivider: React.FC<DateDividerProps> = ({ title }) => {
   return (
-    <StyledGrid container justifyContent='center' alignItems='center'>
+    <StyledGrid container justifyContent='center' alignItems='center' aria-label={`Messages from ${title}`}>
       <Grid item xs>
         <div className={classes.divider} />
       </Grid>
@@ -67,4 +67,4 @@ export const MessagesDivider: React.FC<MessagesDividerProps> = ({ title }) => {
   )
 }
 
-export default MessagesDivider
+export default DateDivider

@@ -15,7 +15,7 @@ describe('WarningModal', () => {
           aria-hidden="true"
         />
         <div
-          class="MuiModal-root css-1mbrbs1-MuiModal-root"
+          class="MuiModal-root css-1on48p8-MuiModal-root"
           role="presentation"
         >
           <div

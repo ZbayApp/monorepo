@@ -52,18 +52,18 @@ describe('ChannelMessages', () => {
       <body>
         <div>
           <div
-            class="ChannelMessagesComponentscroll css-jvrqwe"
+            class="ChannelMessagesComponentscroll css-5o22xt"
             data-testid="channelContent"
           >
             <div
-              class="MuiGrid-root MuiGrid-container css-1jze5vx-MuiGrid-root"
+              class="MuiGrid-root MuiGrid-container css-1evpnhk-MuiGrid-root"
             >
               <div
                 class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-true css-1vd824g-MuiGrid-root"
               />
               <div
                 class="MuiGrid-root MuiGrid-item FloatingDatetitleDiv css-13i4rnv-MuiGrid-root"
-                style="opacity: 0;"
+                style="opacity: 0; pointer-events: none;"
               >
                 <p
                   class="MuiTypography-root MuiTypography-body1 FloatingDatedateText css-ghvhpl-MuiTypography-root"
@@ -81,20 +81,21 @@ describe('ChannelMessages', () => {
             >
               <div>
                 <div
-                  class="MuiGrid-root MuiGrid-container css-15hbwzl-MuiGrid-root"
+                  aria-label="Messages from Today"
+                  class="MuiGrid-root MuiGrid-container css-1oqe91p-MuiGrid-root"
                 >
                   <div
                     class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-true css-1vd824g-MuiGrid-root"
                   >
                     <div
-                      class="MessagesDividerdivider"
+                      class="DateDividerdivider"
                     />
                   </div>
                   <div
-                    class="MuiGrid-root MuiGrid-item MessagesDividertitleDiv css-13i4rnv-MuiGrid-root"
+                    class="MuiGrid-root MuiGrid-item DateDividertitleDiv css-13i4rnv-MuiGrid-root"
                   >
                     <p
-                      class="MuiTypography-root MuiTypography-body1 MessagesDividerdateText css-ghvhpl-MuiTypography-root"
+                      class="MuiTypography-root MuiTypography-body1 DateDividerdateText css-ghvhpl-MuiTypography-root"
                     >
                       Today
                     </p>
@@ -103,12 +104,12 @@ describe('ChannelMessages', () => {
                     class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-true css-1vd824g-MuiGrid-root"
                   >
                     <div
-                      class="MessagesDividerdivider"
+                      class="DateDividerdivider"
                     />
                   </div>
                 </div>
                 <li
-                  class="MuiListItem-root MuiListItem-gutters MuiListItem-padding BasicMessageComponentwrapper css-17bnw67-MuiListItem-root"
+                  class="MuiListItem-root MuiListItem-gutters MuiListItem-padding BasicMessageComponentwrapper css-1v3s10o-MuiListItem-root"
                 >
                   <div
                     class="MuiListItemText-root BasicMessageComponentmessageCard css-tlelie-MuiListItemText-root"
@@ -164,7 +165,7 @@ describe('ChannelMessages', () => {
                             class="MuiGrid-root MuiGrid-item css-15myz84-MuiGrid-root"
                           >
                             <span
-                              class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-llt4u8-MuiTypography-root"
+                              class="MuiTypography-root MuiTypography-body1 TextMessagemessage css-19mj63n-MuiTypography-root"
                               data-testid="messagesGroupContent-string"
                             >
                               string

@@ -15,7 +15,7 @@ describe('PopupMenu', () => {
       <body>
         <div>
           <div
-            class="PopupMenupopper css-6sbops-MuiPopper-root MuiPopperUnstyled-root"
+            class="PopupMenupopper css-561hhw-MuiPopper-root MuiPopperUnstyled-root"
             role="tooltip"
             style="position: fixed; top: 0px; left: 0px;"
           >
@@ -65,7 +65,7 @@ describe('PopupMenu', () => {
       <body>
         <div>
           <div
-            class="PopupMenupopper css-6sbops-MuiPopper-root MuiPopperUnstyled-root"
+            class="PopupMenupopper css-561hhw-MuiPopper-root MuiPopperUnstyled-root"
             role="tooltip"
             style="position: fixed; top: 0px; left: 0px;"
           >

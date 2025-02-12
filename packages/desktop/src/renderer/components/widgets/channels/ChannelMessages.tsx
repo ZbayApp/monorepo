@@ -4,7 +4,7 @@ import List from '@mui/material/List'
 import { styled } from '@mui/material/styles'
 
 import FloatingDate from './FloatingDate'
-import MessagesDivider from '../MessagesDivider'
+import DateDivider from '../DateDivider'
 import BasicMessageComponent from './BasicMessage'
 import SpinnerLoader from '../../ui/Spinner/SpinnerLoader'
 
@@ -19,6 +19,16 @@ import { UseModalType } from '../../../containers/hooks'
 import { HandleOpenModalType } from '../userLabel/UserLabel.types'
 
 const PREFIX = 'ChannelMessagesComponent'
+
+const FETCHING_MESSAGES = 'Fetching channel messages...'
+const DELETING_CHANNEL = 'Deleting channel...'
+
+const CHANNEL_UI = {
+  FLOATING_DATE_HIDE_DELAY: 1000, // ms to wait before hiding floating date
+  FLOATING_DATE_OFFSET: 23, // px from top for floating date position
+  PAGE_SCROLL_OVERLAP: 0.9, // percentage of viewport to scroll for PageUp/Down
+  SPINNER_SIZE: 40, // px size of loading spinner
+} as const
 
 const classes = {
   spinner: `${PREFIX}spinner`,
@@ -75,9 +85,6 @@ interface Props {
   duplicatedUsernameModalHandleOpen: HandleOpenModalType
 }
 
-const FETCHING_MESSAGES = 'Fetching channel messages...'
-const DELETING_CHANNEL = 'Deleting channel...'
-
 export const ChannelMessagesComponent: React.FC<Props> = ({
   messages = {},
   pendingMessages = {},
@@ -113,8 +120,7 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
   const updateFloatingDate = useCallback(() => {
     if (!scrollbarRef.current) return
     const containerRect = scrollbarRef.current.getBoundingClientRect()
-    const floatOffset = 23
-    const floatPos = containerRect.top + floatOffset
+    const floatPos = containerRect.top + CHANNEL_UI.FLOATING_DATE_OFFSET
 
     let bestDay = ''
     let bestTop = Number.NEGATIVE_INFINITY
@@ -145,7 +151,7 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
     }
     scrollTimerRef.current = window.setTimeout(() => {
       setIsScrolling(false)
-    }, 1000)
+    }, CHANNEL_UI.FLOATING_DATE_HIDE_DELAY)
   }, [onScroll, updateFloatingDate, userHasInitiatedScroll])
 
   const handleWheel = useCallback(() => {
@@ -161,7 +167,7 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
         evt.preventDefault()
 
         // Get viewport height (minus ~10% for overlap)
-        const scrollAmount = scrollbarRef.current.clientHeight * 0.9
+        const scrollAmount = scrollbarRef.current.clientHeight * CHANNEL_UI.PAGE_SCROLL_OVERLAP
 
         setUserHasInitiatedScroll(true)
         scrollbarRef.current.scrollTop += evt.key === 'PageUp' ? -scrollAmount : scrollAmount
@@ -198,7 +204,12 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
   return (
     <StyledRoot className={classes.scroll} ref={scrollbarRef} data-testid='channelContent'>
       {Object.values(messages).length < 1 && (
-        <SpinnerLoader size={40} message={spinnerMessage} className={classes.spinner} color='black' />
+        <SpinnerLoader
+          size={CHANNEL_UI.SPINNER_SIZE}
+          message={spinnerMessage}
+          className={classes.spinner}
+          color='black'
+        />
       )}
 
       <FloatingDate title={currentDay || 'Today'} isVisible={userHasInitiatedScroll && isScrolling} />
@@ -211,7 +222,7 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
               dayRefs.current[day] = el
             }}
           >
-            <MessagesDivider title={day} />
+            <DateDivider title={day} />
             {messages[day].map(items => {
               const data = items[0]
               return (
