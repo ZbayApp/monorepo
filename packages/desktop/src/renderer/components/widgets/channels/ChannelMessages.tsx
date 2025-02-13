@@ -212,7 +212,7 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
         />
       )}
 
-      <FloatingDate title={currentDay || 'Today'} isVisible={userHasInitiatedScroll && isScrolling} />
+      <FloatingDate title={currentDay} isVisible={userHasInitiatedScroll && isScrolling} />
 
       <List disablePadding className={classes.list} id='messages-scroll' ref={listRef}>
         {Object.keys(messages).map(day => (
