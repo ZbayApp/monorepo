@@ -49,7 +49,6 @@ type ElectronRemoteMock = {
   [Symbol.iterator]: () => Generator<number, void, unknown>
 }
 
-// Then define your mock like this:
 jest.mock('@electron/remote', () => {
   function* mockIterator(): Generator<number, void, unknown> {
     yield 1
