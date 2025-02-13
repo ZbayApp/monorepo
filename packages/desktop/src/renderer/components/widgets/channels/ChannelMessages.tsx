@@ -20,8 +20,8 @@ import { HandleOpenModalType } from '../userLabel/UserLabel.types'
 
 const PREFIX = 'ChannelMessagesComponent'
 
-const FETCHING_MESSAGES = 'Fetching channel messages...'
-const DELETING_CHANNEL = 'Deleting channel...'
+const FETCHING_CHANNEL_MESSAGES = 'Fetching channel messages...'
+const DELETING_CHANNEL_MESSAGE = 'Deleting channel...'
 
 const CHANNEL_UI = {
   FLOATING_DATE_HIDE_DELAY: 1000, // ms to wait before hiding floating date
@@ -109,7 +109,7 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
   const [currentDay, setCurrentDay] = useState<string>('')
 
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({})
-  const spinnerMessage = pendingGeneralChannelRecreation ? DELETING_CHANNEL : FETCHING_MESSAGES
+  const spinnerMessage = pendingGeneralChannelRecreation ? DELETING_CHANNEL_MESSAGE : FETCHING_CHANNEL_MESSAGES
 
   Object.keys(messages).forEach(day => {
     if (!dayRefs.current[day]) {
@@ -249,5 +249,5 @@ export const ChannelMessagesComponent: React.FC<Props> = ({
   )
 }
 
-export { FETCHING_MESSAGES as fetchingChannelMessagesText, DELETING_CHANNEL as deletingChannelMessage }
+export { FETCHING_CHANNEL_MESSAGES, DELETING_CHANNEL_MESSAGE }
 export default ChannelMessagesComponent
