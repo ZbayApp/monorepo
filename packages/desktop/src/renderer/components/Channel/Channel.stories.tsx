@@ -5,6 +5,7 @@ import { ComponentStory, ComponentMeta } from '@storybook/react'
 
 import { withTheme } from '../../storybook/decorators'
 import { mock_messages, users } from '../../storybook/utils'
+import { ModalName } from '../../sagas/modals/modals.types'
 
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
@@ -37,13 +38,6 @@ const validUser = {
   },
   userCertificate: 'fakeCertificate',
   joinTimestamp: null,
-}
-
-// Replace "ModalName.uploadedFileModal" etc. with the REAL enum/constant your store uses
-enum ModalName {
-  uploadedFileModal = 'uploadedFileModal',
-  duplicatedUsernameModal = 'duplicatedUsernameModal',
-  unregisteredUsernameModal = 'unregisteredUsernameModal',
 }
 
 // Add placeholders for the required fields
