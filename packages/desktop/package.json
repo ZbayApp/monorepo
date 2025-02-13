@@ -145,9 +145,7 @@
     "react-markdown": "^6.0.3",
     "react-qr-code": "^2.0.11",
     "remark-gfm": "^1.0.0",
-    "socket.io-client": "^4.7.4",
-    "cypress": "^12.17.4",
-    "@cypress/webpack-preprocessor": "^5.17.1"
+    "socket.io-client": "^4.7.4"
   },
   "devDependencies": {
     "@babel/core": "^7.22.5",
@@ -157,6 +155,8 @@
     "@babel/preset-react": "^7.22.5",
     "@cypress/react18": "2.0.0",
     "@cypress/webpack-dev-server": "3.1.0",
+    "cypress": "^12.17.4",
+    "@cypress/webpack-preprocessor": "^5.17.1",
     "@electron/notarize": "2.1.0",
     "@emotion/react": "~11.10.5",
     "@emotion/styled": "~11.10.5",
