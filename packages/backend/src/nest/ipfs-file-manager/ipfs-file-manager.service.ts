@@ -140,9 +140,21 @@ export class IpfsFileManagerService extends EventEmitter {
 
   public async stop() {
     this.logger.info('Stopping IpfsFileManagerService')
-    for await (const cid of this.files.keys()) {
-      await this.cancelDownload(cid)
+    const cancelPromises: Promise<void>[] = []
+    this.logger.info(`Cancelling ${this.files.size} downloads`)
+    for (const cid of this.files.keys()) {
+      cancelPromises.push(
+        (async (): Promise<void> => {
+          try {
+            await this.cancelDownload(cid)
+          } catch (e) {
+            this.logger.error(`Error while cancelling download for CID ${cid}`, e)
+          }
+        })()
+      )
     }
+
+    await Promise.all(cancelPromises)
   }
 
   /**

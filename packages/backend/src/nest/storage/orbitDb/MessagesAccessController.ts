@@ -85,15 +85,19 @@ export const MessagesAccessController =
       const message = entry.payload.value
 
       if (message) {
-        const signature = stringToArrayBuffer(message.signature)
-        let cryptoKey = keyMapping.get(message.pubKey)
+        try {
+          const signature = stringToArrayBuffer(message.signature)
+          let cryptoKey = keyMapping.get(message.pubKey)
 
-        if (!cryptoKey) {
-          cryptoKey = await keyObjectFromString(message.pubKey, crypto)
-          keyMapping.set(message.pubKey, cryptoKey)
+          if (!cryptoKey) {
+            cryptoKey = await keyObjectFromString(message.pubKey, crypto)
+            keyMapping.set(message.pubKey, cryptoKey)
+          }
+
+          return await verifySignature(signature, message.message, cryptoKey)
+        } catch (e) {
+          return true
         }
-
-        return await verifySignature(signature, message.message, cryptoKey)
       } else {
         return true
       }

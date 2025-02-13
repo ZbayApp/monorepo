@@ -146,6 +146,7 @@ export class StorageService extends EventEmitter {
   }
 
   public async stop() {
+    await this.channelsService.closeFileManager()
     await this.channelsService.closeChannels()
 
     try {
@@ -173,7 +174,6 @@ export class StorageService extends EventEmitter {
     }
 
     await this.orbitDbService.stop()
-    await this.channelsService.closeFileManager()
 
     try {
       await this.ipfsService.stop()

@@ -136,7 +136,7 @@ declare module '@orbitdb/core' {
 
   export function LRUStorage({ size: number }): Promise<Storage>
 
-  export function ComposedStorage(...args: Storage[]): Promise<Storage>
+  export function ComposedStorage(storage1: Storage, storage2: Storage, events?: EventEmitter): Promise<Storage>
 
   export function MemoryStorage(): Promise<Storage>
 
@@ -207,6 +207,7 @@ declare module '@orbitdb/core' {
     access: AccessControllerType
     identity: Identity
     storage: Storage
+    events: EventEmitter
   }
 
   declare interface EntryType {
@@ -264,6 +265,7 @@ declare module '@orbitdb/core' {
     referencesCount?: number
     syncAutomatically?: boolean
     onUpdate?: () => void
+    events?: EventEmitter
   }): Promise<DatabaseType>
 
   export interface DatabaseType {
@@ -303,6 +305,7 @@ declare module '@orbitdb/core' {
     referencesCount,
     syncAutomatically,
     onUpdate,
+    events,
   }) => Promise<KeyValueType>
 
   export function Events(): ({
@@ -319,6 +322,7 @@ declare module '@orbitdb/core' {
     referencesCount,
     syncAutomatically,
     onUpdate,
+    events,
   }) => Promise<EventsType>
 
   export interface KeyValueType<T = unknown> extends DatabaseType {

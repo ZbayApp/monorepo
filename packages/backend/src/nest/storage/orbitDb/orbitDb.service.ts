@@ -18,11 +18,13 @@ import {
 import { HeliaLibp2p, type Helia } from 'helia'
 import { OrbitDbStorage } from '../../types'
 import { IdentitiesWithStorage } from './identitiesWithStorage'
+import EventEmitter from 'events'
 
 @Injectable()
 export class OrbitDbService {
   private orbitDbInstance: OrbitDBType | null = null
   public identities: IdentitiesType
+  public static readonly events = new EventEmitter()
 
   private readonly logger = createLogger(OrbitDbService.name)
 
@@ -78,7 +80,8 @@ export class OrbitDbService {
   ): Promise<OrbitDbStorage> {
     const entryStorage = await ComposedStorage(
       await LRUStorage({ size: 1000 }),
-      await IPFSBlockStorage({ ipfs, pin: pinIpfs })
+      await IPFSBlockStorage({ ipfs, pin: pinIpfs }),
+      OrbitDbService.events
     )
 
     const headsStorage = await ComposedStorage(
@@ -86,7 +89,8 @@ export class OrbitDbService {
       await LevelStorage({
         path: posixJoin(baseDirectory || './orbitdb', `./${address}/log/_heads/`),
         valueEncoding: 'buffer',
-      })
+      }),
+      OrbitDbService.events
     )
 
     const indexStorage = await ComposedStorage(
@@ -94,7 +98,8 @@ export class OrbitDbService {
       await LevelStorage({
         path: posixJoin(baseDirectory || './orbitdb', `./${address}/log/_index/`),
         valueEncoding: 'buffer',
-      })
+      }),
+      OrbitDbService.events
     )
 
     return {

@@ -42,6 +42,7 @@ import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { createLogger } from '../../common/logger'
 import { abortableAsyncIterable } from '../../common/utils'
 import { KeyValueWithStorage } from './keyValueWithStorage'
+import { OrbitDbService } from './orbitDb.service'
 
 import { posixJoin } from './util'
 
@@ -187,6 +188,8 @@ export const KeyValueIndexedValidated =
     syncAutomatically: boolean
     onUpdate: (log: LogType, entry: LogEntry) => Promise<void>
   }) => {
+    logger.info(`Initializing KeyValueIndexed OrbitDB database using custom storage`)
+
     // Set up the index
     const index = await Index({ directory: posixJoin(directory || './orbitdb', `./${address}/_index`), validateFn })()
 

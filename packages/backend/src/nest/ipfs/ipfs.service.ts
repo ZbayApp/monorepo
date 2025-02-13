@@ -14,11 +14,21 @@ type StoreInit = {
   datastore?: Omit<DatabaseOptions<string, Uint8Array>, 'valueEncoding' | 'keyEncoding'>
 }
 
+type Blockstore = {
+  store: LevelBlockstore
+  db: Level<string, Uint8Array>
+}
+
+type Datastore = {
+  store: LevelDatastore
+  db: Level<string, Uint8Array>
+}
+
 @Injectable()
 export class IpfsService {
   public ipfsInstance: Helia | null
-  private blockstore: LevelBlockstore | null
-  private datastore: LevelDatastore | null
+  private blockstore: Blockstore | null
+  private datastore: Datastore | null
 
   private started: boolean
   private readonly logger = createLogger(IpfsService.name)
@@ -53,12 +63,13 @@ export class IpfsService {
         protocol: BITSWAP_PROTOCOL,
         maxInboundStreams: 512,
         maxOutboundStreams: 512,
+        sendBlocksConcurrency: 10,
       })
       ipfs = await createHelia({
         start: false,
         libp2p: libp2pInstance,
-        blockstore: this.blockstore!,
-        datastore: this.datastore!,
+        blockstore: this.blockstore!.store,
+        datastore: this.datastore!.store,
         blockBrokers: [bitstwapInstance],
       })
       this.ipfsInstance = ipfs
@@ -75,7 +86,7 @@ export class IpfsService {
     this.blockstore = await this.createBlockstore(init?.blockstore)
   }
 
-  private async createDatastore(init?: DatabaseOptions<string, Uint8Array>): Promise<LevelDatastore> {
+  private async createDatastore(init?: DatabaseOptions<string, Uint8Array>): Promise<Datastore> {
     let datastoreInit: DatabaseOptions<string, Uint8Array> = {
       keyEncoding: 'utf8',
       valueEncoding: 'buffer',
@@ -97,10 +108,13 @@ export class IpfsService {
     }
 
     const datastoreLevelDb = new Level<string, Uint8Array>(this.ipfsRepoPath + '/data', datastoreInit)
-    return new LevelDatastore(datastoreLevelDb, datastoreInit)
+    return {
+      db: datastoreLevelDb,
+      store: new LevelDatastore(datastoreLevelDb, datastoreInit),
+    }
   }
 
-  private async createBlockstore(init?: LevelBlockstoreInit): Promise<LevelBlockstore> {
+  private async createBlockstore(init?: LevelBlockstoreInit): Promise<Blockstore> {
     let blockstoreInit: LevelBlockstoreInit = {
       keyEncoding: 'utf8',
       valueEncoding: 'buffer',
@@ -127,7 +141,10 @@ export class IpfsService {
     }
 
     const blockstoreLevelDb = new Level<string, Uint8Array>(this.ipfsRepoPath + '/blocks', blockstoreInit)
-    return new LevelBlockstore(blockstoreLevelDb, blockstoreInit)
+    return {
+      db: blockstoreLevelDb,
+      store: new LevelBlockstore(blockstoreLevelDb, blockstoreInit),
+    }
   }
 
   public async start() {
@@ -137,10 +154,12 @@ export class IpfsService {
     }
 
     this.logger.info(`Opening Helia blockstore`)
-    await this.blockstore!.open()
+    await this.blockstore!.db.open()
+    await this.blockstore!.store.open()
 
     this.logger.info(`Opening Helia datastore`)
-    await this.datastore!.open()
+    await this.datastore!.db.open()
+    await this.datastore!.store.open()
 
     this.logger.info(`Starting Helia`)
     await this.ipfsInstance.start()
@@ -170,7 +189,7 @@ export class IpfsService {
 
     try {
       await this.blockstore?.db.close()
-      await this.blockstore?.close()
+      await this.blockstore?.store.close()
     } catch (e) {
       if (!(e as Error).message.includes('Database is not open')) {
         this.logger.error(`Error while closing IPFS blockstore`, e)
@@ -179,7 +198,8 @@ export class IpfsService {
     }
 
     try {
-      await this.datastore?.close()
+      await this.datastore?.db.close()
+      await this.datastore?.store.close()
     } catch (e) {
       if (!(e as Error).message.includes('Database is not open')) {
         this.logger.error(`Error while closing IPFS datastore`, e)

@@ -15,7 +15,8 @@
     "lint-staged": "lerna run lint-staged",
     "build:auth": "cd ./3rd-party/auth && pnpm install && pnpm build",
     "build:noise": "cd ./3rd-party/js-libp2p-noise && npm i && npm run build",
-    "bootstrap": "npm run build:auth && npm run build:noise && lerna bootstrap",
+    "build:orbitdb": "cd ./3rd-party/orbitdb && npm i && npm run build",
+    "bootstrap": "npm run build:auth && npm run build:noise && npm run build:orbitdb && lerna bootstrap",
     "watch": "lerna watch -- lerna run build --since"
   },
   "engines": {

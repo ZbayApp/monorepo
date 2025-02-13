@@ -3,7 +3,7 @@ import { type Helia } from 'helia'
 import { createLogger } from '../../common/logger'
 import { OrbitDbService } from './orbitDb.service'
 
-const logger = createLogger('orbitdb:keyValueWrapper')
+const logger = createLogger('orbitdb:keyValueWithStorage')
 
 export const KeyValueWithStorage =
   (pinIpfs = true) =>
@@ -54,6 +54,7 @@ export const KeyValueWithStorage =
       referencesCount,
       syncAutomatically,
       onUpdate,
+      events: OrbitDbService.events,
     })
 
     db.events.on('error', error => {
@@ -69,9 +70,26 @@ export const KeyValueWithStorage =
       }
     }
 
+    const ogAll = db.all
+    const all = async (): Promise<
+      {
+        key: string
+        value: unknown
+        hash: string
+      }[]
+    > => {
+      try {
+        return await ogAll()
+      } catch (e) {
+        db.events.emit('error', e)
+        return []
+      }
+    }
+
     return {
       ...db,
       get,
+      all,
     }
   }
 

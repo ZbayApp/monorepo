@@ -4,7 +4,7 @@ import { createLogger } from '../../common/logger'
 import { abortableAsyncIterable } from '../../common/utils'
 import { OrbitDbService } from './orbitDb.service'
 
-const logger = createLogger('orbitdb:keyValueWrapper')
+const logger = createLogger('orbitdb:eventsWithStorage')
 
 export const EventsWithStorage =
   (pinIpfs = true) =>
@@ -55,6 +55,7 @@ export const EventsWithStorage =
       referencesCount,
       syncAutomatically,
       onUpdate,
+      events: OrbitDbService.events,
     })
 
     db.events.on('error', error => {
