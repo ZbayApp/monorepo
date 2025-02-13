@@ -16,11 +16,9 @@ declare global {
 }
 
 // Custom command to check if the channel content is scrolled to the bottom
-Cypress.Commands.add('assertScrolledToBottom', { prevSubject: 'element' }, (subject) => {
+Cypress.Commands.add('assertScrolledToBottom', { prevSubject: 'element' }, subject => {
   const el = subject[0]
-  const isScrolledToBottom = Math.abs(
-    (el.scrollHeight - el.scrollTop) - el.clientHeight
-  ) <= 1 // Allow 1px difference for rounding
+  const isScrolledToBottom = Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) <= 1 // Allow 1px difference for rounding
   cy.wrap(isScrolledToBottom).should('be.true')
 })
 
@@ -88,10 +86,8 @@ describe('Scroll behavior test', () => {
     cy.get(messageInput).focus().type('{pageup}{pageup}{pageup}{pageup}{pageup}{pageup}{pageup}')
 
     cy.get(channelContent).then($el => {
-      const container = $el[0]      
-      const isScrolledToTop = Math.abs(
-        container.scrollTop
-      ) <= 1  // Allow 1px difference for rounding
+      const container = $el[0]
+      const isScrolledToTop = Math.abs(container.scrollTop) <= 1 // Allow 1px difference for rounding
       cy.wrap(isScrolledToTop).should('be.true')
     })
   })
@@ -134,10 +130,10 @@ describe('Scroll behavior test', () => {
       const element = $el[0] as HTMLTextAreaElement
       // Height should be greater after typing long word
       cy.wrap(element.offsetHeight).should('be.gt', initialHeight)
-      
+
       // Full text should be visible (no truncation)
       cy.wrap(element.value).should('eq', longWord())
-      
+
       // Scrollable width should not exceed the container width
       // (meaning text is wrapping, not horizontally scrolling)
       cy.wrap(element.scrollWidth).should('eq', element.offsetWidth)
@@ -145,15 +141,13 @@ describe('Scroll behavior test', () => {
   })
 
   describe('FloatingDate displays correctly', () => {
-
     // The scroll wheel was difficult to test, even with cypress-real-events
     // so we're just going to test the pageup and pagedown keys
 
     it('should not display on channel load', () => {
-      cy.get(messageInput).focus().type('{pageup}')      
+      cy.get(messageInput).focus().type('{pageup}')
       cy.get(floatingDateSelector).should('not.be.visible')
     })
-
 
     it('should display on pageup', () => {
       cy.get(messageInput).focus().type('{pageup}')
@@ -171,11 +165,8 @@ describe('Scroll behavior test', () => {
     it('should display the correct date text', () => {
       cy.get(channelContent)
       cy.get(messageInput).focus().type('{pageup}')
-      
-      cy.get(floatingDateSelector)
-        .should('be.visible')
-        .invoke('text')
-        .should('contain', '28 Oct')
+
+      cy.get(floatingDateSelector).should('be.visible').invoke('text').should('contain', '28 Oct')
     })
   })
 })

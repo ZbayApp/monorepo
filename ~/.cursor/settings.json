@@ -1,0 +1,11 @@
+{
+  "files.associations": {
+    "*.cy.tsx": "typescriptreact",
+    "*.cy.ts": "typescript"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "typescript.validate.enable": true,
+  "javascript.validate.enable": true
+} 
