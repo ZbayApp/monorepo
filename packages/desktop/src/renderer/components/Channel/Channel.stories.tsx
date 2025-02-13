@@ -671,16 +671,12 @@ export const SendingMessagesWithScroll: ComponentStory<typeof ChannelComponent> 
     }
 
     setLocalMessages(prev => {
-      // Get the "Today" group key (should be the last key)
       const dateKeys = Object.keys(prev.groups)
       const today = dateKeys[dateKeys.length - 1]
-
-      // Add new message to today's messages
       const updatedGroups = {
         ...prev.groups,
         [today]: [...prev.groups[today], [newMessage]],
       }
-
       return {
         count: prev.count + 1,
         groups: updatedGroups,
@@ -690,49 +686,7 @@ export const SendingMessagesWithScroll: ComponentStory<typeof ChannelComponent> 
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <ChannelComponent
-        user={validUser}
-        channelId='general'
-        channelName='general'
-        newestMessage={{
-          id: String(Date.now()),
-          type: 1,
-          message: '',
-          createdAt: Date.now(),
-          channelId: 'general',
-          pubKey: 'pubKey',
-          signature: 'signature',
-        }}
-        pendingMessages={{}}
-        downloadStatuses={{}}
-        filesData={{}}
-        lazyLoading={() => {}}
-        onInputChange={() => {}}
-        openUrl={() => {}}
-        openFilesDialog={() => {}}
-        handleFileDrop={() => {}}
-        isCommunityInitialized={true}
-        handleClipboardFiles={() => {}}
-        uploadedFileModal={{
-          open: false,
-          handleOpen: () => ({ type: 'Modals/openModal', payload: { name: ModalName.uploadedFileModal } }),
-          handleClose: () => ({ type: 'Modals/closeModal', payload: ModalName.uploadedFileModal }),
-          src: '',
-        }}
-        duplicatedUsernameModalHandleOpen={() => ({
-          type: 'Modals/openModal',
-          payload: { name: ModalName.duplicatedUsernameModal },
-        })}
-        unregisteredUsernameModalHandleOpen={() => ({
-          type: 'Modals/openModal',
-          payload: { name: ModalName.unregisteredUsernameModal },
-        })}
-        pendingGeneralChannelRecreation={false}
-        removeFile={dummyRemoveFile}
-        {...args}
-        messages={localMessages}
-        onInputEnter={handleSend}
-      />
+      <ChannelComponent {...args} messages={localMessages} onInputEnter={handleSend} />
     </DndProvider>
   )
 }
