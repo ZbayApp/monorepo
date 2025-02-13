@@ -8,7 +8,10 @@ export const getNotificationsOption = createSelector(settingsSlice, reducerState
 
 export const getNotificationsSound = createSelector(settingsSlice, reducerState => reducerState.notificationsSound)
 
+export const getThemePreference = createSelector(settingsSlice, reducerState => reducerState.themePreference)
+
 export const settingsSelectors = {
   getNotificationsOption,
   getNotificationsSound,
+  getThemePreference,
 }
