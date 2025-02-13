@@ -651,7 +651,7 @@ const component: ComponentMeta<typeof ChannelComponent> = {
 
 export default component
 
-export const InteractiveLocalState: ComponentStory<typeof ChannelComponent> = () => {
+export const SendingMessagesWithScroll: ComponentStory<typeof ChannelComponent> = () => {
   const [localMessages, setLocalMessages] = useState<{
     count: number
     groups: { [day: string]: DisplayableMessage[][] }
@@ -669,7 +669,23 @@ export const InteractiveLocalState: ComponentStory<typeof ChannelComponent> = ()
       date: new Date().toLocaleTimeString(),
       pubKey: 'pubKey',
     }
-    setLocalMessages(prev => mock_messages(newMessage))
+
+    setLocalMessages(prev => {
+      // Get the "Today" group key (should be the last key)
+      const dateKeys = Object.keys(prev.groups)
+      const today = dateKeys[dateKeys.length - 1]
+
+      // Add new message to today's messages
+      const updatedGroups = {
+        ...prev.groups,
+        [today]: [...prev.groups[today], [newMessage]],
+      }
+
+      return {
+        count: prev.count + 1,
+        groups: updatedGroups,
+      }
+    })
   }
 
   return (

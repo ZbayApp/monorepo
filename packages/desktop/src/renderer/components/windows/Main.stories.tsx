@@ -8,7 +8,7 @@ import { withTheme } from '../../storybook/decorators'
 
 import { Reusable as Sidebar } from '../Sidebar/Sidebar.stories'
 import SidebarComponent from '../Sidebar/Sidebar'
-import { Normal as ChannelStory } from '../Channel/Channel.stories'
+import { SendingMessagesWithScroll as ChannelStory } from '../Channel/Channel.stories'
 
 const Template: ComponentStory<any> = () => {
   return (

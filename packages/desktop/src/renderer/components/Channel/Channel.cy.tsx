@@ -33,20 +33,17 @@ Cypress.on('uncaught:exception', err => {
 // @ts-expect-error
 setGlobalConfig(withTheme)
 
-const { InteractiveLocalState } = composeStories(stories)
+const { SendingMessagesWithScroll } = composeStories(stories)
 
 describe('Scroll behavior test', () => {
   beforeEach(() => {
     mount(
       <React.Fragment>
-        {/* @ts-ignore */}
         <CssBaseline>
-          {/* @ts-ignore */}
-          <InteractiveLocalState />
+          <SendingMessagesWithScroll />
         </CssBaseline>
       </React.Fragment>
     )
-    // Wait 0 is a workaround to ensure the component is rendered. See: https://github.com/cypress-io/cypress/issues/3817#issuecomment-1186705536
     cy.wait(0)
   })
 
