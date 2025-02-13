@@ -121,10 +121,10 @@ const Template: ComponentStory<typeof ChannelComponent> = args => {
   )
 }
 
-export const Component = Template.bind({})
+export const Normal = Template.bind({})
 export const Pending = Template.bind({})
 
-Component.args = args
+Normal.args = args
 Pending.args = {
   ...args,
   pendingMessages: {

@@ -8,7 +8,7 @@ import { withTheme } from '../../storybook/decorators'
 
 import { Reusable as Sidebar } from '../Sidebar/Sidebar.stories'
 import SidebarComponent from '../Sidebar/Sidebar'
-import { Component as Channel } from '../Channel/Channel.stories'
+import { Normal as ChannelStory } from '../Channel/Channel.stories'
 
 const Template: ComponentStory<any> = () => {
   return (
@@ -30,7 +30,7 @@ const Template: ComponentStory<any> = () => {
         </Grid>
         <Grid item xs>
           {/* @ts-ignore */}
-          <Channel {...Channel.args} />
+          <ChannelStory {...ChannelStory.args} />
         </Grid>
       </Grid>
     </WindowWrapper>
