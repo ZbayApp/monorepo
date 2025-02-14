@@ -9,6 +9,7 @@ import {
   EncryptedPayload,
   EncryptionScope,
   EncryptionScopeType,
+  TruncatedSignedEnvelope,
 } from './types'
 import { ChainServiceBase } from '../chainServiceBase'
 import { SigChain } from '../../sigchain'
@@ -56,10 +57,13 @@ class CryptoService extends ChainServiceBase {
 
     return {
       encrypted: encryptedPayload,
-      signature,
+      signature: {
+        author: signature.author,
+        signature: signature.signature,
+      },
       ts: Date.now(),
       username: context.user.userName,
-    }
+    } as EncryptedAndSignedPayload
   }
 
   private symEncrypt(message: any, scope: EncryptionScope): EncryptedPayload {
@@ -104,11 +108,15 @@ class CryptoService extends ChainServiceBase {
 
   public decryptAndVerify<T>(
     encrypted: EncryptedPayload,
-    signature: SignedEnvelope,
+    signature: TruncatedSignedEnvelope,
     context: LocalUserContext,
     failOnInvalid = true
   ): DecryptedPayload<T> {
-    const isValid = this.verifyMessage(signature)
+    const fullSig: SignedEnvelope = {
+      ...signature,
+      contents: encrypted.contents,
+    }
+    const isValid = this.verifyMessage(fullSig)
     if (!isValid && failOnInvalid) {
       throw new Error(`Couldn't verify signature on message`)
     }
@@ -123,7 +131,7 @@ class CryptoService extends ChainServiceBase {
         break
       // Asymmetrical Encryption Types
       case EncryptionScopeType.USER:
-        contents = this.asymUserDecrypt<T>(encrypted, signature, context)
+        contents = this.asymUserDecrypt<T>(encrypted, fullSig, context)
         break
       // Unknown Type
       default:
