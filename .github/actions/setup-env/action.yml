@@ -68,6 +68,7 @@ runs:
 
         npm run build:auth
         npm run build:noise
+        npm run build:orbitdb
       shell: bash
 
     - name: "Bootstrap project"
