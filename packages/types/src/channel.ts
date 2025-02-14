@@ -34,7 +34,6 @@ export interface PublicChannelSubscription {
 // NOTE: These are all typed as any because they are all LFA types and I don't wanna import LFA into
 // the types package.
 export interface EncryptionSignature {
-  contents: any
   signature: any
   author: any
 }

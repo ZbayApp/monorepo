@@ -94,17 +94,28 @@ describe('MessagesService', () => {
       const encryptedMessage = await messagesService.onSend(message)
       expect(encryptedMessage).toEqual(
         expect.objectContaining({
-          ...message,
-          message: expect.objectContaining({
+          id: message.id,
+          createdAt: message.createdAt,
+          channelId: message.channelId,
+          contents: expect.objectContaining({
+            contents: expect.any(String),
             scope: {
               generation: 0,
               type: EncryptionScopeType.ROLE,
               name: RoleName.MEMBER,
             },
           }),
+          encSignature: expect.objectContaining({
+            author: expect.objectContaining({
+              generation: 0,
+              type: EncryptionScopeType.USER,
+              name: sigChainService.getActiveChain().localUserContext.user.userId,
+            }),
+            signature: expect.any(String),
+          }),
         })
       )
-      expect(isBase58(encryptedMessage.message.contents)).toBeTruthy()
+      expect(isBase58(encryptedMessage.contents.contents)).toBeTruthy()
     })
   })
 
