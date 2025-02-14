@@ -136,7 +136,7 @@ describe('IpfsFileManagerService', () => {
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15886,
+          size: 15881,
           width: 824,
           enc: {
             header: expect.any(String),
@@ -188,7 +188,7 @@ describe('IpfsFileManagerService', () => {
           height: undefined,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-file',
-          size: 761860,
+          size: 761848,
           width: undefined,
           enc: {
             header: expect.any(String),
@@ -219,7 +219,7 @@ describe('IpfsFileManagerService', () => {
           height: undefined,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-file',
-          size: 761860,
+          size: 761848,
           width: undefined,
         })
       )
@@ -266,7 +266,7 @@ describe('IpfsFileManagerService', () => {
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15886,
+          size: 15881,
           width: 824,
           tmpPath: undefined,
           enc: {
@@ -343,7 +343,7 @@ describe('IpfsFileManagerService', () => {
           height: undefined,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-file',
-          size: 761860,
+          size: 761848,
           width: undefined,
           enc: {
             header: expect.any(String),
@@ -374,8 +374,16 @@ describe('IpfsFileManagerService', () => {
           height: undefined,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-file',
-          size: 761860,
+          size: 761848,
           width: undefined,
+          enc: {
+            header: expect.any(String),
+            recipient: {
+              generation: 0,
+              type: EncryptionScopeType.ROLE,
+              name: RoleName.MEMBER,
+            },
+          },
         })
       )
     })
@@ -438,7 +446,7 @@ describe('IpfsFileManagerService', () => {
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15886,
+          size: 15881,
           width: 824,
           enc: {
             header: expect.any(String),
@@ -471,7 +479,7 @@ describe('IpfsFileManagerService', () => {
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15886,
+          size: 15881,
           width: 824,
           path: expect.stringContaining('_test-image.png'),
         })
@@ -491,7 +499,7 @@ describe('IpfsFileManagerService', () => {
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(6, StorageEvents.DOWNLOAD_PROGRESS, {
         cid: expect.stringContaining('bafy'),
-        downloadProgress: { downloaded: 15886, size: 15886, transferSpeed: 0 },
+        downloadProgress: { downloaded: 15881, size: 15881, transferSpeed: 0 },
         downloadState: 'downloading',
         mid: 'id',
       })
@@ -507,9 +515,17 @@ describe('IpfsFileManagerService', () => {
           height: 44,
           message: { channelId: 'channelId', id: 'id' },
           name: 'test-image',
-          size: 15886,
+          size: 15881,
           width: 824,
           path: expect.stringContaining('.png'),
+          enc: {
+            header: expect.any(String),
+            recipient: {
+              generation: 0,
+              type: EncryptionScopeType.ROLE,
+              name: RoleName.MEMBER,
+            },
+          },
         })
       )
     }, 20_000)
@@ -517,7 +533,7 @@ describe('IpfsFileManagerService', () => {
     await waitForExpect(() => {
       expect(eventSpy).toHaveBeenNthCalledWith(8, StorageEvents.DOWNLOAD_PROGRESS, {
         cid: expect.stringContaining('bafy'),
-        downloadProgress: { downloaded: 15886, size: 15886, transferSpeed: 0 },
+        downloadProgress: { downloaded: 15881, size: 15881, transferSpeed: 0 },
         downloadState: 'completed',
         mid: 'id',
       })
