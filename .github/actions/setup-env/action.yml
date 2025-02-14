@@ -63,12 +63,7 @@ runs:
 
     - name: "Build submodules"
       run: |
-        git submodule update --init --recursive
-        git submodule update --recursive --remote
-
-        npm run build:auth
-        npm run build:noise
-        npm run build:orbitdb
+        npm run build:submodules
       shell: bash
 
     - name: "Bootstrap project"
