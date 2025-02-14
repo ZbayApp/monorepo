@@ -1,16 +1,3 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-# [4.0.0-alpha.5](https://github.com/TryQuiet/quiet/compare/@quiet/desktop@4.0.0-alpha.4...@quiet/desktop@4.0.0-alpha.5) (2025-02-14)
-
-**Note:** Version bump only for package @quiet/desktop
-
-
-
-
-
 # Changelog
 
 ## [4.0.0]
