@@ -18,7 +18,7 @@
       "./node_modules/@types",
       "../../3rd-party/auth/packages/auth/src",
       "../../3rd-party/auth/packages/crdx/src",
-      "../../3rd-party/js-libp2p-noise/src"
+      "../../3rd-party/js-libp2p-noise/src",
     ],
   },
   "include": [
