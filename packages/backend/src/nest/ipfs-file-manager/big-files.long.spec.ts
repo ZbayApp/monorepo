@@ -20,7 +20,7 @@ import { SigChainService } from '../auth/sigchain.service'
 import { SigChainModule } from '../auth/sigchain.service.module'
 
 const logger = createLogger('bigFiles:test')
-const BIG_FILE_SIZE = 2147483000
+const BIG_FILE_SIZE = 2097152000
 
 describe('IpfsFileManagerService', () => {
   let module: TestingModule
@@ -34,7 +34,7 @@ describe('IpfsFileManagerService', () => {
 
   beforeAll(async () => {
     tmpDir = createTmpDir()
-    filePath = new URL('./testUtils/large-file.txt', import.meta.url).pathname
+    filePath = new URL('./testUtils/large-file.bin', import.meta.url).pathname
     // Generate 2.1GB file
     await createArbitraryFile(filePath, BIG_FILE_SIZE)
     module = await Test.createTestingModule({
@@ -75,7 +75,7 @@ describe('IpfsFileManagerService', () => {
     const metadata: FileMetadata = {
       path: filePath,
       name: 'test-large-file',
-      ext: '.txt',
+      ext: '.bin',
       cid: 'uploading_id',
       message: {
         id: 'id',
