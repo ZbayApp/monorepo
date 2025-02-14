@@ -1,6 +1,7 @@
 [submodule "3rd-party/auth"]
 	path = 3rd-party/auth
 	url = https://github.com/TryQuiet/auth.git
+	branch = feat/2744-stream-encryption
 [submodule "3rd-party/js-libp2p-noise"]
 	path = 3rd-party/js-libp2p-noise
 	url = https://github.com/TryQuiet/js-libp2p-noise.git
