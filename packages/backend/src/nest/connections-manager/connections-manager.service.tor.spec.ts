@@ -132,6 +132,7 @@ describe('Connections manager', () => {
     // Peer connected
     await connectionsManagerService.init()
     libp2pService.connectedPeers.set(peerId.peerId.toString(), {
+      peerId: peerId.peerId.toString(),
       connectedAtSeconds: DateTime.utc().valueOf(),
       address: peerId.peerId.toString(),
     })

@@ -61,16 +61,21 @@ export class MessagesService extends EventEmitter {
    * @returns True if message is valid
    */
   public async verifyMessage(message: ChannelMessage): Promise<boolean> {
-    const crypto = this.getCrypto()
-    const signature = stringToArrayBuffer(message.signature)
-    let cryptoKey = this.publicKeysMap.get(message.pubKey)
+    try {
+      const crypto = this.getCrypto()
+      const signature = stringToArrayBuffer(message.signature)
+      let cryptoKey = this.publicKeysMap.get(message.pubKey)
 
-    if (!cryptoKey) {
-      cryptoKey = await keyObjectFromString(message.pubKey, crypto)
-      this.publicKeysMap.set(message.pubKey, cryptoKey)
+      if (!cryptoKey) {
+        cryptoKey = await keyObjectFromString(message.pubKey, crypto)
+        this.publicKeysMap.set(message.pubKey, cryptoKey)
+      }
+
+      return await verifySignature(signature, message.message, cryptoKey)
+    } catch (e) {
+      this.logger.error(`Error while verifying signature on message`, e)
+      return false
     }
-
-    return await verifySignature(signature, message.message, cryptoKey)
   }
 
   // TODO: https://github.com/TryQuiet/quiet/issues/2631

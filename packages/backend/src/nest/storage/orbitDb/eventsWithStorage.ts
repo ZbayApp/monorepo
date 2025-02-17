@@ -1,9 +1,10 @@
 import { AccessControllerType, IdentitiesType, LogEntry, Events, LogType } from '@orbitdb/core'
 import { type Helia } from 'helia'
 import { createLogger } from '../../common/logger'
+import { abortableAsyncIterable } from '../../common/utils'
 import { OrbitDbService } from './orbitDb.service'
 
-const logger = createLogger('orbitdb:keyValueWrapper')
+const logger = createLogger('orbitdb:eventsWithStorage')
 
 export const EventsWithStorage =
   (pinIpfs = true) =>
@@ -40,7 +41,7 @@ export const EventsWithStorage =
     )
 
     // Set up the underlying Events database
-    return await Events()({
+    const db = await Events()({
       ipfs,
       identity,
       address,
@@ -54,7 +55,44 @@ export const EventsWithStorage =
       referencesCount,
       syncAutomatically,
       onUpdate,
+      events: OrbitDbService.events,
     })
+
+    db.events.on('error', error => {
+      logger.error(`Error on OrbitDB DB ${db.address}`, error)
+    })
+
+    const iterator = async function* ({ gt, gte, lt, lte, amount }: any = {}) {
+      const abortController = new AbortController()
+      try {
+        const it = abortableAsyncIterable(db.log.iterator({ gt, gte, lt, lte, amount }), abortController.signal)
+        for await (const event of it) {
+          const hash = event.hash
+          const value = event.payload.value
+          yield { hash, value }
+        }
+      } catch (e) {
+        if (!abortController.signal.aborted) {
+          abortController.abort(e)
+        }
+        db.events.emit('error', e)
+      }
+    }
+
+    const get = async (hash: string): Promise<unknown> => {
+      try {
+        return db.get(hash)
+      } catch (e) {
+        db.events.emit('error', e)
+        return undefined
+      }
+    }
+
+    return {
+      ...db,
+      iterator,
+      get,
+    }
   }
 
 EventsWithStorage.type = 'events'

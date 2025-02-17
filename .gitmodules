@@ -4,3 +4,6 @@
 [submodule "3rd-party/js-libp2p-noise"]
 	path = 3rd-party/js-libp2p-noise
 	url = https://github.com/TryQuiet/js-libp2p-noise.git
+[submodule "3rd-party/orbitdb"]
+	path = 3rd-party/orbitdb
+	url = https://github.com/TryQuiet/orbitdb.git

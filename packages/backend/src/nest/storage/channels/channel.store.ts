@@ -6,6 +6,7 @@ import { QuietLogger } from '@quiet/logger'
 import {
   ChannelMessage,
   CompoundError,
+  ConsumedChannelMessage,
   MessagesLoadedPayload,
   PublicChannel,
   PushNotificationPayload,
@@ -62,7 +63,7 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
 
     this.store = await this.orbitDbService.orbitDb.open<EventsType<ChannelMessage>>(`channels.${this.channelData.id}`, {
       type: 'events',
-      Database: EventsWithStorage(),
+      Database: EventsWithStorage(true),
       AccessController: MessagesAccessController({ write: ['*'] }),
       sync: options.sync,
     })
@@ -97,47 +98,65 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
 
     this.getStore().events.on('update', async (entry: LogEntry<ChannelMessage>) => {
       this.logger.info(`${this.channelData.id} database updated`, entry.hash, entry.payload.value?.channelId)
-
-      const message = await this.messagesService.onConsume(entry.payload.value!)
-
-      this.emit(StorageEvents.MESSAGES_STORED, {
-        messages: [message],
-        isVerified: message.verified,
-      })
-
-      await this.refreshMessageIds()
-
-      // FIXME: the 'update' event runs if we replicate entries and if we add
-      // entries ourselves. So we may want to check if the message is written
-      // by us.
-      //
-      // Display push notifications on mobile
-      if (process.env.BACKEND === 'mobile') {
-        if (!message.verified) return
-
-        // Do not notify about old messages
-        if (message.createdAt < parseInt(process.env.CONNECTION_TIME || '')) return
-
-        const username = await this.certificatesStore.getCertificateUsername(message.pubKey)
-        if (!username) {
-          this.logger.error(`Can't send push notification, no username found for public key '${message.pubKey}'`)
-          return
+      let message: ChannelMessage | undefined = undefined
+      if (entry.payload.value == null) {
+        this.logger.error(`Message entry was nullish!`, entry.hash, this.channelData.id)
+      } else {
+        message = await this.messagesService.onConsume(entry.payload.value!)
+        if (message == null) {
+          this.logger.error(`Message could not be consumed!`, entry.payload.value.id, entry.payload.value.channelId)
+        } else {
+          await this._handleMessageOnUpdate(message)
         }
-
-        const payload: PushNotificationPayload = {
-          message: JSON.stringify(message),
-          username: username,
-        }
-
-        this.emit(StorageEvents.SEND_PUSH_NOTIFICATION, payload)
       }
+      await this.refreshMessageIds()
     })
 
-    await this.startSync()
+    try {
+      await this.startSync()
+    } catch (e) {
+      if ((e as Error).name === 'DuplicateProtocolHandlerError') {
+        this.logger.warn(`We have already subscribed to this channel`)
+        this._subscribing = false
+        return
+      }
+    }
     await this.refreshMessageIds()
     this._subscribing = false
 
     this.logger.info(`Subscribed to channel ${this.channelData.id}`)
+  }
+
+  private async _handleMessageOnUpdate(message: ConsumedChannelMessage): Promise<void> {
+    this.emit(StorageEvents.MESSAGES_STORED, {
+      messages: [message],
+      isVerified: message.verified,
+    })
+
+    // FIXME: the 'update' event runs if we replicate entries and if we add
+    // entries ourselves. So we may want to check if the message is written
+    // by us.
+    //
+    // Display push notifications on mobile
+    if (process.env.BACKEND === 'mobile') {
+      if (!message.verified) return
+
+      // Do not notify about old messages
+      if (message.createdAt < parseInt(process.env.CONNECTION_TIME || '')) return
+
+      const username = await this.certificatesStore.getCertificateUsername(message.pubKey)
+      if (!username) {
+        this.logger.error(`Can't send push notification, no username found for public key '${message.pubKey}'`)
+        return
+      }
+
+      const payload: PushNotificationPayload = {
+        message: JSON.stringify(message),
+        username: username,
+      }
+
+      this.emit(StorageEvents.SEND_PUSH_NOTIFICATION, payload)
+    }
   }
 
   // Messages
@@ -231,6 +250,11 @@ export class ChannelStore extends EventStoreBase<ChannelMessage> {
     const messages: ChannelMessage[] = []
 
     for await (const x of this.getStore().iterator()) {
+      if (x.value == null) {
+        this.logger.warn(`Orbitdb record was null`, x.hash)
+        continue
+      }
+
       if (ids == null || ids?.includes(x.value.id)) {
         // NOTE: we skipped the verification process when reading many messages in the previous version
         // so I'm skipping it here - is that really the correct behavior?

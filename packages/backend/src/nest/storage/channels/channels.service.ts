@@ -123,7 +123,11 @@ export class ChannelsService extends EventEmitter {
       //
       // This fixes a bug where joining a community with multiple channels doesn't initialize all channels immediately.
       for (const channel of channels) {
-        if (!this.publicChannelsRepos.has(channel.id) || !this.publicChannelsRepos.get(channel.id)?.eventsAttached) {
+        if (
+          !this.publicChannelsRepos.has(channel.id) ||
+          (!this.publicChannelsRepos.get(channel.id)?.eventsAttached &&
+            !this.publicChannelsRepos.get(channel.id)?.store.isSubscribing)
+        ) {
           await this.subscribeToChannel(channel)
         }
       }
@@ -506,7 +510,7 @@ export class ChannelsService extends EventEmitter {
   // Close Logic
 
   /**
-   * Close the channels management database on OrbitDB
+   * Close the channels management database on OrbitDB and each channel's DB
    */
   public async closeChannels(): Promise<void> {
     try {
@@ -515,6 +519,17 @@ export class ChannelsService extends EventEmitter {
       this.logger.info('Closed channels DB')
     } catch (e) {
       this.logger.error('Error closing channels db', e)
+    }
+
+    this.logger.info(`Closing each channel's DB`)
+    for (const [channelId, channel] of this.publicChannelsRepos.entries()) {
+      try {
+        this.logger.info(`Closing ${channelId} DB`)
+        await channel.store.close()
+        this.logger.info(`Close ${channelId} DB`)
+      } catch (e) {
+        this.logger.error(`Error closing ${channelId} DB`, e)
+      }
     }
   }
 
@@ -528,6 +543,14 @@ export class ChannelsService extends EventEmitter {
     } catch (e) {
       this.logger.error('Error stopping IPFS files manager', e)
     }
+  }
+
+  /**
+   * Close the channels service
+   */
+  public async close(): Promise<void> {
+    await this.closeFileManager()
+    await this.closeChannels()
   }
 
   /**

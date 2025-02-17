@@ -310,12 +310,14 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     await this.socketService.init()
   }
 
-  public async closeAllServices(options: { saveTor: boolean } = { saveTor: false }) {
+  public async closeAllServices(
+    options: { saveTor: boolean; closeDatastore: boolean } = { saveTor: false, closeDatastore: true }
+  ) {
     this.logger.info('Saving active sigchain')
     await this.saveActiveChain()
     await this.sigChainService.deleteChain(this.sigChainService.activeChainTeamName!, false)
 
-    this.logger.info('Closing services')
+    this.logger.info('Closing services', options)
 
     await this.closeSocket()
 
@@ -331,7 +333,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     }
     if (this.libp2pService) {
       this.logger.info('Stopping libp2p')
-      await this.libp2pService.close()
+      await this.libp2pService.close(options.closeDatastore)
     }
     if (this.localDbService) {
       this.logger.info('Closing local DB')
@@ -342,13 +344,16 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
   public async leaveCommunity(): Promise<boolean> {
     this.logger.info('Running leaveCommunity')
 
-    await this.closeAllServices({ saveTor: true })
-
-    this.logger.info('Cleaning libp2p datastore')
-    await this.libp2pService.libp2pDatastore.clean()
+    await this.closeAllServices({ saveTor: true, closeDatastore: false })
 
     this.logger.info('Resetting StorageService')
     await this.storageService.clean()
+
+    this.logger.info('Cleaning libp2p datastore')
+    await this.libp2pService.cleanDatastore()
+
+    this.logger.info('Closing libp2p datastore')
+    await this.libp2pService.closeDatastore()
 
     this.logger.info('Purging data')
     await this.purgeData()

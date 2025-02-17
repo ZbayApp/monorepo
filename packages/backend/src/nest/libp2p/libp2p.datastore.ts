@@ -5,7 +5,7 @@ import { MemoryDatastore } from 'datastore-core'
 
 import { QuietLogger } from '@quiet/logger'
 
-import { Libp2pDatastoreOptions } from './libp2p.types'
+import { Libp2pDatastoreOptions, Libp2pDatastorePrefix } from './libp2p.types'
 import { createLogger } from '../common/logger'
 
 export class Libp2pDatastore {
@@ -63,24 +63,30 @@ export class Libp2pDatastore {
     if (this.inMemory) {
       return this._deleteKeysByPrefixInMemory(prefix)
     }
-    return this._deleteKeysByPrefixLevel(prefix)
+    return this._deleteKeysByPrefixLevel({
+      prefix: prefix === Libp2pDatastorePrefix.ALL ? undefined : prefix,
+    })
   }
 
   public async close() {
     if (!this.inMemory) {
-      await (this.datastore as LevelDatastore).db.close()
-      await (this.datastore as LevelDatastore).close()
+      try {
+        await (this.datastore as LevelDatastore).close()
+        await (this.datastore as LevelDatastore).db.close()
+      } catch (e) {
+        this.logger.warn(`Error while closing libp2p datastore`, e)
+      }
     }
   }
 
   public async clean() {
-    this.datastore = undefined
+    await this.deleteKeysByPrefix(Libp2pDatastorePrefix.ALL)
   }
 
   private async _deleteKeysByPrefixInMemory(prefix: string): Promise<string[]> {
     const deletedKeys: string[] = []
     for await (const key of (this.datastore as MemoryDatastore)._allKeys()) {
-      if (key.list()[0] === prefix) {
+      if (prefix === Libp2pDatastorePrefix.ALL || key.list()[0] === prefix) {
         this.logger.info(`Found matching key ${key.toString()}`)
         await this.datastore?.delete(key)
         deletedKeys.push(key.toString())
@@ -91,11 +97,9 @@ export class Libp2pDatastore {
     return deletedKeys
   }
 
-  private async _deleteKeysByPrefixLevel(prefix: string): Promise<string[]> {
+  private async _deleteKeysByPrefixLevel(query: KeyQuery): Promise<string[]> {
     const deletedKeys: string[] = []
-    for await (const key of (this.datastore as LevelDatastore).queryKeys({
-      prefix,
-    } as KeyQuery)) {
+    for await (const key of (this.datastore as LevelDatastore).queryKeys(query)) {
       this.logger.info(`Found matching key ${key.toString()}`)
       await this.datastore?.delete(key)
       deletedKeys.push(key.toString())
