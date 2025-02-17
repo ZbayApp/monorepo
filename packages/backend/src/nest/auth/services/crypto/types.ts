@@ -22,7 +22,7 @@ export type EncryptedPayload = {
 
 export type EncryptedAndSignedPayload = {
   encrypted: EncryptedPayload
-  signature: TruncatedSignedEnvelope
+  signature: Signature
   ts: number
   username: string
 }
@@ -32,7 +32,7 @@ export type DecryptedPayload<T> = {
   isValid: boolean
 }
 
-export type TruncatedSignedEnvelope = {
+export type Signature = {
   signature: Base58
   author: KeyMetadata
 }

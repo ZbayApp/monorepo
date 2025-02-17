@@ -1,5 +1,5 @@
 import { FileMetadata } from '@quiet/types'
-import { EncryptedPayload, TruncatedSignedEnvelope } from '../../../auth/services/crypto/types'
+import { EncryptedPayload, Signature } from '../../../auth/services/crypto/types'
 
 export interface EncryptableMessageComponents {
   type: number
@@ -14,5 +14,5 @@ export interface EncryptedMessage {
   contents: EncryptedPayload
   createdAt: number
   channelId: string
-  encSignature: TruncatedSignedEnvelope
+  encSignature: Signature
 }
