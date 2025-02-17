@@ -13,11 +13,13 @@ export type EncryptionScope = {
   name?: string
 }
 
+export type EncryptionScopeDetail = EncryptionScope & {
+  generation: number
+}
+
 export type EncryptedPayload = {
-  contents: Base58
-  scope: EncryptionScope & {
-    generation: number
-  }
+  contents: Uint8Array
+  scope: EncryptionScopeDetail
 }
 
 export type EncryptedAndSignedPayload = {

@@ -9,8 +9,8 @@ import {
   Store,
 } from '@quiet/state-manager'
 import { ChannelMessage, Community, Identity, PublicChannel, TestMessage } from '@quiet/types'
-import { isBase58 } from 'class-validator'
 import { FactoryGirl } from 'factory-girl'
+import { isUint8Array } from 'util/types'
 import { EncryptionScopeType } from '../../../auth/services/crypto/types'
 import { RoleName } from '../../../auth/services/roles/roles'
 import { SigChainService } from '../../../auth/sigchain.service'
@@ -115,7 +115,7 @@ describe('MessagesService', () => {
           }),
         })
       )
-      expect(isBase58(encryptedMessage.contents.contents)).toBeTruthy()
+      expect(isUint8Array(encryptedMessage.contents.contents)).toBeTruthy()
     })
   })
 
