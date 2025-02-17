@@ -116,7 +116,7 @@ describe('MessagesService', () => {
           }),
         })
       )
-      expect(isUint8Array(encryptedMessage.message.contents)).toBeTruthy()
+      expect(isUint8Array(encryptedMessage.contents.contents)).toBeTruthy()
     })
   })
 
