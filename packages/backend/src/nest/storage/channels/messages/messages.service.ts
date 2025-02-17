@@ -42,24 +42,6 @@ export class MessagesService extends EventEmitter {
     }
   }
 
-  /**
-   * Verify encryption signature on message
-   *
-   * @param message Message to verify
-   * @returns True if message is valid
-   */
-  public verifyMessage(message: EncryptedMessage): boolean {
-    try {
-      const chain = this.sigChainService.getActiveChain()
-      return chain.crypto.verifyMessage({
-        ...message.encSignature,
-        contents: message.contents.contents,
-      })
-    } catch (e) {
-      throw new CompoundError(`Failed to verify message signature`, e)
-    }
-  }
-
   private _encryptPublicChannelMessage(rawMessage: ChannelMessage): EncryptedMessage {
     try {
       const chain = this.sigChainService.getActiveChain()

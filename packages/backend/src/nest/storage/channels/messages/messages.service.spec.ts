@@ -61,34 +61,6 @@ describe('MessagesService', () => {
     messagesService = await module.resolve(MessagesService)
   })
 
-  describe('verifyMessage', () => {
-    it('message with valid signature is verified', async () => {
-      const encryptedMessage = await messagesService.onSend(message)
-      expect(messagesService.verifyMessage(encryptedMessage)).toBeTruthy()
-    })
-
-    it('message with invalid signature is not verified', async () => {
-      const encryptedMessage = await messagesService.onSend(message)
-      let err: Error | undefined = undefined
-      try {
-        messagesService.verifyMessage({
-          ...encryptedMessage,
-          encSignature: {
-            ...encryptedMessage.encSignature,
-            author: {
-              generation: 1,
-              name: 'foobar',
-              type: '',
-            },
-          },
-        })
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
-    })
-  })
-
   describe('onSend', () => {
     it('encrypts message correctly', async () => {
       const encryptedMessage = await messagesService.onSend(message)
@@ -98,7 +70,7 @@ describe('MessagesService', () => {
           createdAt: message.createdAt,
           channelId: message.channelId,
           contents: expect.objectContaining({
-            contents: expect.any(String),
+            contents: expect.any(Uint8Array),
             scope: {
               generation: 0,
               type: EncryptionScopeType.ROLE,
