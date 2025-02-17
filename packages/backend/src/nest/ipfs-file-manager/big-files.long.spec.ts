@@ -16,27 +16,33 @@ import { IpfsFileManagerModule } from './ipfs-file-manager.module'
 import { IpfsFileManagerService } from './ipfs-file-manager.service'
 import fs from 'fs'
 import { createLogger } from '../common/logger'
+import { SigChainService } from '../auth/sigchain.service'
+import { SigChainModule } from '../auth/sigchain.service.module'
 
 const logger = createLogger('bigFiles:test')
-const BIG_FILE_SIZE = 2147483000
+const BIG_FILE_SIZE = 2097152000
 
 describe('IpfsFileManagerService', () => {
   let module: TestingModule
   let ipfsFileManagerService: IpfsFileManagerService
   let ipfsService: IpfsService
   let libp2pService: Libp2pService
+  let sigChainService: SigChainService
 
   let tmpDir: DirResult
   let filePath: string
 
   beforeAll(async () => {
     tmpDir = createTmpDir()
-    filePath = new URL('./testUtils/large-file.txt', import.meta.url).pathname
+    filePath = new URL('./testUtils/large-file.bin', import.meta.url).pathname
     // Generate 2.1GB file
     await createArbitraryFile(filePath, BIG_FILE_SIZE)
     module = await Test.createTestingModule({
-      imports: [TestModule, IpfsFileManagerModule, IpfsModule, SocketModule, Libp2pModule],
+      imports: [TestModule, IpfsFileManagerModule, IpfsModule, SocketModule, Libp2pModule, SigChainModule],
     }).compile()
+
+    sigChainService = await module.resolve(SigChainService)
+    await sigChainService.createChain('community', 'username', true)
 
     ipfsFileManagerService = await module.resolve(IpfsFileManagerService)
 
@@ -69,7 +75,7 @@ describe('IpfsFileManagerService', () => {
     const metadata: FileMetadata = {
       path: filePath,
       name: 'test-large-file',
-      ext: '.txt',
+      ext: '.bin',
       cid: 'uploading_id',
       message: {
         id: 'id',
