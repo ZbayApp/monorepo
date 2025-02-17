@@ -235,7 +235,7 @@ export class IpfsFileManagerService extends EventEmitter {
     _logger.time(`Writing ${filename} to ipfs`)
 
     const handleUploadProgressEvents = (event: AddEvents): void => {
-      _logger.info(`Upload progress`, event)
+      _logger.trace(`Upload progress`, event)
     }
 
     const stream = fs.createReadStream(filePath, { highWaterMark: UNIXFS_CHUNK_SIZE })
@@ -243,7 +243,7 @@ export class IpfsFileManagerService extends EventEmitter {
       // eslint-disable-next-line prettier/prettier, generator-star-spacing
       async *[Symbol.asyncIterator]() {
         for await (const data of stream) {
-          _logger.info(`Streaming ${(data as Buffer).byteLength} bytes from ${filename}`)
+          _logger.trace(`Streaming ${(data as Buffer).byteLength} bytes from ${filename}`)
           yield data
         }
       },
@@ -760,7 +760,7 @@ export class IpfsFileManagerService extends EventEmitter {
         length: UNIXFS_CAT_CHUNK_SIZE,
       }
 
-      options.logger.info(
+      options.logger.trace(
         `Getting blocks totalling ${UNIXFS_CAT_CHUNK_SIZE} bytes with offset ${downloadedSize} (total bytes: ${totalSize})`
       )
 
@@ -872,7 +872,7 @@ export class IpfsFileManagerService extends EventEmitter {
     const { header, recipient } = fileMetadata.enc
     const decryptStream = sigChain.crypto.decryptStream(catStream, uint8ArrayFromString(header, 'base64url'), recipient)
     for await (const decryptedEntry of decryptStream) {
-      _logger.info(`Writing block with size (in bytes)`, decryptedEntry.byteLength)
+      _logger.trace(`Writing block with size (in bytes)`, decryptedEntry.byteLength)
       await new Promise<void>((resolve, reject) => {
         writeStream.write(decryptedEntry, err => {
           if (err) {
