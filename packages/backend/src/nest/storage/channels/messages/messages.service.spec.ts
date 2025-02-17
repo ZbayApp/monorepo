@@ -99,7 +99,7 @@ describe('MessagesService', () => {
           createdAt: message.createdAt,
           channelId: message.channelId,
           contents: expect.objectContaining({
-            contents: expect.any(String),
+            contents: expect.any(Uint8Array),
             scope: {
               generation: 0,
               type: EncryptionScopeType.ROLE,
