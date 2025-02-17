@@ -12,9 +12,18 @@ import {
 } from './types'
 import { ChainServiceBase } from '../chainServiceBase'
 import { SigChain } from '../../sigchain'
-import { asymmetric, Base58, Keyset, LocalUserContext, Member, SignedEnvelope } from '@localfirst/auth'
+import {
+  asymmetric,
+  Base58,
+  Keyset,
+  LocalUserContext,
+  Member,
+  SignedEnvelope,
+  EncryptStreamTeamPayload,
+} from '@localfirst/auth'
 import { DEFAULT_SEARCH_OPTIONS, MemberSearchOptions } from '../members/types'
 import { createLogger } from '../../../common/logger'
+import { KeyMetadata } from '3rd-party/auth/packages/crdx/dist'
 
 const logger = createLogger('auth:cryptoService')
 
@@ -69,7 +78,7 @@ class CryptoService extends ChainServiceBase {
 
     const envelope = this.sigChain.team!.encrypt(message, scope.name)
     return {
-      contents: bs58.default.encode(envelope.contents) as Base58,
+      contents: envelope.contents,
       scope: {
         ...scope,
         generation: envelope.recipient.generation,
@@ -87,7 +96,7 @@ class CryptoService extends ChainServiceBase {
     const senderKey = context.user.keys.encryption.secretKey
     const generation = recipientKeys[0].generation
 
-    const encryptedContents = asymmetric.encrypt({
+    const encryptedContents = asymmetric.encryptBytes({
       secret: message,
       senderSecretKey: senderKey,
       recipientPublicKey: recipientKey,
@@ -146,7 +155,7 @@ class CryptoService extends ChainServiceBase {
     }
 
     return this.sigChain.team!.decrypt({
-      contents: bs58.default.decode(encrypted.contents),
+      contents: encrypted.contents,
       recipient: {
         ...encrypted.scope,
         // you don't need a name on the scope when encrypting but you need one for decrypting because of how LFA searches for keys in lockboxes
@@ -164,11 +173,75 @@ class CryptoService extends ChainServiceBase {
     const recipientKey = context.user.keys.encryption.secretKey
     const senderKey = senderKeys[0].encryption
 
-    return asymmetric.decrypt({
+    return asymmetric.decryptBytes({
       cipher: encrypted.contents,
       senderPublicKey: senderKey,
       recipientSecretKey: recipientKey,
     }) as T
+  }
+
+  public encryptStream(stream: AsyncIterable<Uint8Array>, scope: EncryptionScope): EncryptStreamTeamPayload {
+    let payload: EncryptStreamTeamPayload
+    switch (scope.type) {
+      // Symmetrical Encryption Types
+      case EncryptionScopeType.CHANNEL:
+      case EncryptionScopeType.ROLE:
+      case EncryptionScopeType.TEAM:
+        payload = this.symEncryptStream(stream, scope)
+        break
+      // Asymmetrical Encryption Types
+      case EncryptionScopeType.USER:
+        throw new Error(`Stream encryption for scope type ${scope.type} is not currently supported!`)
+      // Unknown Type
+      default:
+        throw new Error(`Unknown encryption type ${scope.type} provided!`)
+    }
+
+    return payload
+  }
+
+  private symEncryptStream(stream: AsyncIterable<Uint8Array>, scope: EncryptionScope): EncryptStreamTeamPayload {
+    if (scope.type != EncryptionScopeType.TEAM && scope.name == null) {
+      throw new Error(`Must provide a scope name when encryption scope is set to ${scope.type}`)
+    }
+
+    return this.sigChain.team!.encryptStream(stream, scope.name)
+  }
+
+  public decryptStream(
+    encryptedStream: AsyncIterable<Uint8Array>,
+    header: Uint8Array,
+    scope: KeyMetadata
+  ): AsyncGenerator<Uint8Array> {
+    let decryptedStream: AsyncGenerator<Uint8Array>
+    switch (scope.type) {
+      // Symmetrical Encryption Types
+      case EncryptionScopeType.CHANNEL:
+      case EncryptionScopeType.ROLE:
+      case EncryptionScopeType.TEAM:
+        decryptedStream = this.symDecryptStream(encryptedStream, header, scope)
+        break
+      // Asymmetrical Encryption Types
+      case EncryptionScopeType.USER:
+        throw new Error(`Stream encryption for scope type ${scope.type} is not currently supported!`)
+      // Unknown Type
+      default:
+        throw new Error(`Unknown encryption scope type ${scope.type}`)
+    }
+
+    return decryptedStream
+  }
+
+  private symDecryptStream(
+    encryptedStream: AsyncIterable<Uint8Array>,
+    header: Uint8Array,
+    scope: KeyMetadata
+  ): AsyncGenerator<Uint8Array> {
+    if (scope.type !== EncryptionScopeType.TEAM && scope.name == null) {
+      throw new Error(`Must provide a scope name when encryption scope is set to ${scope.type}`)
+    }
+
+    return this.sigChain.team!.decryptStream(encryptedStream, header, scope)
   }
 }
 

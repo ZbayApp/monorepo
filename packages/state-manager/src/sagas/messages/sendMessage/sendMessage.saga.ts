@@ -82,7 +82,7 @@ export function* sendMessageSaga(
 
   const isUploadingFileMessage = action.payload.media?.cid?.includes('uploading')
   if (isUploadingFileMessage) {
-    logger.info(`Failed to send message ${id} - file upload is in progress`)
+    logger.info(`Waiting to send message ${id} - file upload is in progress`)
     return // Do not broadcast message until file is uploaded
   }
 
@@ -98,7 +98,7 @@ export function* sendMessageSaga(
       logger.info(`Channel ${channelId} subscribed`)
       break
     }
-    logger.error(`Failed to send message ${id} - channel not subscribed. Waiting...`)
+    logger.error(`Waiting to send message ${id} - channel not subscribed`)
     yield* take(publicChannelsActions.setChannelSubscribed)
   }
 

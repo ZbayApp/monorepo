@@ -63,9 +63,6 @@ runs:
 
     - name: "Build submodules"
       run: |
-        git submodule update --init --recursive
-        git submodule update --recursive --remote
-
         npm run build:auth
         npm run build:noise
       shell: bash
