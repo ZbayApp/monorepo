@@ -546,6 +546,14 @@ export class ChannelsService extends EventEmitter {
   }
 
   /**
+   * Close the channels service
+   */
+  public async close(): Promise<void> {
+    await this.closeFileManager()
+    await this.closeChannels()
+  }
+
+  /**
    * Clean the ChannelsService
    *
    * NOTE: Does NOT affect data stored in IPFS

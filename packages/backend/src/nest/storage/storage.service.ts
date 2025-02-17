@@ -146,8 +146,7 @@ export class StorageService extends EventEmitter {
   }
 
   public async stop() {
-    await this.channelsService.closeFileManager()
-    await this.channelsService.closeChannels()
+    await this.channelsService.close()
 
     try {
       await this.certificatesStore?.close()

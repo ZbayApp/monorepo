@@ -63,7 +63,9 @@ export class Libp2pDatastore {
     if (this.inMemory) {
       return this._deleteKeysByPrefixInMemory(prefix)
     }
-    return this._deleteKeysByPrefixLevel(prefix === Libp2pDatastorePrefix.ALL ? undefined : prefix)
+    return this._deleteKeysByPrefixLevel({
+      prefix: prefix === Libp2pDatastorePrefix.ALL ? undefined : prefix,
+    })
   }
 
   public async close() {
@@ -95,11 +97,9 @@ export class Libp2pDatastore {
     return deletedKeys
   }
 
-  private async _deleteKeysByPrefixLevel(prefix: string | undefined): Promise<string[]> {
+  private async _deleteKeysByPrefixLevel(query: KeyQuery): Promise<string[]> {
     const deletedKeys: string[] = []
-    for await (const key of (this.datastore as LevelDatastore).queryKeys({
-      prefix,
-    } as KeyQuery)) {
+    for await (const key of (this.datastore as LevelDatastore).queryKeys(query)) {
       this.logger.info(`Found matching key ${key.toString()}`)
       await this.datastore?.delete(key)
       deletedKeys.push(key.toString())

@@ -28,21 +28,12 @@
  * @augments module:Databases~Database
  * @augments module:Databases.Databases-KeyValue
  */
-import {
-  AccessControllerType,
-  KeyValue,
-  LevelStorage,
-  IdentitiesType,
-  LogEntry,
-  KeyValueType,
-  LogType,
-} from '@orbitdb/core'
+import { AccessControllerType, LevelStorage, IdentitiesType, LogEntry, KeyValueType, LogType } from '@orbitdb/core'
 import { type Helia } from 'helia'
 import { toString as uint8ArrayToString } from 'uint8arrays/to-string'
 import { createLogger } from '../../common/logger'
 import { abortableAsyncIterable } from '../../common/utils'
 import { KeyValueWithStorage } from './keyValueWithStorage'
-import { OrbitDbService } from './orbitDb.service'
 
 import { posixJoin } from './util'
 
