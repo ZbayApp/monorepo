@@ -82,6 +82,7 @@ export class MessagesService extends EventEmitter {
         encSignature: encryptedMessage.signature,
         contents: encryptedMessage.encrypted,
       }
+      // disregard
     } catch (e) {
       throw new CompoundError(`Failed to encrypt message with error`, e)
     }
