@@ -67,7 +67,7 @@ export class ChannelStore extends EventStoreBase<EncryptedMessage, ConsumedChann
       {
         type: 'events',
         Database: EventsWithStorage(),
-        AccessController: MessagesAccessController({ write: ['*'], messagesService: this.messagesService }),
+        AccessController: MessagesAccessController({ write: ['*'] }),
         sync: options.sync,
       }
     )

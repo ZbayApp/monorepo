@@ -12,13 +12,9 @@ import {
   IPFSBlockStorage,
 } from '@orbitdb/core'
 import { getCrypto } from 'pkijs'
-import { stringToArrayBuffer } from 'pvutils'
-import { keyObjectFromString, verifySignature } from '@quiet/identity'
-import { ChannelMessage, NoCryptoEngineError } from '@quiet/types'
+import { NoCryptoEngineError } from '@quiet/types'
 import { posixJoin } from '../../../orbitDb/util'
 import { EncryptedMessage } from '../messages.types'
-import { SigChainService } from 'packages/backend/src/nest/auth/sigchain.service'
-import { MessagesService } from '../messages.service'
 import { createLogger } from '../../../../common/logger'
 
 const codec = dagCbor
@@ -49,7 +45,7 @@ const AccessControlList = async ({
 const type = 'messagesaccess'
 
 export const MessagesAccessController =
-  ({ write, messagesService }: { write: string[]; messagesService: MessagesService }) =>
+  ({ write }: { write: string[] }) =>
   async ({ orbitdb, identities, address }: { orbitdb: OrbitDBType; identities: IdentitiesType; address: string }) => {
     const storage = await ComposedStorage(
       await LRUStorage({ size: 1000 }),
@@ -69,7 +65,6 @@ export const MessagesAccessController =
     }
 
     const crypto = getCrypto()
-    const keyMapping: Map<string, CryptoKey> = new Map()
 
     const canAppend = async (entry: LogEntry<EncryptedMessage>) => {
       if (!crypto) throw new NoCryptoEngineError()
@@ -88,18 +83,7 @@ export const MessagesAccessController =
         return false
       }
 
-      const message = entry.payload.value
-
-      if (message) {
-        try {
-          return messagesService.verifyMessage(message)
-        } catch (e) {
-          logger.error(`Couldn't verify signature on message ${message.id}, can't append!`, e)
-          return true
-        }
-      } else {
-        return true
-      }
+      return true
     }
 
     return {

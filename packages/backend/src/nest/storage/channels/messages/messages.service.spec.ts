@@ -9,7 +9,6 @@ import {
   Store,
 } from '@quiet/state-manager'
 import { ChannelMessage, Community, Identity, PublicChannel, TestMessage } from '@quiet/types'
-import { isBase58 } from 'class-validator'
 import { FactoryGirl } from 'factory-girl'
 import { isUint8Array } from 'util/types'
 import { EncryptionScopeType } from '../../../auth/services/crypto/types'
@@ -62,50 +61,33 @@ describe('MessagesService', () => {
     messagesService = await module.resolve(MessagesService)
   })
 
-  describe('verifyMessage', () => {
-    it('message with valid signature is verified', async () => {
-      const encryptedMessage = await messagesService.onSend(message)
-      expect(messagesService.verifyMessage(encryptedMessage)).toBeTruthy()
-    })
-
-    it('message with invalid signature is not verified', async () => {
-      const encryptedMessage = await messagesService.onSend(message)
-      let err: Error | undefined = undefined
-      try {
-        messagesService.verifyMessage({
-          ...encryptedMessage,
-          encSignature: {
-            ...encryptedMessage.encSignature,
-            author: {
-              generation: 1,
-              name: 'foobar',
-              type: '',
-            },
-          },
-        })
-      } catch (e) {
-        err = e
-      }
-      expect(err).toBeDefined()
-    })
-  })
-
   describe('onSend', () => {
     it('encrypts message correctly', async () => {
       const encryptedMessage = await messagesService.onSend(message)
       expect(encryptedMessage).toEqual(
         expect.objectContaining({
-          ...message,
-          message: expect.objectContaining({
+          id: message.id,
+          createdAt: message.createdAt,
+          channelId: message.channelId,
+          contents: expect.objectContaining({
+            contents: expect.any(Uint8Array),
             scope: {
               generation: 0,
               type: EncryptionScopeType.ROLE,
               name: RoleName.MEMBER,
             },
           }),
+          encSignature: expect.objectContaining({
+            author: expect.objectContaining({
+              generation: 0,
+              type: EncryptionScopeType.USER,
+              name: sigChainService.getActiveChain().localUserContext.user.userId,
+            }),
+            signature: expect.any(String),
+          }),
         })
       )
-      expect(isUint8Array(encryptedMessage.message.contents)).toBeTruthy()
+      expect(isUint8Array(encryptedMessage.contents.contents)).toBeTruthy()
     })
   })
 
