@@ -127,7 +127,13 @@ export class CertificatesRequestsStore extends EventStoreBase<EncryptedAndSigned
 
     await Promise.all(
       allEntries.map(async csr => {
-        const decCsr = await this.decryptEntry(csr)
+        let decCsr: string
+        try {
+          decCsr = await this.decryptEntry(csr)
+        } catch (err) {
+          this.logger.error('Failed to decrypt csr:', err)
+          return
+        }
         const validation = await this.validateUserCsr(decCsr)
         if (!validation) {
           this.logger.warn(`Skipping csr due to validation error`, decCsr)

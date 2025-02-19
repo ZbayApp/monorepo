@@ -184,7 +184,13 @@ export class CertificatesStore extends EventStoreBase<EncryptedAndSignedPayload 
 
     const validCertificates = await Promise.all(
       allCertificates.map(async certificate => {
-        const decCert = await this.decryptEntry(certificate)
+        let decCert: string
+        try {
+          decCert = await this.decryptEntry(certificate)
+        } catch (err) {
+          this.logger.error('Failed to decrypt certificate:', err)
+          return
+        }
         if (this.filteredCertificatesMapping.has(decCert)) {
           return decCert // Only validate certificates
         }
