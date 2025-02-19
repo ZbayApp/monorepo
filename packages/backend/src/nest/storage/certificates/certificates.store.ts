@@ -17,16 +17,20 @@ import { Injectable } from '@nestjs/common'
 import { createLogger } from '../../common/logger'
 import { EventStoreBase } from '../base.store'
 import { EventsWithStorage } from '../orbitDb/eventsWithStorage'
-
+import { SigChainService } from '../../auth/sigchain.service'
+import { EncryptedAndSignedPayload, EncryptionScopeType } from '../../auth/services/crypto/types'
 @Injectable()
-export class CertificatesStore extends EventStoreBase<string> {
+export class CertificatesStore extends EventStoreBase<EncryptedAndSignedPayload | string> {
   protected readonly logger = createLogger(CertificatesStore.name)
 
   private metadata: CommunityMetadata | undefined
   private filteredCertificatesMapping: Map<string, Partial<UserData>>
   private usernameMapping: Map<string, string>
 
-  constructor(private readonly orbitDbService: OrbitDbService) {
+  constructor(
+    private readonly orbitDbService: OrbitDbService,
+    private readonly chains: SigChainService
+  ) {
     super()
     this.filteredCertificatesMapping = new Map()
     this.usernameMapping = new Map()
@@ -35,12 +39,15 @@ export class CertificatesStore extends EventStoreBase<string> {
   public async init() {
     this.logger.info('Initializing certificates log store')
 
-    this.store = await this.orbitDbService.orbitDb.open<EventsType<string>>('certificates', {
-      type: 'events',
-      sync: false,
-      Database: EventsWithStorage(),
-      AccessController: IPFSAccessController({ write: ['*'] }),
-    })
+    this.store = await this.orbitDbService.orbitDb.open<EventsType<EncryptedAndSignedPayload | string>>(
+      'certificates',
+      {
+        type: 'events',
+        sync: false,
+        Database: EventsWithStorage(),
+        AccessController: IPFSAccessController({ write: ['*'] }),
+      }
+    )
 
     this.store.events.on('update', async (event: LogEntry) => {
       this.logger.info('Database update')
@@ -57,6 +64,36 @@ export class CertificatesStore extends EventStoreBase<string> {
     await this.getStore().sync.start()
   }
 
+  private async encryptEntry(payload: string): Promise<EncryptedAndSignedPayload> {
+    try {
+      const chain = this.chains.getActiveChain()
+      const encryptedPayload = chain.crypto.encryptAndSign(
+        payload,
+        { type: EncryptionScopeType.TEAM },
+        chain.localUserContext
+      )
+      return encryptedPayload
+    } catch (err) {
+      this.logger.error('Failed to encrypt user entry:', err)
+      throw err
+    }
+  }
+
+  private async decryptEntry(payload: EncryptedAndSignedPayload): Promise<string> {
+    try {
+      const chain = this.chains.getActiveChain()
+      const decryptedPayload = chain.crypto.decryptAndVerify<string>(
+        payload.encrypted,
+        payload.signature,
+        chain.localUserContext
+      )
+      return decryptedPayload.contents
+    } catch (err) {
+      this.logger.error('Failed to decrypt user entry:', err)
+      throw err
+    }
+  }
+
   public async loadedCertificates() {
     this.emit(StorageEvents.CERTIFICATES_STORED, {
       certificates: await this.getEntries(),
@@ -65,8 +102,16 @@ export class CertificatesStore extends EventStoreBase<string> {
 
   public async addEntry(certificate: string): Promise<string> {
     this.logger.info('Adding user certificate')
-    await this.store?.add(certificate)
-    return certificate
+    if (!this.store) {
+      throw new Error('Store not initialized')
+    }
+    try {
+      const encEntry = await this.encryptEntry(certificate)
+      return await this.store?.add(encEntry)
+    } catch (err) {
+      this.logger.error('Failed to add user certificate:', err)
+      return certificate
+    }
   }
 
   public updateMetadata(metadata: CommunityMetadata) {
@@ -129,7 +174,7 @@ export class CertificatesStore extends EventStoreBase<string> {
   public async getEntries(): Promise<string[]> {
     this.logger.info('Getting certificates')
 
-    const allCertificates: string[] = []
+    const allCertificates: EncryptedAndSignedPayload[] = []
 
     for await (const x of this.getStore().iterator()) {
       allCertificates.push(x.value)
@@ -139,13 +184,14 @@ export class CertificatesStore extends EventStoreBase<string> {
 
     const validCertificates = await Promise.all(
       allCertificates.map(async certificate => {
-        if (this.filteredCertificatesMapping.has(certificate)) {
-          return certificate // Only validate certificates
+        const decCert = await this.decryptEntry(certificate)
+        if (this.filteredCertificatesMapping.has(decCert)) {
+          return decCert // Only validate certificates
         }
 
-        const validation = await this.validateCertificate(certificate)
+        const validation = await this.validateCertificate(decCert)
         if (validation) {
-          const parsedCertificate = parseCertificate(certificate)
+          const parsedCertificate = parseCertificate(decCert)
           const pubkey = keyFromCertificate(parsedCertificate)
 
           const username = getCertFieldValue(parsedCertificate, CertFieldsTypes.nickName)
@@ -158,9 +204,9 @@ export class CertificatesStore extends EventStoreBase<string> {
             username: username,
           }
 
-          this.filteredCertificatesMapping.set(certificate, data)
+          this.filteredCertificatesMapping.set(decCert, data)
 
-          return certificate
+          return decCert
         }
       })
     )

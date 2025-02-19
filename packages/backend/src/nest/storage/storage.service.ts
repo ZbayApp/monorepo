@@ -21,7 +21,6 @@ import {
   type Identity,
 } from '@quiet/types'
 import { createLibp2pAddress } from '@quiet/common'
-import fs from 'fs'
 import { IPFS_REPO_PATCH, ORBIT_DB_DIR, QUIET_DIR } from '../const'
 import { LocalDbService } from '../local-db/local-db.service'
 import { createLogger } from '../common/logger'
