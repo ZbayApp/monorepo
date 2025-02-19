@@ -34,6 +34,10 @@ program
   .option('-d, --socketIOPort <number>', 'Socket io data server port')
   .option('-r, --resourcesPath <string>', 'Application resources path')
   .option('-scrt, --socketIOSecret <string>', 'socketIO secret')
+  .option('-hl, --headless', 'Run the backend in headless mode', false)
+  .option('-hlp, --headlessPort <string>', 'Port to run the headless backend on', '3000')
+  .option('-hlip, --headlessIp <string>', 'IP to run the headless backend on', '0.0.0.0')
+  .option('-hlh, --headlessHostname <string>', 'Hostname of this server', 'localhost')
 
 logger.info('Parsing args')
 
@@ -60,9 +64,12 @@ export const runBackendDesktop = async () => {
     AppModule.forOptions({
       socketIOPort: options.socketIOPort,
       socketIOSecret: options.socketIOSecret,
-      torBinaryPath: torBinForPlatform(resourcesPath),
-      torResourcesPath: torDirForPlatform(resourcesPath),
+      torBinaryPath: options.headless == null ? torBinForPlatform(resourcesPath) : undefined,
+      torResourcesPath: options.headless == null ? torDirForPlatform(resourcesPath) : undefined,
       torControlPort: await getPort(),
+      headless: options.headless
+        ? { ip: options.headlessIp, port: Number(options.headlessPort), hostname: options.headlessHostname }
+        : undefined,
       options: {
         env: {
           appDataPath: path.join(options.appDataPath.trim(), 'Quiet'),

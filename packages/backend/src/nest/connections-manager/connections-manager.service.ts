@@ -59,8 +59,9 @@ import {
   InvitationDataVersion,
   InvitationDataV2,
   PermissionsError,
+  HiddenService,
 } from '@quiet/types'
-import { CONFIG_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
+import { CONFIG_OPTIONS, HEADLESS_OPTIONS, QUIET_DIR, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { Libp2pService } from '../libp2p/libp2p.service'
 import { CreatedLibp2pPeerId, Libp2pEvents, Libp2pNodeParams, Libp2pPeerInfo } from '../libp2p/libp2p.types'
 import { LocalDbService } from '../local-db/local-db.service'
@@ -71,18 +72,15 @@ import { emitError } from '../socket/socket.errors'
 import { SocketService } from '../socket/socket.service'
 import { StorageService } from '../storage/storage.service'
 import { StorageEvents } from '../storage/storage.types'
-import { StorageServiceClient } from '../storageServiceClient/storageServiceClient.service'
 import { Tor } from '../tor/tor.service'
-import { ConfigOptions, GetPorts, ServerIoProviderTypes } from '../types'
+import { ConfigOptions, GetPorts, HeadlessOptions, ServerIoProviderTypes } from '../types'
 import { ServiceState, TorInitState } from './connections-manager.types'
 import { DateTime } from 'luxon'
 import { createLogger } from '../common/logger'
 import { peerIdFromString } from '@libp2p/peer-id'
-import { PeerId } from '@libp2p/interface'
 import { privateKeyFromRaw } from '@libp2p/crypto/keys'
 import { SigChainService } from '../auth/sigchain.service'
 import { Base58, InviteResult } from '3rd-party/auth/packages/auth/dist'
-import { UserService } from '../auth/services/members/user.service'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -91,6 +89,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
   private ports: GetPorts
   isTorInit: TorInitState = TorInitState.NOT_STARTED
   private peerInfo: Libp2pPeerInfo | undefined = undefined
+  public readonly headless: boolean
 
   private readonly logger = createLogger(ConnectionsManagerService.name)
   constructor(
@@ -98,16 +97,17 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     @Inject(CONFIG_OPTIONS) public configOptions: ConfigOptions,
     @Inject(QUIET_DIR) public readonly quietDir: string,
     @Inject(SOCKS_PROXY_AGENT) public readonly socksProxyAgent: Agent,
+    @Inject(HEADLESS_OPTIONS) private readonly headlessOptions: HeadlessOptions,
     private readonly socketService: SocketService,
     private readonly registrationService: RegistrationService,
     public readonly libp2pService: Libp2pService,
-    private readonly storageServerProxyService: StorageServiceClient,
     private readonly localDbService: LocalDbService,
     private readonly storageService: StorageService,
     private readonly tor: Tor,
     private readonly sigChainService: SigChainService
   ) {
     super()
+    this.headless = !!headlessOptions
   }
 
   async onModuleInit() {
@@ -402,11 +402,16 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
   public async getNetwork(): Promise<NetworkInfo> {
     this.logger.info('Getting network information')
 
-    this.logger.info('Creating hidden service')
-    const hiddenService = await this.tor.createNewHiddenService({ targetPort: this.ports.libp2pHiddenService })
+    let hiddenService: HiddenService | undefined = undefined
+    if (this.headlessOptions == null) {
+      this.logger.info('Creating hidden service')
+      hiddenService = await this.tor.createNewHiddenService({ targetPort: this.ports.libp2pHiddenService })
 
-    this.logger.info('Destroying the hidden service we created')
-    await this.tor.destroyHiddenService(hiddenService.onionAddress.split('.')[0])
+      this.logger.info('Destroying the hidden service we created')
+      await this.tor.destroyHiddenService(hiddenService.onionAddress.split('.')[0])
+    } else {
+      this.logger.info(`Skipping tor hidden service generation in headless mode`)
+    }
 
     // TODO: Do we want to create the PeerId here? It doesn't necessarily have
     // anything to do with Tor.
@@ -417,7 +422,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       privKey: uint8ArrayToString(peerId.privKey.raw, 'base64'),
       noiseKey: uint8ArrayToString(peerId.noiseKey, 'base64'),
     }
-    this.logger.info(`Created network for peer ${peerId.toString()}. Address: ${hiddenService.onionAddress}`)
+    this.logger.info(`Created network for peer ${peerId.toString()}. Tor address: ${hiddenService?.onionAddress}`)
 
     return {
       hiddenService,
@@ -483,13 +488,14 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     let createUserCsrPayload: CreateUserCsrPayload
 
+    const commonName = this.headless ? this.headlessOptions.hostname : identity.hiddenService!.onionAddress
     if (identity?.userCsr) {
       this.logger.info('Recreating user CSR')
       if (identity.userCsr?.userCsr == null || identity.userCsr.userKey == null) {
         this.logger.error('identity.userCsr?.userCsr == null || identity.userCsr.userKey == null')
         return
       }
-      const _pubKey = await pubKeyFromCsr(identity.userCsr.userCsr)
+      const _pubKey = pubKeyFromCsr(identity.userCsr.userCsr)
       const publicKey = await getPubKey(_pubKey)
       const privateKey = await loadPrivateKey(identity.userCsr.userKey, configCrypto.signAlg)
 
@@ -497,7 +503,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
       createUserCsrPayload = {
         nickname,
-        commonName: identity.hiddenService.onionAddress,
+        commonName,
         peerId: identity.peerId.id,
         signAlg: configCrypto.signAlg,
         hashAlg: configCrypto.hashAlg,
@@ -507,7 +513,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       this.logger.info('Creating new user CSR')
       createUserCsrPayload = {
         nickname,
-        commonName: identity.hiddenService.onionAddress,
+        commonName,
         peerId: identity.peerId.id,
         signAlg: configCrypto.signAlg,
         hashAlg: configCrypto.hashAlg,
@@ -579,7 +585,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    const localAddress = createLibp2pAddress(identity.hiddenService.onionAddress, identity.peerId.id)
+    const peerAddress = this.headless ? this.headlessOptions.hostname : identity.hiddenService!.onionAddress
+    const localAddress = createLibp2pAddress(peerAddress, identity.peerId.id)
 
     let community: Community = {
       id: payload.id,
@@ -706,7 +713,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    const localAddress = createLibp2pAddress(identity.hiddenService.onionAddress, identity.peerId.id)
+    const peerAddress = this.headless ? this.headlessOptions.hostname : identity.hiddenService!.onionAddress
+    const localAddress = createLibp2pAddress(peerAddress, identity.peerId.id)
 
     const community = {
       id: payload.id,
@@ -772,7 +780,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     )
     return await this.tor.spawnHiddenService({
       targetPort: this.ports.libp2pHiddenService,
-      privKey: identity.hiddenService.privateKey,
+      privKey: identity.hiddenService!.privateKey,
     })
   }
 
@@ -784,8 +792,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       throw new Error(ErrorMessages.IDENTITY_NOT_FOUND)
     }
 
-    const onionAddress = await this.spawnTorHiddenService(community.id, identity)
-
     this.logger.info(JSON.stringify(identity.peerId, null, 2))
     const peerIdData: CreatedLibp2pPeerId = {
       peerId: peerIdFromString(identity.peerId.id),
@@ -794,15 +800,24 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     }
     this.logger.info(peerIdData.peerId.toString())
     const peers = filterValidAddresses(community.peerList ? community.peerList : [])
-    const localAddress = createLibp2pAddress(onionAddress, peerIdData.peerId.toString())
+    const peerAddress = this.headless
+      ? this.headlessOptions.hostname
+      : await this.spawnTorHiddenService(community.id, identity)
+    const localAddress = this.libp2pService.createLibp2pAddress(
+      peerAddress,
+      peerIdData.peerId.toString(),
+      this.headless
+    )
+    const listenAddress = this.libp2pService.createLibp2pListenAddress(peerAddress, this.headless)
 
     const params: Libp2pNodeParams = {
       peerId: peerIdData,
-      listenAddresses: [this.libp2pService.createLibp2pListenAddress(onionAddress)],
+      listenAddresses: [listenAddress],
       agent: this.socksProxyAgent,
       localAddress: localAddress,
       targetPort: this.ports.libp2pHiddenService,
       psk: Libp2pService.generateLibp2pPSK(community.psk).fullKey,
+      headless: this.headless,
     }
     await this.libp2pService.createInstance(params)
 

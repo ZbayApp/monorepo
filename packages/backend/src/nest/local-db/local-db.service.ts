@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer'
 import { Inject, Injectable } from '@nestjs/common'
 import { Level } from 'level'
-import { type Community, type NetworkInfo, NetworkStats, Identity, IdentityUpdatePayload } from '@quiet/types'
+import { type Community, NetworkStats, Identity } from '@quiet/types'
 import { createLibp2pAddress, filterAndSortPeers } from '@quiet/common'
 import { LEVEL_DB } from '../const'
 import { LocalDBKeys, LocalDbStatus } from './local-db.types'
@@ -106,10 +106,9 @@ export class LocalDbService {
     const identity = await this.getIdentity(await this.get(LocalDBKeys.CURRENT_COMMUNITY_ID))
 
     let localPeerAddress: string | undefined = undefined
-    if (identity) {
+    if (identity && identity.hiddenService) {
       localPeerAddress = createLibp2pAddress(identity.hiddenService.onionAddress, identity.peerId.id)
       this.logger.info('Local peer', localPeerAddress)
-      return filterAndSortPeers(peers, stats, localPeerAddress, includeLocalPeerAddress)
     }
 
     return filterAndSortPeers(peers, stats, localPeerAddress, includeLocalPeerAddress)

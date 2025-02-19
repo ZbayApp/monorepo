@@ -3,6 +3,12 @@ import { DefaultEventsMap } from 'socket.io/dist/typed-events'
 import { Server as SocketIO } from 'socket.io'
 import { Storage } from '@orbitdb/core'
 
+export interface HeadlessOptions {
+  ip: string
+  port: number
+  hostname: string
+}
+
 export class ConnectionsManagerTypes {
   options: Partial<ConnectionsManagerOptions>
   socketIOPort: number
@@ -12,6 +18,7 @@ export class ConnectionsManagerTypes {
   torControlPort?: number
   torResourcesPath?: string
   torBinaryPath?: string
+  headless?: HeadlessOptions
 }
 
 export class ConnectionsManagerOptions {
@@ -36,7 +43,7 @@ export class ConfigOptions {
     appDataPath?: string
     resourcesPath?: string
   } = {}
-
+  headless?: HeadlessOptions
   bootstrapMultiaddrs?: string[] = []
   createPaths?: boolean = true
 }

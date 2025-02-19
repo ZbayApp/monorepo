@@ -164,8 +164,8 @@ describe('Connections manager', () => {
     const spyOnDestroyHiddenService = jest.spyOn(tor, 'destroyHiddenService')
     await connectionsManagerService.init()
     const network = await connectionsManagerService.getNetwork()
-    expect(network.hiddenService.onionAddress.split('.')[0]).toHaveLength(56)
-    expect(network.hiddenService.privateKey).toHaveLength(99)
+    expect(network.hiddenService!.onionAddress.split('.')[0]).toHaveLength(56)
+    expect(network.hiddenService!.privateKey).toHaveLength(99)
     const peerId = peerIdFromString(network.peerId.id)
     expect(isPeerId(peerId)).toBeTruthy()
     expect(await spyOnDestroyHiddenService.mock.results[0].value).toBeTruthy()
@@ -181,7 +181,7 @@ describe('Connections manager', () => {
 
     let peerAddress: string
     const peerList: string[] = []
-    const localAddress = createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id)
+    const localAddress = createLibp2pAddress(userIdentity.hiddenService!.onionAddress, userIdentity.peerId.id)
     // add local peer to the list
     peerList.push(localAddress)
     logger.info(localAddress)
@@ -225,7 +225,7 @@ describe('Connections manager', () => {
     let peerAddress: string
     const peerList: string[] = []
     // add local peer to the list
-    peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id))
+    peerList.push(createLibp2pAddress(userIdentity.hiddenService!.onionAddress, userIdentity.peerId.id))
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
       peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).peerId.toString())
@@ -263,7 +263,7 @@ describe('Connections manager', () => {
     let peerAddress: string
     const peerList: string[] = []
     // add local peer to the list
-    peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id))
+    peerList.push(createLibp2pAddress(userIdentity.hiddenService!.onionAddress, userIdentity.peerId.id))
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
       peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).peerId.toString())
@@ -307,7 +307,7 @@ describe('Connections manager', () => {
     let peerAddress: string
     const peerList: string[] = []
     // add local peer to the list
-    peerList.push(createLibp2pAddress(userIdentity.hiddenService.onionAddress, userIdentity.peerId.id))
+    peerList.push(createLibp2pAddress(userIdentity.hiddenService!.onionAddress, userIdentity.peerId.id))
     // add 7 random peers to the list
     for (let pCount = 0; pCount < MANY_PEERS_COUNT; pCount++) {
       peerAddress = createLibp2pAddress(generateRandomOnionAddress(56), (await createPeerId()).peerId.toString())
@@ -348,7 +348,7 @@ describe('Connections manager', () => {
     const peersCount = 8
     for (let pCount = 0; pCount < peersCount; pCount++) {
       peerList.push(
-        createLibp2pAddress(userIdentity.hiddenService.onionAddress, (await createPeerId()).peerId.toString())
+        createLibp2pAddress(userIdentity.hiddenService!.onionAddress, (await createPeerId()).peerId.toString())
       )
     }
 

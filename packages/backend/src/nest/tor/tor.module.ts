@@ -45,7 +45,8 @@ const torPasswordProvider = {
 
 const torControlParams = {
   provide: TOR_CONTROL_PARAMS,
-  useFactory: (configOptions: ConfigOptions, torPasswordProvider: TorPasswordProvider) => {
+  useFactory: (configOptions: ConfigOptions, torPasswordProvider: TorPasswordProvider | null) => {
+    if (!torPasswordProvider) return null
     return {
       port: configOptions.torControlPort,
       host: 'localhost',

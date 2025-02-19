@@ -21,6 +21,7 @@ import {
   LEVEL_DB,
   DB_PATH,
   LIBP2P_DB_PATH,
+  HEADLESS_OPTIONS,
 } from './const'
 import { ConfigOptions, ConnectionsManagerOptions, ConnectionsManagerTypes } from './types'
 import { LocalDbModule } from './local-db/local-db.module'
@@ -90,6 +91,10 @@ export class AppModule {
             return path.join(_quietDir, existingRepo[0] || Config.IPFS_REPO_PATH)
           },
           inject: [QUIET_DIR],
+        },
+        {
+          provide: HEADLESS_OPTIONS,
+          useFactory: () => configOptions.headless,
         },
 
         {
@@ -179,6 +184,7 @@ export class AppModule {
         SERVER_IO_PROVIDER,
         SOCKS_PROXY_AGENT,
         LEVEL_DB,
+        HEADLESS_OPTIONS,
       ],
     }
   }

@@ -75,7 +75,7 @@ describe('connectionReducer', () => {
     const pubKey = _pubKey[0]
     const aliceCertData = {
       username: alice.nickname,
-      onionAddress: alice.hiddenService.onionAddress,
+      onionAddress: alice.hiddenService!.onionAddress,
       peerId: alice.peerId.id,
       isDuplicated: false,
       isRegistered: true,

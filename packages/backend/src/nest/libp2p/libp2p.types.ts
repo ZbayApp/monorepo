@@ -29,6 +29,7 @@ export interface Libp2pNodeParams {
   transport?: any[]
   useConnectionProtector?: boolean
   instanceName?: string
+  headless: boolean
 }
 
 export type Libp2pPeerInfo = {

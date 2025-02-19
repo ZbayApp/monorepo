@@ -29,7 +29,7 @@ export interface CreateNetworkPayload {
 }
 
 export interface NetworkInfo {
-  hiddenService: HiddenService
+  hiddenService?: HiddenService
   peerId: PeerId
 }
 

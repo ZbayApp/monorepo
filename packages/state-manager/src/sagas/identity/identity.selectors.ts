@@ -33,7 +33,7 @@ export const currentPubKey = createSelector(currentIdentity, identity => {
 
 export const currentPeerAddress = createSelector(currentIdentity, identity => {
   if (!identity) return ''
-  return createLibp2pAddress(identity?.hiddenService.onionAddress, identity?.peerId.id)
+  return createLibp2pAddress(identity?.hiddenService!.onionAddress, identity?.peerId.id)
 })
 
 export const communityMembership = createSelector(currentIdentity, currentCommunity, (identity, community) => {

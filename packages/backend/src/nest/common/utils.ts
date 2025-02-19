@@ -256,6 +256,7 @@ export const libp2pInstanceParams = async (): Promise<Libp2pNodeParams> => {
     localAddress: createLibp2pAddress('localhost', peerId.peerId.toString()),
     targetPort: port,
     psk: libp2pKey,
+    headless: false,
   }
 }
 
@@ -277,6 +278,7 @@ export async function getLocalLibp2pInstanceParams(): Promise<Libp2pNodeParams> 
     psk: libp2pKey,
     transport: [webSockets()],
     useConnectionProtector: false,
+    headless: false,
   }
 }
 

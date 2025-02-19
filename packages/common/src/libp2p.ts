@@ -3,9 +3,9 @@ export const PSK_LENGTH = 44 // PSK is 256 bits/8 = 32 bytes which encodes to 44
 
 const ONION = '.onion'
 
-export const createLibp2pAddress = (address: string, peerId: string) => {
-  if (!address.endsWith(ONION)) address += ONION
-  if (address.length !== 56 + ONION.length) {
+export const createLibp2pAddress = (address: string, peerId: string, isHeadless: boolean = false) => {
+  if (!isHeadless && !address.endsWith(ONION)) address += ONION
+  if (!isHeadless && address.length !== 56 + ONION.length) {
     if (process.env.NODE_ENV !== 'test')
       throw new Error(`Invalid address: ${address} length: ${address.length} expected: ${56 + ONION.length}`)
     console.warn(`Invalid address: ${address} length: ${address.length} expected: ${56 + ONION.length}`)
@@ -13,9 +13,9 @@ export const createLibp2pAddress = (address: string, peerId: string) => {
   return `/dns4/${address}/tcp/80/ws/p2p/${peerId}`
 }
 
-export const createLibp2pListenAddress = (address: string) => {
-  if (!address.endsWith(ONION)) address += ONION
-  if (address.length !== 56 + ONION.length) {
+export const createLibp2pListenAddress = (address: string, isHeadless: boolean = false) => {
+  if (!isHeadless && !address.endsWith(ONION)) address += ONION
+  if (!isHeadless && address.length !== 56 + ONION.length) {
     if (process.env.NODE_ENV !== 'test')
       throw new Error(`Invalid address: ${address} length: ${address.length} expected: ${56 + ONION.length}`)
     console.warn(`Invalid address: ${address} length: ${address.length} expected: ${56 + ONION.length}`)

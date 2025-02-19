@@ -3,7 +3,9 @@
   "version": "2.0.1-alpha.4",
   "description": "",
   "main": "bundle.cjs",
-  "scripts": {},
+  "scripts": {
+    "start:dev": "node ./bundle.cjs --headless"
+  },
   "keywords": [],
   "author": "",
   "license": "GPL-3.0-or-later",

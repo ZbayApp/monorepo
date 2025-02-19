@@ -109,7 +109,7 @@ export const getFactory = async (store: Store) => {
         const userCertData = await createUserCertificateTestHelper(
           {
             nickname: action.payload.nickname,
-            commonName: action.payload.hiddenService.onionAddress,
+            commonName: action.payload.hiddenService!.onionAddress,
             peerId: action.payload.peerId.id,
           },
           community.CA

@@ -1,16 +1,5 @@
-import { gossipsub } from '@chainsafe/libp2p-gossipsub'
-import { noise, pureJsCrypto } from '@chainsafe/libp2p-noise'
-import { yamux } from '@chainsafe/libp2p-yamux'
-import { mplex } from '@libp2p/mplex'
-import { FaultTolerance } from '@libp2p/interface-transport'
-import { identify, identifyPush } from '@libp2p/identify'
 import { KEEP_ALIVE, type Libp2p } from '@libp2p/interface'
-import { kadDHT } from '@libp2p/kad-dht'
-import { keychain } from '@libp2p/keychain'
 import { peerIdFromString } from '@libp2p/peer-id'
-import { ping } from '@libp2p/ping'
-import { preSharedKey } from '@libp2p/pnet'
-import * as filters from '@libp2p/websockets/filters'
 import { createLibp2p } from 'libp2p'
 
 import { multiaddr } from '@multiformats/multiaddr'
@@ -29,7 +18,6 @@ import { ConnectionProcessInfo, type NetworkDataPayload, SocketActionTypes, type
 import { getUsersAddresses } from '../common/utils'
 import { LIBP2P_DB_PATH, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
 import { ServerIoProviderTypes } from '../types'
-import { webSockets as webSocketsOverTor } from '../websocketOverTor'
 import {
   CreatedLibp2pPeerId,
   Libp2pConnectedPeer,
@@ -40,10 +28,9 @@ import {
 } from './libp2p.types'
 import { createLogger } from '../common/logger'
 import { Libp2pDatastore } from './libp2p.datastore'
-import { WEBSOCKET_CIPHER_SUITE } from './libp2p.const'
 import { libp2pAuth, Libp2pAuth } from './libp2p.auth'
 import { SigChainService } from '../auth/sigchain.service'
-import { sleep } from '../common/sleep'
+import { generatePeerLibp2pConfig, generateServerLibp2pConfig } from './libp2p.config'
 
 const KEY_LENGTH = 32
 export const LIBP2P_PSK_METADATA = '/key/swarm/psk/1.0.0/\n/base16/\n'
@@ -167,12 +154,12 @@ export class Libp2pService extends EventEmitter {
     this.redialPeersInBackground()
   }
 
-  public readonly createLibp2pAddress = (address: string, peerId: string): string => {
-    return createLibp2pAddress(address, peerId)
+  public readonly createLibp2pAddress = (address: string, peerId: string, isHeadless: boolean = false): string => {
+    return createLibp2pAddress(address, peerId, isHeadless)
   }
 
-  public readonly createLibp2pListenAddress = (address: string): string => {
-    return createLibp2pListenAddress(address)
+  public readonly createLibp2pListenAddress = (address: string, isHeadless: boolean = false): string => {
+    return createLibp2pListenAddress(address, isHeadless)
   }
 
   /**
@@ -260,6 +247,9 @@ export class Libp2pService extends EventEmitter {
       this.logger = this.logger.extend(params.instanceName)
     }
     this.logger.info(`Creating new libp2p instance`)
+    if (params.headless) {
+      this.logger.warn(`RUNNING IN HEADLESS MODE!`)
+    }
 
     if (this.libp2pInstance) {
       this.logger.warn(`Found an existing instance of libp2p, returning...`)
@@ -277,92 +267,13 @@ export class Libp2pService extends EventEmitter {
     let libp2p: Libp2p
 
     this.logger.info(`Creating libp2p`)
+    this.libp2pDatastore.init()
+    const auth = libp2pAuth(this.sigchainService, this)
+    const config = params.headless
+      ? generateServerLibp2pConfig(params, this.libp2pDatastore, auth)
+      : generatePeerLibp2pConfig(params, this.libp2pDatastore, auth)
     try {
-      libp2p = await createLibp2p({
-        start: false,
-        datastore: this.libp2pDatastore.init(),
-        connectionManager: {
-          maxConnections: 20, // TODO: increase?
-          dialTimeout: 120_000,
-          maxParallelDials: 10,
-          inboundUpgradeTimeout: 30_000,
-          outboundUpgradeTimeout: 30_000,
-          protocolNegotiationTimeout: 10_000,
-          maxDialQueueLength: 500,
-          reconnectRetries: 25,
-        },
-        privateKey: params.peerId.privKey,
-        addresses: { listen: params.listenAddresses },
-        connectionMonitor: {
-          // ISLA: we should consider making this true if pings are reliable going forward
-          abortConnectionOnPingFailure: false,
-          pingInterval: 60_000,
-          enabled: true,
-        },
-        connectionProtector:
-          params.useConnectionProtector || params.useConnectionProtector == null
-            ? preSharedKey({ psk: params.psk })
-            : undefined,
-        streamMuxers: [
-          mplex({
-            disconnectThreshold: 20,
-            maxInboundStreams: 1024,
-            maxOutboundStreams: 1024,
-            maxStreamBufferSize: 26214400,
-            maxUnprocessedMessageQueueSize: 104857600,
-            maxMsgSize: 10485760,
-            // @ts-expect-error This is part of the config interface but it isn't typed that way
-            closeTimeout: 15_000,
-          }),
-        ],
-        // @ts-ignore
-        connectionEncrypters: [noise({ crypto: pureJsCrypto, staticNoiseKey: params.peerId.noiseKey })],
-        transports: params.transport
-          ? params.transport
-          : [
-              webSocketsOverTor({
-                filter: filters.all,
-                websocket: {
-                  agent: params.agent,
-                  handshakeTimeout: 30_000,
-                  ciphers: WEBSOCKET_CIPHER_SUITE,
-                  followRedirects: true,
-                },
-                localAddress: params.localAddress,
-                targetPort: params.targetPort,
-                inboundConnectionUpgradeTimeout: 30_000,
-                closeOnEnd: false,
-              }),
-            ],
-        transportManager: {
-          faultTolerance: FaultTolerance.NO_FATAL,
-        },
-        services: {
-          auth: libp2pAuth(this.sigchainService, this),
-          ping: ping({ timeout: 30_000 }),
-          pubsub: gossipsub({
-            // neccessary to run a single peer
-            allowPublishToZeroTopicPeers: true,
-            fallbackToFloodsub: false,
-            emitSelf: true,
-            debugName: params.peerId.peerId.toString(),
-            doPX: true,
-          }),
-          identify: identify({ timeout: 30_000, maxInboundStreams: 128, maxOutboundStreams: 128 }),
-          identifyPush: identifyPush({ timeout: 30_000, maxInboundStreams: 128, maxOutboundStreams: 128 }),
-          keychain: keychain(),
-          dht: kadDHT({
-            allowQueryWithZeroPeers: true,
-            clientMode: true,
-            initialQuerySelfInterval: 500,
-            providers: {
-              cacheSize: 1024,
-            },
-            maxInboundStreams: 128,
-            maxOutboundStreams: 128,
-          }),
-        },
-      })
+      libp2p = await createLibp2p(config)
     } catch (err) {
       this.logger.error('Error while creating instance of libp2p', err)
       throw err

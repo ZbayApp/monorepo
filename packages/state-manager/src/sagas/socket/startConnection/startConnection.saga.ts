@@ -1,6 +1,6 @@
 import { eventChannel } from 'redux-saga'
 import { type Socket } from '../../../types'
-import { all, call, fork, put, takeEvery, cancelled, select } from 'typed-redux-saga'
+import { all, call, fork, put, takeEvery, cancelled } from 'typed-redux-saga'
 import { appActions } from '../../app/app.slice'
 import { appMasterSaga } from '../../app/app.master.saga'
 import { connectionActions } from '../../appConnection/connection.slice'
@@ -10,7 +10,7 @@ import { communitiesActions } from '../../communities/communities.slice'
 import { errorsMasterSaga } from '../../errors/errors.master.saga'
 import { errorsActions } from '../../errors/errors.slice'
 import { identityMasterSaga } from '../../identity/identity.master.saga'
-import { identityActions, identitySlice } from '../../identity/identity.slice'
+import { identityActions } from '../../identity/identity.slice'
 import { messagesMasterSaga } from '../../messages/messages.master.saga'
 import { filesMasterSaga } from '../../files/files.master.saga'
 import { messagesActions } from '../../messages/messages.slice'
@@ -40,7 +40,6 @@ import {
 } from '@quiet/types'
 
 import { createLogger } from '../../../utils/logger'
-import { identitySelectors } from '../../identity/identity.selectors'
 import { InviteResult } from '@localfirst/auth'
 
 const logger = createLogger('startConnectionSaga')

@@ -34,6 +34,7 @@ export const QUIET_DIR = 'QUIET_DIR'
 export const IPFS_REPO_PATCH = 'ipfsRepoPath'
 
 export const CONFIG_OPTIONS = 'configOptions'
+export const HEADLESS_OPTIONS = 'headlessOptions'
 export const SERVER_IO_PROVIDER = 'serverIoProvider'
 
 export const PROCESS_IN_CHUNKS_PROVIDER = 'processInChunksProvider'
