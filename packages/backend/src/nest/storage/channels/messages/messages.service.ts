@@ -1,33 +1,16 @@
 import { Injectable } from '@nestjs/common'
-import { stringToArrayBuffer } from 'pvutils'
 import EventEmitter from 'events'
-import { getCrypto, ICryptoEngine } from 'pkijs'
 
-import { keyObjectFromString, verifySignature } from '@quiet/identity'
-import {
-  ChannelMessage,
-  CompoundError,
-  ConsumedChannelMessage,
-  EncryptionSignature,
-  NoCryptoEngineError,
-} from '@quiet/types'
+import { ChannelMessage, CompoundError, ConsumedChannelMessage } from '@quiet/types'
 
 import { createLogger } from '../../../common/logger'
 import { EncryptionScopeType } from '../../../auth/services/crypto/types'
 import { SigChainService } from '../../../auth/sigchain.service'
-import { EncryptedMessage } from './messages.types'
-import { SignedEnvelope } from '3rd-party/auth/packages/auth/dist'
+import { EncryptableMessageComponents, EncryptedMessage } from './messages.types'
 import { RoleName } from '../../../auth/services/roles/roles'
 
 @Injectable()
 export class MessagesService extends EventEmitter {
-  /**
-   * Map of signing keys used on messages
-   *
-   * Maps public key string -> CryptoKey
-   */
-  private publicKeysMap: Map<string, CryptoKey> = new Map()
-
   private readonly logger = createLogger(`storage:channels:messagesService`)
 
   constructor(private readonly sigChainService: SigChainService) {
@@ -59,33 +42,27 @@ export class MessagesService extends EventEmitter {
     }
   }
 
-  /**
-   * Verify encryption signature on message
-   *
-   * @param message Message to verify
-   * @returns True if message is valid
-   */
-  public verifyMessage(message: EncryptedMessage): boolean {
-    try {
-      const chain = this.sigChainService.getActiveChain()
-      return chain.crypto.verifyMessage(message.encSignature)
-    } catch (e) {
-      throw new CompoundError(`Failed to verify message signature`, e)
-    }
-  }
-
   private _encryptPublicChannelMessage(rawMessage: ChannelMessage): EncryptedMessage {
     try {
       const chain = this.sigChainService.getActiveChain()
+      const encryptable: EncryptableMessageComponents = {
+        type: rawMessage.type,
+        message: rawMessage.message,
+        signature: rawMessage.signature,
+        pubKey: rawMessage.pubKey,
+        media: rawMessage.media,
+      }
       const encryptedMessage = chain.crypto.encryptAndSign(
-        rawMessage.message,
+        encryptable,
         { type: EncryptionScopeType.ROLE, name: RoleName.MEMBER },
         chain.localUserContext
       )
       return {
-        ...rawMessage,
+        id: rawMessage.id,
+        channelId: rawMessage.channelId,
+        createdAt: rawMessage.createdAt,
         encSignature: encryptedMessage.signature,
-        message: encryptedMessage.encrypted,
+        contents: encryptedMessage.encrypted,
       }
     } catch (e) {
       throw new CompoundError(`Failed to encrypt message with error`, e)
@@ -95,43 +72,22 @@ export class MessagesService extends EventEmitter {
   private _decryptPublicChannelMessage(encryptedMessage: EncryptedMessage): ConsumedChannelMessage {
     try {
       const chain = this.sigChainService.getActiveChain()
-      const decryptedMessage = chain.crypto.decryptAndVerify<string>(
-        encryptedMessage.message,
+      const decryptedMessage = chain.crypto.decryptAndVerify<EncryptableMessageComponents>(
+        encryptedMessage.contents,
         encryptedMessage.encSignature,
         chain.localUserContext,
         false
       )
       return {
-        ...encryptedMessage,
-        message: decryptedMessage.contents,
+        ...decryptedMessage.contents,
+        id: encryptedMessage.id,
+        channelId: encryptedMessage.channelId,
+        createdAt: encryptedMessage.createdAt,
+        encSignature: encryptedMessage.encSignature,
         verified: decryptedMessage.isValid,
       }
     } catch (e) {
       throw new CompoundError(`Failed to decrypt message with error`, e)
     }
-  }
-
-  /**
-   * Get crypto engine that was initialized previously
-   *
-   * @returns Crypto engine
-   * @throws NoCryptoEngineError
-   */
-  private getCrypto(): ICryptoEngine {
-    const crypto = getCrypto()
-    if (crypto == null) {
-      throw new NoCryptoEngineError()
-    }
-
-    return crypto
-  }
-
-  /**
-   * Clean service
-   *
-   * NOTE: Does NOT affect data stored in IPFS
-   */
-  public async clean(): Promise<void> {
-    this.publicKeysMap = new Map()
   }
 }

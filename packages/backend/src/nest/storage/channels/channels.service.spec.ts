@@ -179,21 +179,18 @@ describe('ChannelsService', () => {
       expect(eventSpy).toHaveBeenCalled()
       const savedMessages = await channelsService.getMessages(channelio.id)
       expect(savedMessages?.messages.length).toBe(1)
-      expect(savedMessages?.messages[0]).toEqual(
-        expect.objectContaining({
-          ...messageCopy,
-          verified: true,
-          encSignature: expect.objectContaining({
-            author: {
-              generation: 0,
-              type: 'USER',
-              name: sigChainService.getActiveChain().localUserContext.user.userId,
-            },
-            contents: expect.any(Uint8Array),
-            signature: expect.any(String),
-          }),
-        })
-      )
+      expect(savedMessages?.messages[0]).toEqual({
+        ...messageCopy,
+        verified: true,
+        encSignature: expect.objectContaining({
+          author: {
+            generation: 0,
+            type: 'USER',
+            name: sigChainService.getActiveChain().localUserContext.user.userId,
+          },
+          signature: expect.any(String),
+        }),
+      })
     })
 
     // TODO: figure out a good way to spoof the signature

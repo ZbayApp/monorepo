@@ -9,6 +9,7 @@ import {
   EncryptedPayload,
   EncryptionScope,
   EncryptionScopeType,
+  Signature,
 } from './types'
 import { ChainServiceBase } from '../chainServiceBase'
 import { SigChain } from '../../sigchain'
@@ -61,14 +62,17 @@ class CryptoService extends ChainServiceBase {
         throw new Error(`Unknown encryption type ${scope.type} provided!`)
     }
 
-    const signature = this.sigChain.team!.sign(encryptedPayload.contents)
+    const signature = this.sigChain.team!.sign(message)
 
     return {
       encrypted: encryptedPayload,
-      signature,
+      signature: {
+        author: signature.author,
+        signature: signature.signature,
+      },
       ts: Date.now(),
       username: context.user.userName,
-    }
+    } as EncryptedAndSignedPayload
   }
 
   private symEncrypt(message: any, scope: EncryptionScope): EncryptedPayload {
@@ -113,15 +117,10 @@ class CryptoService extends ChainServiceBase {
 
   public decryptAndVerify<T>(
     encrypted: EncryptedPayload,
-    signature: SignedEnvelope,
+    signature: Signature,
     context: LocalUserContext,
     failOnInvalid = true
   ): DecryptedPayload<T> {
-    const isValid = this.verifyMessage(signature)
-    if (!isValid && failOnInvalid) {
-      throw new Error(`Couldn't verify signature on message`)
-    }
-
     let contents: T
     switch (encrypted.scope.type) {
       // Symmetrical Encryption Types
@@ -137,6 +136,15 @@ class CryptoService extends ChainServiceBase {
       // Unknown Type
       default:
         throw new Error(`Unknown encryption scope type ${encrypted.scope.type}`)
+    }
+
+    const fullSig: SignedEnvelope = {
+      ...signature,
+      contents,
+    }
+    const isValid = this.verifyMessage(fullSig)
+    if (!isValid && failOnInvalid) {
+      throw new Error(`Couldn't verify signature on message`)
     }
 
     return {
@@ -164,7 +172,11 @@ class CryptoService extends ChainServiceBase {
     }) as T
   }
 
-  private asymUserDecrypt<T>(encrypted: EncryptedPayload, signature: SignedEnvelope, context: LocalUserContext): T {
+  private asymUserDecrypt<T>(
+    encrypted: EncryptedPayload,
+    signature: Signature | SignedEnvelope,
+    context: LocalUserContext
+  ): T {
     if (encrypted.scope.name == null) {
       throw new Error(`Must provide a user ID when encryption scope is set to ${encrypted.scope.type}`)
     }
