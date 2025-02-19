@@ -15,14 +15,17 @@ import { OrbitDbService } from '../orbitDb/orbitDb.service'
 import { Injectable } from '@nestjs/common'
 import { createLogger } from '../../common/logger'
 import { KeyValueStoreBase } from '../base.store'
+import { EncryptedAndSignedPayload, EncryptionScopeType } from '../../auth/services/crypto/types'
+import { SigChainService } from '../../auth/sigchain.service'
 
 const logger = createLogger('communityMetadataStore')
 
 @Injectable()
-export class CommunityMetadataStore extends KeyValueStoreBase<CommunityMetadata> {
+export class CommunityMetadataStore extends KeyValueStoreBase<EncryptedAndSignedPayload, CommunityMetadata> {
   constructor(
     private readonly orbitDbService: OrbitDbService,
-    private readonly localDbService: LocalDbService
+    private readonly localDbService: LocalDbService,
+    private readonly sigchainService: SigChainService
   ) {
     super()
   }
@@ -47,13 +50,14 @@ export class CommunityMetadataStore extends KeyValueStoreBase<CommunityMetadata>
     // know at the time of initialization whether or not someone is
     // the owner.
 
-    this.store = await this.orbitDbService.orbitDb.open<KeyValueType<CommunityMetadata>>('community-metadata', {
+    this.store = await this.orbitDbService.orbitDb.open<KeyValueType<EncryptedAndSignedPayload>>('community-metadata', {
       sync: false,
       Database: KeyValueIndexedValidated(
         CommunityMetadataStore.validateCommunityMetadataEntry.bind(
           null,
           this.localDbService,
-          this.orbitDbService.identities
+          this.orbitDbService.identities,
+          this.sigchainService
         )
       ),
       AccessController: IPFSAccessController({ write: ['*'] }),
@@ -78,7 +82,38 @@ export class CommunityMetadataStore extends KeyValueStoreBase<CommunityMetadata>
     await this.getStore().sync.start()
   }
 
-  public async setEntry(key: string, value: CommunityMetadata): Promise<CommunityMetadata> {
+  public encryptEntry(payload: CommunityMetadata): EncryptedAndSignedPayload {
+    try {
+      const chain = this.sigchainService.getActiveChain()
+      const encryptedPayload = chain.crypto.encryptAndSign(
+        payload,
+        { type: EncryptionScopeType.TEAM },
+        chain.localUserContext
+      )
+      return encryptedPayload
+    } catch (err) {
+      logger.error('Failed to encrypt user entry:', err)
+      throw err
+    }
+  }
+
+  public decryptEntry(payload: EncryptedAndSignedPayload): CommunityMetadata {
+    try {
+      const chain = this.sigchainService.getActiveChain()
+      const decryptedPayload = chain.crypto.decryptAndVerify<CommunityMetadata>(
+        payload.encrypted,
+        payload.signature,
+        chain.localUserContext
+      )
+      return decryptedPayload.contents
+    } catch (err) {
+      logger.error('Failed to decrypt user entry:', err)
+      throw err
+    }
+  }
+
+  public async setEntry(key: string, value: CommunityMetadata): Promise<EncryptedAndSignedPayload> {
+    logger.info('Setting community metadata', key, value)
     try {
       // TODO: Also check OrbitDB identity when updating community metadata
       const valid = await CommunityMetadataStore.validateCommunityMetadata(value)
@@ -94,9 +129,9 @@ export class CommunityMetadataStore extends KeyValueStoreBase<CommunityMetadata>
 
       // FIXME: update community metadata if it has changed (so that
       // we can migrate community metadata easily)
-      const oldMeta = await this.getStore().get(key)
+      const oldMeta = await this.getEntry(key)
       if (oldMeta?.ownerCertificate && oldMeta?.rootCa) {
-        return oldMeta
+        return await this.encryptEntry(oldMeta)
       }
 
       logger.info(`Updating community metadata`)
@@ -121,9 +156,9 @@ export class CommunityMetadataStore extends KeyValueStoreBase<CommunityMetadata>
       // validateCommunityMetadataEntry and so validation may pass in
       // this method, but still the entry is not added to the internal
       // index. How can we detect that?
-      await this.getStore().put(key, meta)
-
-      return meta
+      const entry = this.encryptEntry(meta)
+      await this.getStore().put(key, entry)
+      return entry
     } catch (err) {
       logger.error('Failed to add community metadata', key, err)
       throw new Error('Failed to add community metadata')
@@ -131,9 +166,18 @@ export class CommunityMetadataStore extends KeyValueStoreBase<CommunityMetadata>
   }
 
   public async getEntry(_key?: string): Promise<CommunityMetadata | null> {
-    const metadata = (await this.getStore().all()).map(x => x.value)
-
-    return metadata.length > 0 ? metadata[0] : null
+    const metadata = (await this.getStore().all()).map(x => {
+      try {
+        return this.decryptEntry(x.value)
+      } catch (err) {
+        logger.error('Failed to decrypt community metadata:', err)
+        return null
+      }
+    })
+    const validMetadata = metadata.filter(x => {
+      if (x != null) return true
+    })
+    return validMetadata.length > 0 ? validMetadata[0] : null
   }
 
   public static async validateCommunityMetadata(communityMetadata: CommunityMetadata): Promise<boolean> {
@@ -158,10 +202,23 @@ export class CommunityMetadataStore extends KeyValueStoreBase<CommunityMetadata>
   public static async validateCommunityMetadataEntry(
     localDbService: LocalDbService,
     identities: IdentitiesType,
-    entry: LogEntry<CommunityMetadata>
+    sigChainService: SigChainService,
+    entry: LogEntry<EncryptedAndSignedPayload>
   ): Promise<boolean> {
     try {
-      if (entry.payload.value && entry.payload.key !== entry.payload.value.id) {
+      const entryValue = entry.payload.value
+      if (!entryValue) {
+        logger.error('Failed to verify community metadata entry:', entry.hash, 'entry value is missing')
+        return false
+      }
+      const meta = sigChainService
+        .getActiveChain()
+        .crypto.decryptAndVerify<CommunityMetadata>(
+          entryValue.encrypted,
+          entryValue.signature,
+          sigChainService.getActiveChain().localUserContext
+        ).contents as CommunityMetadata
+      if (entry.payload.value && entry.payload.key !== meta.id) {
         logger.error('Failed to verify community metadata entry:', entry.hash, 'entry key != payload id')
         return false
       }
@@ -193,7 +250,7 @@ export class CommunityMetadataStore extends KeyValueStoreBase<CommunityMetadata>
       }
 
       if (entry.payload.value) {
-        return await CommunityMetadataStore.validateCommunityMetadata(entry.payload.value)
+        return await CommunityMetadataStore.validateCommunityMetadata(meta)
       } else {
         return true
       }

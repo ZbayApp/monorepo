@@ -206,8 +206,10 @@ export class StorageService extends EventEmitter {
     })
   }
 
-  public async updateCommunityMetadata(communityMetadata: CommunityMetadata): Promise<CommunityMetadata | undefined> {
-    const meta = await this.communityMetadataStore?.setEntry(communityMetadata.id, communityMetadata)
+  public async updateCommunityMetadata(communityMetadata: CommunityMetadata): Promise<CommunityMetadata | null> {
+    await this.communityMetadataStore?.setEntry(communityMetadata.id, communityMetadata)
+    const meta = await this.communityMetadataStore?.getEntry(communityMetadata.id)
+
     if (meta) {
       this.certificatesStore.updateMetadata(meta)
     }
