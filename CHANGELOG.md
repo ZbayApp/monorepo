@@ -25,6 +25,10 @@
 * Update data directory to `Quiet3` ([#2672](https://github.com/TryQuiet/quiet/issues/2672))
 * Update production release S3 bucket to `quiet.3.x` ([#2672](https://github.com/TryQuiet/quiet/issues/2672))
 
+### Fixes
+
+* Fixed splash screen to be draggable on macOS ([#789](https://github.com/TryQuiet/quiet/issues/789))
+
 ## [2.3.3]
 
 ### New features
