@@ -22,4 +22,4 @@ jobs:
           submodules: 'recursive'
 
       - name: 'Dependency Review'
-        uses: actions/dependency-review-action@6c5ccdad469c9f8a2996bfecaec55a631a347034 # v3.1.0
+        uses: actions/dependency-review-action@0c155c5e8556a497adf53f2c18edabf945ed8e70 # v4.3.2
