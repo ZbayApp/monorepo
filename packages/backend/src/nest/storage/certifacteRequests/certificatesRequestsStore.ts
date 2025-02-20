@@ -12,6 +12,7 @@ import { EventStoreBase } from '../base.store'
 import { EventsWithStorage } from '../orbitDb/eventsWithStorage'
 import { SigChainService } from '../../auth/sigchain.service'
 import { EncryptedAndSignedPayload, EncryptionScopeType } from '../../auth/services/crypto/types'
+import { RoleName } from '../../auth/services/roles/roles'
 
 @Injectable()
 export class CertificatesRequestsStore extends EventStoreBase<EncryptedAndSignedPayload | string> {
@@ -51,7 +52,7 @@ export class CertificatesRequestsStore extends EventStoreBase<EncryptedAndSigned
       const chain = this.chains.getActiveChain()
       const encryptedPayload = chain.crypto.encryptAndSign(
         payload,
-        { type: EncryptionScopeType.TEAM },
+        { type: EncryptionScopeType.ROLE, name: RoleName.MEMBER },
         chain.localUserContext
       )
       return encryptedPayload

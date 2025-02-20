@@ -17,6 +17,7 @@ import { createLogger } from '../../common/logger'
 import { KeyValueStoreBase } from '../base.store'
 import { EncryptedAndSignedPayload, EncryptionScopeType } from '../../auth/services/crypto/types'
 import { SigChainService } from '../../auth/sigchain.service'
+import { RoleName } from '../../auth/services/roles/roles'
 
 const logger = createLogger('communityMetadataStore')
 
@@ -87,7 +88,7 @@ export class CommunityMetadataStore extends KeyValueStoreBase<EncryptedAndSigned
       const chain = this.sigchainService.getActiveChain()
       const encryptedPayload = chain.crypto.encryptAndSign(
         payload,
-        { type: EncryptionScopeType.TEAM },
+        { type: EncryptionScopeType.ROLE, name: RoleName.MEMBER },
         chain.localUserContext
       )
       return encryptedPayload
