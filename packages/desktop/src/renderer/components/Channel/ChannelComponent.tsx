@@ -27,6 +27,7 @@ import { FileActionsProps } from './File/FileComponent/FileComponent'
 import { UseModalType } from '../../containers/hooks'
 import { HandleOpenModalType } from '../widgets/userLabel/UserLabel.types'
 
+
 const ChannelMessagesWrapperStyled = styled(Grid)(({ theme }) => ({
   position: 'relative',
   height: 0,
