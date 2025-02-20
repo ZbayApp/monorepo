@@ -81,6 +81,7 @@ import { peerIdFromString } from '@libp2p/peer-id'
 import { privateKeyFromRaw } from '@libp2p/crypto/keys'
 import { SigChainService } from '../auth/sigchain.service'
 import { Base58, InviteResult } from '3rd-party/auth/packages/auth/dist'
+import { getTcpListenAddress } from '../libp2p/libp2p.config'
 
 @Injectable()
 export class ConnectionsManagerService extends EventEmitter implements OnModuleInit {
@@ -97,7 +98,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     @Inject(CONFIG_OPTIONS) public configOptions: ConfigOptions,
     @Inject(QUIET_DIR) public readonly quietDir: string,
     @Inject(SOCKS_PROXY_AGENT) public readonly socksProxyAgent: Agent,
-    @Inject(HEADLESS_OPTIONS) private readonly headlessOptions: HeadlessOptions,
+    @Inject(HEADLESS_OPTIONS) private readonly headlessOptions: HeadlessOptions | undefined,
     private readonly socketService: SocketService,
     private readonly registrationService: RegistrationService,
     public readonly libp2pService: Libp2pService,
@@ -136,6 +137,9 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       })
     )
 
+    // if (!this.headless) {
+    //   await this.tor.init()
+    // }
     await this.init()
   }
 
@@ -488,7 +492,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     let createUserCsrPayload: CreateUserCsrPayload
 
-    const commonName = this.headless ? this.headlessOptions.hostname : identity.hiddenService!.onionAddress
+    const commonName = this.headless ? this.headlessOptions!.hostname : identity.hiddenService!.onionAddress
     if (identity?.userCsr) {
       this.logger.info('Recreating user CSR')
       if (identity.userCsr?.userCsr == null || identity.userCsr.userKey == null) {
@@ -585,8 +589,8 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    const peerAddress = this.headless ? this.headlessOptions.hostname : identity.hiddenService!.onionAddress
-    const localAddress = createLibp2pAddress(peerAddress, identity.peerId.id)
+    const peerAddress = this.headless ? this.headlessOptions!.hostname : identity.hiddenService!.onionAddress
+    const localAddress = this.libp2pService.createLibp2pAddress(peerAddress, identity.peerId.id, this.headless)
 
     let community: Community = {
       id: payload.id,
@@ -713,13 +717,14 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       return
     }
 
-    const peerAddress = this.headless ? this.headlessOptions.hostname : identity.hiddenService!.onionAddress
-    const localAddress = createLibp2pAddress(peerAddress, identity.peerId.id)
+    const peerList = this.headless
+      ? metadata.peers
+      : [createLibp2pAddress(identity.hiddenService!.onionAddress, identity.peerId.id), ...metadata.peers]
 
     const community = {
       id: payload.id,
       name: communityName,
-      peerList: [...new Set([localAddress, ...metadata.peers])],
+      peerList: [...new Set(peerList)],
       psk: metadata.psk,
       ownerOrbitDbIdentity: metadata.ownerOrbitDbIdentity,
       inviteData,
@@ -800,15 +805,17 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     }
     this.logger.info(peerIdData.peerId.toString())
     const peers = filterValidAddresses(community.peerList ? community.peerList : [])
-    const peerAddress = this.headless
-      ? this.headlessOptions.hostname
-      : await this.spawnTorHiddenService(community.id, identity)
+    const peerAddress = this.headless ? '' : await this.spawnTorHiddenService(community.id, identity)
     const localAddress = this.libp2pService.createLibp2pAddress(
       peerAddress,
       peerIdData.peerId.toString(),
       this.headless
     )
-    const listenAddress = this.libp2pService.createLibp2pListenAddress(peerAddress, this.headless)
+    const listenAddress = this.libp2pService.createLibp2pListenAddress(
+      peerAddress,
+      peerIdData.peerId.toString(),
+      this.headless
+    )
 
     const params: Libp2pNodeParams = {
       peerId: peerIdData,

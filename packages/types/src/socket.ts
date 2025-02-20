@@ -84,6 +84,10 @@ export enum SocketActionTypes {
   TOR_INITIALIZED = 'torInitialized',
   REDIAL_PEERS = 'redialPeers',
 
+  // ====== Headless ======
+  INIT_HEADLESS_USER = 'initHeadlessUser',
+  LAUNCH_HEADLESS = 'launchHeadless',
+
   // ====== Misc ======
 
   /**

@@ -1,7 +1,7 @@
 import { hangingBackendProcessCommand } from '@quiet/common'
 import { execSync } from 'child_process'
 import getPort from 'get-port'
-import { createLogger } from './logger'
+import { createLogger } from '../common/logger'
 
 const logger = createLogger('backendHelpers')
 

@@ -37,6 +37,7 @@ import { IpfsModule } from './ipfs/ipfs.module'
 import { Level } from 'level'
 import { verifyToken } from '@quiet/common'
 import { createLogger } from './common/logger'
+import { HeadlessModule } from './headless/headless.module'
 
 const logger = createLogger('appModule')
 
@@ -49,6 +50,7 @@ const logger = createLogger('appModule')
     IpfsModule,
     IpfsFileManagerModule,
     StorageModule,
+    HeadlessModule,
     ConnectionsManagerModule,
     RegistrationModule,
     TorModule,

@@ -13,6 +13,7 @@ import { OpenServices, validateOptions } from './options'
 import { SOCKS_PROXY_AGENT } from './nest/const'
 import { createLogger } from './nest/common/logger'
 import { HttpsProxyAgent } from 'https-proxy-agent'
+import { HeadlessService } from './nest/headless/headless.service'
 
 const logger = createLogger('backendManager')
 
@@ -64,12 +65,10 @@ export const runBackendDesktop = async () => {
     AppModule.forOptions({
       socketIOPort: options.socketIOPort,
       socketIOSecret: options.socketIOSecret,
-      torBinaryPath: options.headless == null ? torBinForPlatform(resourcesPath) : undefined,
-      torResourcesPath: options.headless == null ? torDirForPlatform(resourcesPath) : undefined,
+      torBinaryPath: torBinForPlatform(resourcesPath),
+      torResourcesPath: torDirForPlatform(resourcesPath),
       torControlPort: await getPort(),
-      headless: options.headless
-        ? { ip: options.headlessIp, port: Number(options.headlessPort), hostname: options.headlessHostname }
-        : undefined,
+      headless: undefined,
       options: {
         env: {
           appDataPath: path.join(options.appDataPath.trim(), 'Quiet'),
@@ -96,6 +95,61 @@ export const runBackendDesktop = async () => {
         logger.error('Error occurred while leaving community', e)
       }
       if (process.send) process.send('leftCommunity')
+    }
+  })
+}
+
+export const runBackendHeadless = async () => {
+  logger.info('Running backend manager headless')
+
+  const webcrypto = new Crypto()
+  // @ts-ignore
+  global.crypto = webcrypto
+
+  validateOptions(options)
+
+  const app = await NestFactory.createApplicationContext(
+    AppModule.forOptions({
+      socketIOPort: options.socketIOPort,
+      socketIOSecret: options.socketIOSecret,
+      httpTunnelPort: 3000,
+      torBinaryPath: undefined,
+      torResourcesPath: undefined,
+      torControlPort: await getPort(),
+      headless: { ip: options.headlessIp, port: Number(options.headlessPort), hostname: options.headlessHostname },
+      options: {
+        env: {
+          appDataPath: path.join(options.appDataPath.trim(), 'Quiet'),
+        },
+      },
+    })
+  )
+
+  const connectionsManager = app.get<ConnectionsManagerService>(ConnectionsManagerService)
+  const headlessService = app.get<HeadlessService>(HeadlessService)
+
+  if (process.send) process.send(`ready_${headlessService.initialized ? 'initialized' : 'not_initialized'}`)
+
+  process.on('message', async message => {
+    if (message === 'close') {
+      try {
+        await connectionsManager.closeAllServices()
+      } catch (e) {
+        logger.error('Error occurred while closing backend services', e)
+      }
+      if (process.send) process.send('closed-services')
+    }
+    if (message === 'leaveCommunity') {
+      try {
+        await connectionsManager.leaveCommunity()
+      } catch (e) {
+        logger.error('Error occurred while leaving community', e)
+      }
+      if (process.send) process.send('leftCommunity')
+    }
+    if ((message as any).type === 'joinCommunity') {
+      await headlessService.initHeadlessUser((message as any).payload)
+      await headlessService.launchCommunity(true)
     }
   })
 }
@@ -166,6 +220,11 @@ if (platform === 'desktop') {
     })
     throw error
   })
+} else if (platform === 'headless') {
+  runBackendHeadless().catch(error => {
+    logger.error('Error occurred while initializing backend in headless mode', error)
+    throw error
+  })
 } else {
-  throw Error(`Platfrom must be either desktop or mobile, received ${options.platform}`)
+  throw Error(`Platfrom must be either desktop, mobile, or headless, received ${options.platform}`)
 }

@@ -16,8 +16,8 @@ import { createLibp2pAddress, createLibp2pListenAddress } from '@quiet/common'
 import { ConnectionProcessInfo, type NetworkDataPayload, SocketActionTypes, type UserData } from '@quiet/types'
 
 import { getUsersAddresses } from '../common/utils'
-import { LIBP2P_DB_PATH, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
-import { ServerIoProviderTypes } from '../types'
+import { HEADLESS_OPTIONS, LIBP2P_DB_PATH, SERVER_IO_PROVIDER, SOCKS_PROXY_AGENT } from '../const'
+import { HeadlessOptions, ServerIoProviderTypes } from '../types'
 import {
   CreatedLibp2pPeerId,
   Libp2pConnectedPeer,
@@ -30,7 +30,7 @@ import { createLogger } from '../common/logger'
 import { Libp2pDatastore } from './libp2p.datastore'
 import { libp2pAuth, Libp2pAuth } from './libp2p.auth'
 import { SigChainService } from '../auth/sigchain.service'
-import { generatePeerLibp2pConfig, generateServerLibp2pConfig } from './libp2p.config'
+import { generatePeerLibp2pConfig, generateServerLibp2pConfig, getTcpListenAddress } from './libp2p.config'
 
 const KEY_LENGTH = 32
 export const LIBP2P_PSK_METADATA = '/key/swarm/psk/1.0.0/\n/base16/\n'
@@ -46,6 +46,7 @@ export class Libp2pService extends EventEmitter {
   public localAddress: string
   private _connectedPeersInterval: NodeJS.Timeout
   private authService: Libp2pAuth | undefined
+  private readonly headless: boolean
 
   private logger = createLogger(Libp2pService.name)
 
@@ -53,6 +54,7 @@ export class Libp2pService extends EventEmitter {
     @Inject(SERVER_IO_PROVIDER) public readonly serverIoProvider: ServerIoProviderTypes,
     @Inject(SOCKS_PROXY_AGENT) public readonly socksProxyAgent: Agent,
     @Inject(LIBP2P_DB_PATH) public readonly datastorePath: string,
+    @Inject(HEADLESS_OPTIONS) private readonly headlessOptions: HeadlessOptions | undefined,
     private sigchainService: SigChainService
   ) {
     super()
@@ -60,6 +62,7 @@ export class Libp2pService extends EventEmitter {
     this.dialQueue = []
     this.connectedPeers = new Map()
     this.dialedPeers = new Set()
+    this.headless = !!this.headlessOptions
   }
 
   public emit(event: string | symbol, ...args: any[]): boolean {
@@ -74,6 +77,11 @@ export class Libp2pService extends EventEmitter {
   }
 
   public dialPeer = async (peerAddress: string) => {
+    if (this.headless) {
+      this.logger.trace(`Skipping dial on headless peer`)
+      return
+    }
+
     this.logger.info(`Dialing peer address: ${peerAddress}`)
 
     if (!peerAddress.includes(this.libp2pInstance?.peerId.toString() ?? '')) {
@@ -155,11 +163,17 @@ export class Libp2pService extends EventEmitter {
   }
 
   public readonly createLibp2pAddress = (address: string, peerId: string, isHeadless: boolean = false): string => {
-    return createLibp2pAddress(address, peerId, isHeadless)
+    if (isHeadless) return ''
+    return createLibp2pAddress(address, peerId)
   }
 
-  public readonly createLibp2pListenAddress = (address: string, isHeadless: boolean = false): string => {
-    return createLibp2pListenAddress(address, isHeadless)
+  public readonly createLibp2pListenAddress = (
+    address: string,
+    peerId: string,
+    isHeadless: boolean = false
+  ): string => {
+    if (isHeadless) return getTcpListenAddress(peerId)
+    return createLibp2pListenAddress(address)
   }
 
   /**
@@ -204,8 +218,10 @@ export class Libp2pService extends EventEmitter {
       this.logger.info('Hanging up connection on libp2p')
       await this.libp2pInstance?.hangUp(ma, { signal: controller.signal })
 
-      this.logger.info('Removing peer from peer store')
-      await this.libp2pInstance?.peerStore.delete(peerId as any)
+      if (!ma.protoNames().includes('ip4')) {
+        this.logger.info('Removing peer from peer store')
+        await this.libp2pInstance?.peerStore.delete(peerId as any)
+      }
 
       this.logger.info('Clearing local data')
       this.dialedPeers.delete(peerAddress)

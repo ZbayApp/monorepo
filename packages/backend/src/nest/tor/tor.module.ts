@@ -14,6 +14,7 @@ const torParamsProvider = {
   provide: TOR_PARAMS_PROVIDER,
   useFactory: (configOptions: ConfigOptions) => {
     const torPath = configOptions.torBinaryPath ? path.normalize(configOptions.torBinaryPath) : ''
+    console.warn(torPath, configOptions.torBinaryPath)
     const options = {
       env: {
         LD_LIBRARY_PATH: configOptions.torResourcesPath,
@@ -29,9 +30,12 @@ const torParamsProvider = {
 
 const torPasswordProvider = {
   provide: TOR_PASSWORD_PROVIDER,
-  useFactory: (torParamsProvider: TorParamsProvider) => {
+  useFactory: (configOptions: ConfigOptions, torParamsProvider: TorParamsProvider) => {
     const password = crypto.randomBytes(16).toString('hex')
-    if (!torParamsProvider.torPath) return null
+    if (configOptions.headless != null || !torParamsProvider.torPath) {
+      console.warn(`headless or tor path was missing!`)
+      return
+    }
     const hashedPassword = child_process.execSync(`${torParamsProvider.torPath} --quiet --hash-password ${password}`, {
       env: torParamsProvider.options?.env,
     })
@@ -40,13 +44,16 @@ const torPasswordProvider = {
 
     return { torPassword, torHashedPassword }
   },
-  inject: [TOR_PARAMS_PROVIDER],
+  inject: [CONFIG_OPTIONS, TOR_PARAMS_PROVIDER],
 }
 
 const torControlParams = {
   provide: TOR_CONTROL_PARAMS,
   useFactory: (configOptions: ConfigOptions, torPasswordProvider: TorPasswordProvider | null) => {
-    if (!torPasswordProvider) return null
+    if (configOptions.headless != null || torPasswordProvider == null) {
+      console.warn(`Headless mode or password provider was null!`)
+      return null
+    }
     return {
       port: configOptions.torControlPort,
       host: 'localhost',

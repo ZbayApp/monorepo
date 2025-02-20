@@ -47,7 +47,7 @@ describe('Libp2pService', () => {
   })
 
   it('creates libp2p listen address', async () => {
-    const libp2pListenAddress = libp2pService.createLibp2pListenAddress('onionAddress')
+    const libp2pListenAddress = libp2pService.createLibp2pListenAddress('onionAddress', 'foobar')
     expect(libp2pListenAddress).toStrictEqual(`/dns4/onionAddress.onion/tcp/80/ws`)
   })
 

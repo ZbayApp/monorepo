@@ -1,14 +1,47 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { getPorts, ApplicationPorts, closeHangingBackendProcess } from './backendHelpers'
+import { getPorts, ApplicationPorts, closeHangingBackendProcess } from './backend/backendHelpers'
 import { setEngine, CryptoEngine } from 'pkijs'
 import { Crypto } from '@peculiar/webcrypto'
-import { createLogger } from './logger'
+import { createLogger } from './common/logger'
 import { fork, ChildProcess } from 'child_process'
 import { createRequire } from 'module'
+import { InitCommunityPayload, InvitationData, InvitationDataV2 } from '@quiet/types'
+import { argvInvitationLink, parseInvitationLink, parseInvitationLinkDeepUrl, Site } from '@quiet/common'
 
 const logger = createLogger('main')
+
+const getInvitationLinks = (codeOrUrl: string): InvitationData => {
+  /**
+   * Extract codes from invitation share url or return passed value for further error handling
+   * @param codeOrUrl: full invitation link or just the code part of the link
+   */
+  let potentialLink
+  let validUrl: URL | null = null
+
+  let inviteLink = ''
+
+  try {
+    validUrl = new URL(codeOrUrl)
+  } catch (e) {
+    // It may be just code, not URL
+    potentialLink = codeOrUrl
+  }
+
+  if (validUrl && validUrl.host === Site.DOMAIN && validUrl.pathname.includes(Site.JOIN_PAGE)) {
+    const hash = validUrl.hash
+    if (hash) {
+      // Parse hash
+      inviteLink = hash.substring(1)
+    }
+  } else if (potentialLink) {
+    // Parse code just as hash value
+    inviteLink = potentialLink
+  }
+
+  return parseInvitationLink(inviteLink)
+}
 
 const run = async (): Promise<void> => {
   const webcrypto = new Crypto()
@@ -87,7 +120,7 @@ const run = async (): Promise<void> => {
     '-a',
     `${appDataPath}`,
     '-p',
-    'desktop',
+    'headless',
     '-scrt',
     `${SOCKET_IO_SECRET}`,
     '-hl',
@@ -127,6 +160,18 @@ const run = async (): Promise<void> => {
     logger.warn('Backend process exited', code, signal)
     if (code === 1) {
       throw Error('Abnormal backend process termination')
+    }
+  })
+
+  backendProcess.on('message', (event: string) => {
+    if (event === 'ready_not_initialized') {
+      logger.warn('Backend process ready to be initialized')
+      const inviteData = getInvitationLinks(
+        'https://tryquiet.org/join#p=12D3KooWDCoYej6RUyEFrgmDdZ2UaZECApCUm43sHWvpP1Z85qw1%2C4namrtpqubkcm4cjlfcf36icb7wmozmgj3n3omrum4k3feiqmtreanqd%3B12D3KooWQhLv26htswcvhmUXHDRF2sR7xMByMJrCksSo7WeRfYrA%2Ca3x7gye23ccj22xt5mjtk3sntdrctwzfhlcjlmgprpbd4fstz7nae6yd&k=MEse3Ls8fzaaqluVO1CGRLFjYTgWa2vJEAxXWFmSupg%3D&o=035f16ff54d3b845172ee2087adec30604056c3bdd6bd25c3076b5a7c1c68a9057&a=Yz1pc2xhc3dvcmxkJnM9ODhNdmtFQXBtVDY5VzY0Mw'
+      ) as InvitationDataV2
+      backendProcess?.send({ type: 'joinCommunity', payload: inviteData })
+    } else {
+      logger.info('Backend process ready and headless user is already initialized')
     }
   })
 }

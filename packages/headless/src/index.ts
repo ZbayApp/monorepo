@@ -1,3 +1,3 @@
 export * from './main'
-export * from './backendHelpers'
-export * from './logger'
+export * from './backend/backendHelpers'
+export * from './common/logger'

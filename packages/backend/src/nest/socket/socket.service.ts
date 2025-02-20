@@ -57,19 +57,23 @@ export class SocketService extends EventEmitter implements OnModuleInit {
   }
 
   public async init() {
-    const connection = new Promise<void>(resolve => {
-      this.serverIoProvider.io.on(SocketActionTypes.CONNECTION, socket => {
-        socket.on(SocketActionTypes.START, async () => {
-          resolve()
+    if (this.configOptions.headless == null) {
+      const connection = new Promise<void>(resolve => {
+        this.serverIoProvider.io.on(SocketActionTypes.CONNECTION, socket => {
+          socket.on(SocketActionTypes.START, async () => {
+            resolve()
+          })
         })
       })
-    })
 
-    await this.listen()
+      await this.listen()
 
-    this.logger.info('init: Waiting for frontend to connect')
-    await connection
-    this.logger.info('init: Frontend connected')
+      this.logger.info('init: Waiting for frontend to connect')
+      await connection
+      this.logger.info('init: Frontend connected')
+    } else {
+      await this.listen()
+    }
   }
 
   private readonly attachListeners = () => {

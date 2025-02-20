@@ -40,7 +40,10 @@ export class Tor extends EventEmitter implements OnModuleInit {
   }
 
   async onModuleInit() {
-    if (!this.torParamsProvider.torPath) return
+    if (this.torParamsProvider.torPath == null || this.torParamsProvider.torPath === '') {
+      this.logger.warn(`Tor path was missing!`)
+      return
+    }
     await this.init()
   }
 
