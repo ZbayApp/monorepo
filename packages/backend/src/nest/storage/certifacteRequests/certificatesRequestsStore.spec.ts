@@ -14,6 +14,8 @@ import { IpfsService } from '../../ipfs/ipfs.service'
 import { Libp2pService } from '../../libp2p/libp2p.service'
 import { libp2pInstanceParams } from '../../common/utils'
 import { sleep } from '../../common/sleep'
+import { SigChainModule } from '../../auth/sigchain.service.module'
+import { SigChainService } from '../../auth/sigchain.service'
 
 const updateEvent = async (certificatesRequestsStore: any) => {
   certificatesRequestsStore.events.emit('update')
@@ -23,6 +25,7 @@ const updateEvent = async (certificatesRequestsStore: any) => {
 describe('CertificatesRequestsStore', () => {
   let module: TestingModule
   let certificatesRequestsStore: CertificatesRequestsStore
+  let sigchainService: SigChainService
   let orbitDb: OrbitDbService
   let ipfsService: IpfsService
   let libp2pService: Libp2pService
@@ -31,8 +34,11 @@ describe('CertificatesRequestsStore', () => {
     jest.clearAllMocks()
 
     module = await Test.createTestingModule({
-      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule],
+      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule, SigChainModule],
     }).compile()
+
+    sigchainService = await module.resolve(SigChainService)
+    await sigchainService.createChain('team', 'user', true)
 
     libp2pService = await module.resolve(Libp2pService)
     const libp2pParams = await libp2pInstanceParams()

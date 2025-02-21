@@ -13,6 +13,8 @@ import { Libp2pModule } from '../../libp2p/libp2p.module'
 import { IpfsModule } from '../../ipfs/ipfs.module'
 import { Libp2pService } from '../../libp2p/libp2p.service'
 import { IpfsService } from '../../ipfs/ipfs.service'
+import { SigChainModule } from '../../auth/sigchain.service.module'
+import { SigChainService } from '../../auth/sigchain.service'
 
 const communityMetadata: CommunityMetadata = {
   id: '39F7485441861F4A2A1A512188F1E0AA',
@@ -52,13 +54,17 @@ describe('CertificatesStore', () => {
   let orbitDb: OrbitDbService
   let libp2pService: Libp2pService
   let ipfsService: IpfsService
+  let sigchainService: SigChainService
 
   beforeEach(async () => {
     jest.clearAllMocks()
 
     module = await Test.createTestingModule({
-      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule],
+      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule, SigChainModule],
     }).compile()
+
+    sigchainService = await module.resolve(SigChainService)
+    await sigchainService.createChain('team', 'user', true)
 
     libp2pService = await module.resolve(Libp2pService)
     const libp2pParams = await libp2pInstanceParams()

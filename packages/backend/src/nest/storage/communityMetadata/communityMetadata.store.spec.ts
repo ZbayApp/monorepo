@@ -19,6 +19,10 @@ import { IpfsService } from '../../ipfs/ipfs.service'
 import { IpfsModule } from '../../ipfs/ipfs.module'
 import { createTestRootCA, createTestUserCert, createTestUserCsr } from '@quiet/identity'
 import { createLogger } from '../../common/logger'
+import { SigChainModule } from '../../auth/sigchain.service.module'
+import { SigChainService } from '../../auth/sigchain.service'
+import { EncryptedAndSignedPayload } from '../../auth/services/crypto/types'
+import { LocalDbModule } from '../../local-db/local-db.module'
 
 const metaValid = {
   id: 'anId',
@@ -33,7 +37,8 @@ const logger = createLogger('test:communityMetadataStore')
 
 describe('CommmunityMetadataStore', () => {
   let metaValidWithOwnerId: CommunityMetadata
-  let entryValid: LogEntry<CommunityMetadata>
+  let encryptedMetaValid: EncryptedAndSignedPayload
+  let entryValid: LogEntry<EncryptedAndSignedPayload>
 
   let module: TestingModule
   let libp2pService: Libp2pService
@@ -41,20 +46,11 @@ describe('CommmunityMetadataStore', () => {
   let communityMetadataStore: CommunityMetadataStore
   let orbitDbService: OrbitDbService
   let localDbService: LocalDbService
+  let sigChainService: SigChainService
 
   let store: Store
   let factory: FactoryGirl
   let community: Community
-
-  const mockLocalDbService = {
-    setCommunity: jest.fn(),
-    getCurrentCommunity: jest.fn(() => {
-      return {
-        // @ts-ignore - OrbitDB's type definition doesn't include identity
-        ownerOrbitDbIdentity: orbitDbService.orbitDb.identity.id,
-      }
-    }),
-  }
 
   beforeAll(async () => {
     store = prepareStore().store
@@ -75,11 +71,10 @@ describe('CommmunityMetadataStore', () => {
     jest.clearAllMocks()
 
     module = await Test.createTestingModule({
-      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule],
-    })
-      .overrideProvider(LocalDbService)
-      .useValue(mockLocalDbService)
-      .compile()
+      imports: [TestModule, StorageModule, LocalDbModule, Libp2pModule, IpfsModule, SigChainModule],
+    }).compile()
+    sigChainService = await module.resolve(SigChainService)
+    sigChainService.createChain(community.name!, 'john', true)
 
     libp2pService = await module.resolve(Libp2pService)
     const libp2pParams = await libp2pInstanceParams()
@@ -89,9 +84,10 @@ describe('CommmunityMetadataStore', () => {
     await ipfsService.createInstance()
 
     orbitDbService = await module.resolve(OrbitDbService)
-    localDbService = await module.resolve(LocalDbService)
-
     await orbitDbService.create(libp2pParams.peerId.peerId, ipfsService.ipfsInstance!)
+    localDbService = await module.resolve(LocalDbService)
+    localDbService.setCommunity({ ...community, ownerOrbitDbIdentity: orbitDbService.orbitDb.identity.id })
+    localDbService.setCurrentCommunityId(community.id)
 
     communityMetadataStore = await module.resolve(CommunityMetadataStore)
     await communityMetadataStore.init()
@@ -101,10 +97,11 @@ describe('CommmunityMetadataStore', () => {
       // @ts-ignore
       ownerOrbitDbIdentity: orbitDbService.orbitDb.identity.id,
     }
+    encryptedMetaValid = communityMetadataStore.encryptEntry(metaValidWithOwnerId)
 
-    const op = { op: 'PUT', key: metaValidWithOwnerId.id, value: metaValidWithOwnerId }
+    const op = { op: 'PUT', key: metaValidWithOwnerId.id, value: encryptedMetaValid }
 
-    entryValid = await Entry.create<CommunityMetadata>(
+    entryValid = await Entry.create<EncryptedAndSignedPayload>(
       orbitDbService.orbitDb.identity,
       // @ts-ignore
       communityMetadataStore.store.log.id,
@@ -113,6 +110,8 @@ describe('CommmunityMetadataStore', () => {
   })
 
   afterEach(async () => {
+    await localDbService.purge()
+    await localDbService.close()
     await communityMetadataStore.close()
     await orbitDbService.stop()
     await ipfsService.stop()
@@ -135,7 +134,6 @@ describe('CommmunityMetadataStore', () => {
       const ret = await communityMetadataStore.setEntry(metaValid.id, metaValid)
       const meta = await communityMetadataStore.getEntry()
 
-      expect(ret).toStrictEqual(metaValidWithOwnerId)
       expect(meta).toStrictEqual(metaValidWithOwnerId)
     })
 
@@ -155,6 +153,7 @@ describe('CommmunityMetadataStore', () => {
       const ret = await CommunityMetadataStore.validateCommunityMetadataEntry(
         localDbService,
         mockIdentities(true, true),
+        sigChainService,
         entryValid
       )
 
@@ -165,6 +164,7 @@ describe('CommmunityMetadataStore', () => {
       const ret = await CommunityMetadataStore.validateCommunityMetadataEntry(
         localDbService,
         mockIdentities(true, false),
+        sigChainService,
         entryValid
       )
 
@@ -175,6 +175,7 @@ describe('CommmunityMetadataStore', () => {
       const ret = await CommunityMetadataStore.validateCommunityMetadataEntry(
         localDbService,
         mockIdentities(false, true),
+        sigChainService,
         entryValid
       )
 
@@ -182,10 +183,10 @@ describe('CommmunityMetadataStore', () => {
     })
 
     test('returns false if the owner ID is unexpected and entry is otherwise valid', async () => {
-      const op = { op: 'PUT', key: metaValidWithOwnerId.id, value: metaValidWithOwnerId }
+      const op = { op: 'PUT', key: metaValidWithOwnerId.id, value: encryptedMetaValid }
 
       try {
-        const entryInvalid = await Entry.create<CommunityMetadata>(
+        const entryInvalid = await Entry.create<EncryptedAndSignedPayload>(
           {
             ...orbitDbService.orbitDb.identity,
             // NOTE: This is where the entry identity is defined!
@@ -209,8 +210,9 @@ describe('CommmunityMetadataStore', () => {
         ...metaValidWithOwnerId,
         rootCa: 'Something invalid!',
       }
-      const opInvalid = { op: 'PUT', key: metaInvalid.id, value: metaInvalid }
-      const entryInvalid = await Entry.create<CommunityMetadata>(
+      const encryptedMetaInvalid = communityMetadataStore.encryptEntry(metaInvalid)
+      const opInvalid = { op: 'PUT', key: metaInvalid.id, value: encryptedMetaInvalid }
+      const entryInvalid = await Entry.create<EncryptedAndSignedPayload>(
         orbitDbService.orbitDb.identity,
         // @ts-ignore
         communityMetadataStore.store.log.id,
@@ -220,6 +222,7 @@ describe('CommmunityMetadataStore', () => {
       const ret = await CommunityMetadataStore.validateCommunityMetadataEntry(
         localDbService,
         mockIdentities(true, true),
+        sigChainService,
         entryInvalid
       )
 

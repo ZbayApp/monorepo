@@ -21,10 +21,13 @@ import { Libp2pModule } from '../libp2p/libp2p.module'
 import { IpfsModule } from '../ipfs/ipfs.module'
 import { IpfsService } from '../ipfs/ipfs.service'
 import { sleep } from '../common/sleep'
+import { SigChainService } from '../auth/sigchain.service'
+import { SigChainModule } from '../auth/sigchain.service.module'
 
 describe('RegistrationService', () => {
   let module: TestingModule
   let registrationService: RegistrationService
+  let sigchainService: SigChainService
 
   let tmpDir: DirResult
   let certRoot: RootCA
@@ -34,9 +37,11 @@ describe('RegistrationService', () => {
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
-      imports: [TestModule, RegistrationModule],
+      imports: [TestModule, RegistrationModule, SigChainModule],
     }).compile()
 
+    sigchainService = await module.resolve(SigChainService)
+    sigchainService.createChain('team', 'user', true)
     registrationService = await module.resolve(RegistrationService)
 
     jest.clearAllMocks()
@@ -160,8 +165,11 @@ describe('RegistrationService', () => {
 
   it('only issues one group of certs at a time', async () => {
     const module = await Test.createTestingModule({
-      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule],
+      imports: [TestModule, StorageModule, Libp2pModule, IpfsModule, SigChainModule],
     }).compile()
+    const sigchainService = await module.resolve(SigChainService)
+    sigchainService.createChain('team', 'user', true)
+
     const libp2pService = await module.resolve(Libp2pService)
     const libp2pParams = await libp2pInstanceParams()
     await libp2pService.createInstance(libp2pParams)

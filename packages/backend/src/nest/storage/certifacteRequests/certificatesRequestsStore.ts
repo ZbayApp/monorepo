@@ -10,19 +10,25 @@ import { OrbitDbService } from '../orbitDb/orbitDb.service'
 import { createLogger } from '../../common/logger'
 import { EventStoreBase } from '../base.store'
 import { EventsWithStorage } from '../orbitDb/eventsWithStorage'
+import { SigChainService } from '../../auth/sigchain.service'
+import { EncryptedAndSignedPayload, EncryptionScopeType } from '../../auth/services/crypto/types'
+import { RoleName } from '../../auth/services/roles/roles'
 
 @Injectable()
-export class CertificatesRequestsStore extends EventStoreBase<string> {
+export class CertificatesRequestsStore extends EventStoreBase<EncryptedAndSignedPayload | string> {
   protected readonly logger = createLogger(CertificatesRequestsStore.name)
 
-  constructor(private readonly orbitDbService: OrbitDbService) {
+  constructor(
+    private readonly orbitDbService: OrbitDbService,
+    private readonly chains: SigChainService
+  ) {
     super()
   }
 
   public async init() {
     this.logger.info('Initializing certificates requests store')
 
-    this.store = await this.orbitDbService.orbitDb.open<EventsType<string>>('csrs', {
+    this.store = await this.orbitDbService.orbitDb.open<EventsType<EncryptedAndSignedPayload | string>>('csrs', {
       type: 'events',
       sync: false,
       Database: EventsWithStorage(),
@@ -41,6 +47,36 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
     await this.getStore().sync.start()
   }
 
+  private async encryptEntry(payload: string): Promise<EncryptedAndSignedPayload> {
+    try {
+      const chain = this.chains.getActiveChain()
+      const encryptedPayload = chain.crypto.encryptAndSign(
+        payload,
+        { type: EncryptionScopeType.ROLE, name: RoleName.MEMBER },
+        chain.localUserContext
+      )
+      return encryptedPayload
+    } catch (err) {
+      this.logger.error('Failed to encrypt user entry:', err)
+      throw err
+    }
+  }
+
+  private async decryptEntry(payload: EncryptedAndSignedPayload): Promise<string> {
+    try {
+      const chain = this.chains.getActiveChain()
+      const decryptedPayload = chain.crypto.decryptAndVerify<string>(
+        payload.encrypted,
+        payload.signature,
+        chain.localUserContext
+      )
+      return decryptedPayload.contents
+    } catch (err) {
+      this.logger.error('Failed to decrypt user entry:', err)
+      throw err
+    }
+  }
+
   public async loadedCertificateRequests() {
     const csrs = await this.getEntries()
     this.emit(StorageEvents.CSRS_STORED, {
@@ -52,8 +88,9 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
     if (!this.store) {
       throw new Error('Store is not initialized')
     }
+    const encryptedCsr = await this.encryptEntry(csr)
     this.logger.info('Adding CSR to database')
-    await this.store.add(csr)
+    await this.store.add(encryptedCsr)
     return csr
   }
 
@@ -82,8 +119,7 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
 
   public async getEntries() {
     const filteredCsrsMap: Map<string, string> = new Map()
-    const allEntries: string[] = []
-
+    const allEntries: EncryptedAndSignedPayload[] = []
     for await (const x of this.getStore().iterator()) {
       allEntries.push(x.value)
     }
@@ -91,22 +127,28 @@ export class CertificatesRequestsStore extends EventStoreBase<string> {
     this.logger.info('Total CSRs:', allEntries.length)
 
     await Promise.all(
-      allEntries
-        .filter(async csr => {
-          const validation = await this.validateUserCsr(csr)
-          if (validation) return true
-          return false
-        })
-        .map(async csr => {
-          const parsedCsr = await loadCSR(csr)
-          const pubKey = keyFromCertificate(parsedCsr)
+      allEntries.map(async csr => {
+        let decCsr: string
+        try {
+          decCsr = await this.decryptEntry(csr)
+        } catch (err) {
+          this.logger.error('Failed to decrypt csr:', err)
+          return
+        }
+        const validation = await this.validateUserCsr(decCsr)
+        if (!validation) {
+          this.logger.warn(`Skipping csr due to validation error`, decCsr)
+          return
+        }
+        const parsedCsr = await loadCSR(decCsr)
+        const pubKey = keyFromCertificate(parsedCsr)
 
-          if (filteredCsrsMap.has(pubKey)) {
-            this.logger.warn(`Skipping csr due to existing pubkey`, pubKey)
-            return
-          }
-          filteredCsrsMap.set(pubKey, csr)
-        })
+        if (filteredCsrsMap.has(pubKey)) {
+          this.logger.warn(`Skipping csr due to existing pubkey`, pubKey)
+          return
+        }
+        filteredCsrsMap.set(pubKey, decCsr)
+      })
     )
     const validCsrs = [...filteredCsrsMap.values()]
     this.logger.info('Valid CSRs:', validCsrs.length)
