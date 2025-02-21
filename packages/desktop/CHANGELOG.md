@@ -67,6 +67,7 @@
 
 ### Chores
 
+* Remove unused dependencies
 * Cleanup data directory at end of e2e tests
 * Update mobile development README ([#2483](https://github.com/TryQuiet/quiet/issues/2483))
 * Update github workflows for PR gating ([#2487](https://github.com/TryQuiet/quiet/issues/2487))

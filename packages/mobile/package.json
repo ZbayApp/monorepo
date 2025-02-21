@@ -23,6 +23,7 @@
     "version": "react-native-version --skip-tag"
   },
   "dependencies": {
+    "@babel/runtime": "^7.24.5",
     "@peculiar/webcrypto": "^1.4.3",
     "@quiet/backend": "^2.0.3-alpha.5",
     "@quiet/common": "^2.0.2-alpha.1",
@@ -49,7 +50,6 @@
     "react-dom": "18.1.0",
     "react-i18next": "^11.8.15",
     "react-intl": "^6.6.6",
-    "react-linkify": "^1.0.0-alpha",
     "react-native": "0.73.2",
     "react-native-blob-util": "^0.19.6",
     "react-native-config": "git+https://github.com/siepra/react-native-config.git#9dde363d95fce46248f63d9ff2530c16f954214e",
@@ -110,7 +110,6 @@
     "@types/lodash": "4.17.0",
     "@types/luxon": "^3.4.2",
     "@types/react": "^17",
-    "@types/react-linkify": "^1.0.1",
     "@types/react-native": "^0.64.0",
     "@types/react-test-renderer": "^16.9.2",
     "@types/styled-components": "^5.1.9",

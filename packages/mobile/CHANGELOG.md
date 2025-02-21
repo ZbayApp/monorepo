@@ -45,6 +45,10 @@
 * The user profile area is now much easier to click on desktop, and has a nice hover effect matching the rest of the sidebar ([#2566](https://github.com/TryQuiet/quiet/issues/2566)) Thanks @okrayrum!
 * Android app will now work correctly after suspending it (e.g. by swiping up in the app manager) ([#2587](https://github.com/TryQuiet/quiet/issues/2587))
 
+### Chores
+
+* Remove unused dependencies
+
 ## [2.3.0]
 
 ### New features
