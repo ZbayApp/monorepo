@@ -1,19 +1,3 @@
-# Change Log
-
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-# [4.0.0-alpha.7](https://github.com/TryQuiet/quiet/compare/@quiet/desktop@4.0.0-alpha.4...@quiet/desktop@4.0.0-alpha.7) (2025-02-21)
-
-
-### Bug Fixes
-
-* **2708:** Better error handling in orbitdb to mitigate cascading crashes ([#2747](https://github.com/TryQuiet/quiet/issues/2747)) ([a877627](https://github.com/TryQuiet/quiet/commit/a8776277faf0b54d4c94b88febe2b333bb50cdb5))
-
-
-
-
-
 # Changelog
 
 ## [4.0.0]
