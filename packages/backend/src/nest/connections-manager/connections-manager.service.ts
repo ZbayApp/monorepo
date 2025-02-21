@@ -714,9 +714,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
     await this.localDbService.setCommunity(community)
     await this.localDbService.setCurrentCommunityId(community.id)
     await this.launchCommunity(community)
-    if (identity.userCsr?.userCsr) {
-      await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
-    }
     this.logger.info(`Joined and launched community ${community.id}`)
     return community
   }
@@ -840,18 +837,32 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
       this.serverIoProvider.io.emit(SocketActionTypes.PEER_DISCONNECTED, payload)
     })
 
-    await this.storageService.init(peerIdData.peerId)
-    // We can use Nest for dependency injection, but I think since the
-    // registration service depends on the storage service being
-    // initialized, this is helpful to manually inject the storage
-    // service for now. Both object construction and object
-    // initialization need to happen in order based on dependencies.
-    this.registrationService.init(this.storageService)
+    const setupStorage = async () => {
+      this.logger.info('Setting up storage')
+      await this.storageService.init(peerIdData.peerId)
+      // We can use Nest for dependency injection, but I think since the
+      // registration service depends on the storage service being
+      // initialized, this is helpful to manually inject the storage
+      // service for now. Both object construction and object
+      // initialization need to happen in order based on dependencies.
+      this.registrationService.init(this.storageService)
+      if (community.CA) {
+        this.registrationService.setPermsData({
+          certificate: community.CA.rootCertString,
+          privKey: community.CA.rootKeyString,
+        })
+      }
+      if (identity.userCsr?.userCsr) {
+        await this.storageService.saveCSR({ csr: identity.userCsr.userCsr })
+      }
+    }
 
-    if (community.CA) {
-      this.registrationService.setPermsData({
-        certificate: community.CA.rootCertString,
-        privKey: community.CA.rootKeyString,
+    if (this.sigChainService.getActiveChain().team != null) {
+      await setupStorage()
+    } else {
+      this.libp2pService.once(Libp2pEvents.AUTH_JOINED, async (payload: { peer: string }) => {
+        this.logger.info('Handling AUTH_JOINED event', payload)
+        await setupStorage()
       })
     }
 

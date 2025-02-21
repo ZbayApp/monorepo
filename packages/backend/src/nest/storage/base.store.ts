@@ -28,10 +28,10 @@ abstract class StoreBase<V, S extends KeyValueType<V> | EventsType<V>> extends E
   abstract clean(): void
 }
 
-export abstract class KeyValueStoreBase<V> extends StoreBase<V, KeyValueType<V>> {
+export abstract class KeyValueStoreBase<V, U = V> extends StoreBase<V, KeyValueType<V>> {
   protected store: KeyValueType<V> | undefined
-  abstract setEntry(key: string, value: V): Promise<V>
-  abstract getEntry(key?: string): Promise<V | null>
+  abstract setEntry(key: string, value: U): Promise<V>
+  abstract getEntry(key?: string): Promise<U | null>
 }
 
 export abstract class EventStoreBase<V, U = V> extends StoreBase<V, EventsType<V>> {

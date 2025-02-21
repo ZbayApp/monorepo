@@ -40,6 +40,8 @@ import { createLibp2pAddress, filterValidAddresses, generateChannelId } from '@q
 import { createLogger } from '../common/logger'
 import { ServiceState } from './connections-manager.types'
 import { SocketService } from '../socket/socket.service'
+import { SigChainModule } from '../auth/sigchain.service.module'
+import { SigChainService } from '../auth/sigchain.service'
 
 const logger = createLogger('connectionsManager:test')
 
@@ -65,6 +67,7 @@ let userIdentity: Identity
 let communityRootCa: string
 let peerId: CreatedLibp2pPeerId
 let torControl: TorControl
+let sigchainService: SigChainService
 
 beforeEach(async () => {
   jest.clearAllMocks()
@@ -90,6 +93,7 @@ beforeEach(async () => {
       SocketModule,
       Libp2pModule,
       TorModule,
+      SigChainModule,
     ],
   })
     .overrideProvider(TOR_PASSWORD_PROVIDER)
@@ -101,6 +105,7 @@ beforeEach(async () => {
   connectionsManagerService = await module.resolve(ConnectionsManagerService)
   localDbService = await module.resolve(LocalDbService)
   registrationService = await module.resolve(RegistrationService)
+  sigchainService = await module.resolve(SigChainService)
   libp2pService = connectionsManagerService.libp2pService
   peerId = await createPeerId()
   tor = await module.resolve(Tor)
@@ -112,9 +117,13 @@ beforeEach(async () => {
   quietDir = await module.resolve(QUIET_DIR)
 
   const pskBase64 = Libp2pService.generateLibp2pPSK().psk
+  await sigchainService.createChain(community.name!, userIdentity.nickname, false)
+  await sigchainService.saveChain(community.name!)
+  await sigchainService.deleteChain(community.name!, false)
   await localDbService.put(LocalDBKeys.PSK, pskBase64)
   await localDbService.put(LocalDBKeys.CURRENT_COMMUNITY_ID, community.id)
   await localDbService.setCommunity(community)
+  await localDbService.setIdentity(userIdentity)
 })
 
 afterEach(async () => {
@@ -124,10 +133,13 @@ afterEach(async () => {
   removeFilesFromDir(quietDir)
 })
 
+afterAll(async () => {
+  await module.close()
+})
+
 describe('Connections manager', () => {
   it('saves peer stats when peer has been disconnected', async () => {
     const emitSpy = jest.spyOn(libp2pService, 'emit')
-    await localDbService.setIdentity(userIdentity)
 
     // Peer connected
     await connectionsManagerService.init()
@@ -172,10 +184,6 @@ describe('Connections manager', () => {
 
   it('dials many peers on start when provided peer list', async () => {
     logger.info('dials many peers on start when provided peer list')
-    const store = prepareStore().store
-    const factory = await getFactory(store)
-    const community = await factory.create<Community>('Community', { rootCa: 'rootCa' })
-    const userIdentity = await factory.create<Identity>('Identity', { id: community.id, nickname: 'john' })
     const spyOnDial = jest.spyOn(WebSockets.prototype, 'dial')
 
     let peerAddress: string
@@ -196,7 +204,6 @@ describe('Connections manager', () => {
 
     // update level db store of identity to sim saga registration
     localDbService.setIdentity(userIdentity)
-
     expect(connectionsManagerService.communityState).toBe(undefined)
 
     localDbService.setCommunity({ ...community, peerList: peerList })
@@ -236,7 +243,6 @@ describe('Connections manager', () => {
 
     // update level db store to sim launching established community
     localDbService.setCommunity({ ...community, peerList: peerList })
-    localDbService.setIdentity(userIdentity)
 
     expect(connectionsManagerService.communityState).toBe(undefined)
     // community will launch from storage
@@ -297,10 +303,6 @@ describe('Connections manager', () => {
 
   it('dials only valid peers on start when provided peer list', async () => {
     logger.info('dials only valid peers on start when provided peer list')
-    const store = prepareStore().store
-    const factory = await getFactory(store)
-    const community = await factory.create<Community>('Community', { rootCa: 'rootCa' })
-    const userIdentity = await factory.create<Identity>('Identity', { id: community.id, nickname: 'john' })
     const spyOnDial = jest.spyOn(WebSockets.prototype, 'dial')
 
     let peerAddress: string
@@ -317,8 +319,6 @@ describe('Connections manager', () => {
     peerList.push(createLibp2pAddress(generateRandomOnionAddress(50), (await createPeerId()).peerId.toString()))
     // all addresses are valid
     expect(peerList.length).toBe(filterValidAddresses(peerList).length + 1)
-    // update level db store of identity to sim saga registration
-    localDbService.setIdentity(userIdentity)
 
     expect(connectionsManagerService.communityState).toBe(undefined)
     localDbService.setCommunity({ ...community, peerList: peerList })
