@@ -910,10 +910,6 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
           SocketActionTypes.CONNECTED_PEERS,
           Array.from(this.libp2pService.connectedPeers.keys())
         )
-        this.serverIoProvider.io.emit(SocketActionTypes.CERTIFICATES_STORED, {
-          certificates: await this.storageService?.loadAllCertificates(),
-        })
-        await this.storageService?.channels.loadAllChannels()
       }
     })
     this.socketService.on(
