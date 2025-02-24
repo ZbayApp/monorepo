@@ -84,12 +84,16 @@ export class Libp2pService extends EventEmitter {
 
     this.logger.info(`Dialing peer address: ${peerAddress}`)
 
-    if (!peerAddress.includes(this.libp2pInstance?.peerId.toString() ?? '')) {
-      this.dialedPeers.add(peerAddress)
+    const ma = multiaddr(peerAddress)
+    const peerId = ma.getPeerId()
+    const dialAddr = `/ip4/127.0.0.1/tcp/3000/ws/p2p/12D3KooWHPcGQbqgwdv386FmFarY27kCiYcYtxgFuBQiEQnuBqGL/p2p-circuit/p2p/${peerId}`
+
+    if (peerId !== this.libp2pInstance?.peerId.toString()) {
+      this.dialedPeers.add(dialAddr)
       try {
-        await this.libp2pInstance?.dial(multiaddr(peerAddress))
+        await this.libp2pInstance?.dial(multiaddr(dialAddr))
       } catch (e) {
-        this.logger.warn(`Failed to dial peer address: ${peerAddress}`, e)
+        this.logger.warn(`Failed to dial peer address: ${dialAddr}`, e)
         this.dialQueue.push(peerAddress)
       }
     } else {
@@ -172,7 +176,7 @@ export class Libp2pService extends EventEmitter {
     peerId: string,
     isHeadless: boolean = false
   ): string => {
-    if (isHeadless) return getTcpListenAddress(peerId)
+    if (isHeadless) return getTcpListenAddress(peerId, 3000)
     return createLibp2pListenAddress(address)
   }
 
@@ -218,7 +222,7 @@ export class Libp2pService extends EventEmitter {
       this.logger.info('Hanging up connection on libp2p')
       await this.libp2pInstance?.hangUp(ma, { signal: controller.signal })
 
-      if (!ma.protoNames().includes('ip4')) {
+      if (ma.nodeAddress().port !== 3000) {
         this.logger.info('Removing peer from peer store')
         await this.libp2pInstance?.peerStore.delete(peerId as any)
       }
@@ -286,8 +290,8 @@ export class Libp2pService extends EventEmitter {
     this.libp2pDatastore.init()
     const auth = libp2pAuth(this.sigchainService, this)
     const config = params.headless
-      ? generateServerLibp2pConfig(params, this.libp2pDatastore, auth)
-      : generatePeerLibp2pConfig(params, this.libp2pDatastore, auth)
+      ? await generateServerLibp2pConfig(params, this.libp2pDatastore, auth)
+      : await generatePeerLibp2pConfig(params, this.libp2pDatastore, auth)
     try {
       libp2p = await createLibp2p(config)
     } catch (err) {

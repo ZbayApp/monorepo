@@ -227,7 +227,12 @@ export class StorageService extends EventEmitter {
 
     const users = await this.getAllUsers()
     const peers = Array.from(
-      new Set([...existingPeers, ...users.map(user => createLibp2pAddress(user.onionAddress, user.peerId))])
+      new Set([
+        ...existingPeers,
+        ...users
+          .filter(user => !user.username.startsWith('headless-'))
+          .map(user => createLibp2pAddress(user.onionAddress, user.peerId)),
+      ])
     )
     const sortedPeers = await this.localDbService.getSortedPeers(peers)
 

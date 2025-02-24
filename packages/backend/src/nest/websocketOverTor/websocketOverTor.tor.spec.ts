@@ -183,10 +183,12 @@ describe('websocketOverTor', () => {
 
     const remoteAddress = multiaddr(createLibp2pAddress(service2.onionAddress, peerId2))
 
+    // @ts-ignore
     const ws1 = webSockets(websocketsOverTorData1)({
       logger: jest.fn() as unknown as ComponentLogger,
       events: new TypedEventEmitter(),
     })
+    // @ts-ignore
     const ws2 = webSockets(websocketsOverTorData2)({
       logger: jest.fn() as unknown as ComponentLogger,
       events: new TypedEventEmitter(),
@@ -272,10 +274,12 @@ describe('websocketOverTor', () => {
     }
     const multiAddress = multiaddr(createLibp2pAddress(service1.onionAddress, peerId1))
 
+    // @ts-ignore
     const ws1 = webSockets(websocketsOverTorDataServer)({
       logger: jest.fn() as unknown as ComponentLogger,
       events: new TypedEventEmitter(),
     })
+    // @ts-ignore
     const ws2 = webSockets(websocketsOverTorDataClient)({
       logger: jest.fn() as unknown as ComponentLogger,
       events: new TypedEventEmitter(),

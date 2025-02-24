@@ -115,6 +115,7 @@
     "@libp2p/pnet": "2.0.16",
     "@libp2p/tcp": "10.1.0",
     "@libp2p/utils": "^6.3.0",
+    "@libp2p/circuit-relay-v2": "3.1.9",
     "@libp2p/websockets": "^9.1.0",
     "@localfirst/auth": "file:../../3rd-party/auth/packages/auth/dist",
     "@localfirst/crdx": "file:../../3rd-party/auth/packages/crdx/dist",

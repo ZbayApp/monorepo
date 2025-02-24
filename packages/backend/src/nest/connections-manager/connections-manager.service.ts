@@ -7,7 +7,7 @@ import getPort from 'get-port'
 import { Agent } from 'https'
 import path from 'path'
 import { CryptoEngine, setEngine } from 'pkijs'
-import { createPeerId, getUsersFromCsrs, removeFilesFromDir } from '../common/utils'
+import { createPeerId, generateRandomOnionAddress, getUsersFromCsrs, removeFilesFromDir } from '../common/utils'
 
 import { createLibp2pAddress, filterValidAddresses, isPSKcodeValid } from '@quiet/common'
 import {
@@ -492,7 +492,7 @@ export class ConnectionsManagerService extends EventEmitter implements OnModuleI
 
     let createUserCsrPayload: CreateUserCsrPayload
 
-    const commonName = this.headless ? this.headlessOptions!.hostname : identity.hiddenService!.onionAddress
+    const commonName = this.headless ? generateRandomOnionAddress() : identity.hiddenService!.onionAddress
     if (identity?.userCsr) {
       this.logger.info('Recreating user CSR')
       if (identity.userCsr?.userCsr == null || identity.userCsr.userKey == null) {

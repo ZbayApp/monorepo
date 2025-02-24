@@ -126,7 +126,7 @@ export class HeadlessService extends EventEmitter implements OnModuleInit {
 
   private async initIdentity(id: string): Promise<Identity> {
     this.logger.info(`Creating identity`)
-    const identity = await this.connectionsManagerService.createIdentity(id)
+    let identity = await this.connectionsManagerService.createIdentity(id)
     if (identity == null) {
       throw new Error(`Identity was null!`)
     }
@@ -139,6 +139,11 @@ export class HeadlessService extends EventEmitter implements OnModuleInit {
       ...identity,
       nickname: name,
     })
+    identity = await this.localDbService.getIdentity(id)
+    if (identity == null) {
+      throw new Error(`Identity was null!`)
+    }
+
     return identity
   }
 

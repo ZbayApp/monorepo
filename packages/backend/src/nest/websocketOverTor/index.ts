@@ -72,6 +72,7 @@ export interface WebSocketsInit extends AbortOptions, WebSocketOptions {
 
   localAddress: string
   targetPort: number
+  tagSuffix: string
 }
 
 export interface WebSocketsComponents {
@@ -86,6 +87,7 @@ export interface WebSocketsMetrics {
 
 export type WebSocketsDialEvents = OutboundConnectionUpgradeEvents | ProgressEvent<'websockets:open-connection'>
 
+//@ts-ignore
 export class WebSockets implements Transport<WebSocketsDialEvents> {
   private readonly init: WebSocketsInit
   private readonly logger: ComponentLogger
@@ -105,11 +107,11 @@ export class WebSockets implements Transport<WebSocketsDialEvents> {
         }),
       }
     }
+    // @ts-ignore
+    this[Symbol.toStringTag] = `@quiet/websockets-${this.init.tagSuffix}`
   }
 
   readonly [transportSymbol] = true
-
-  readonly [Symbol.toStringTag] = '@quiet/websockets'
 
   readonly [serviceCapabilities]: string[] = ['@libp2p/transport']
 
@@ -219,6 +221,7 @@ export class WebSockets implements Transport<WebSocketsDialEvents> {
 }
 
 export function webSockets(init: WebSocketsInit): (components: WebSocketsComponents) => Transport {
+  // @ts-ignore
   return components => {
     return new WebSockets(components, init)
   }

@@ -167,7 +167,7 @@ const run = async (): Promise<void> => {
     if (event === 'ready_not_initialized') {
       logger.warn('Backend process ready to be initialized')
       const inviteData = getInvitationLinks(
-        'https://tryquiet.org/join#p=12D3KooWDCoYej6RUyEFrgmDdZ2UaZECApCUm43sHWvpP1Z85qw1%2C4namrtpqubkcm4cjlfcf36icb7wmozmgj3n3omrum4k3feiqmtreanqd%3B12D3KooWQhLv26htswcvhmUXHDRF2sR7xMByMJrCksSo7WeRfYrA%2Ca3x7gye23ccj22xt5mjtk3sntdrctwzfhlcjlmgprpbd4fstz7nae6yd&k=MEse3Ls8fzaaqluVO1CGRLFjYTgWa2vJEAxXWFmSupg%3D&o=035f16ff54d3b845172ee2087adec30604056c3bdd6bd25c3076b5a7c1c68a9057&a=Yz1pc2xhc3dvcmxkJnM9ODhNdmtFQXBtVDY5VzY0Mw'
+        'https://tryquiet.org/join#p=12D3KooWRkagrLBnGUe5w9wdHRd1aCWQHZD3zNq9c7RrdLYm4Z8U%2Cpzaapbjzuor3q53lcmob5mf3dghsshwsw5vdg4fuaeyyetx6225lbsid&k=rI5iq1ZqgFukT%2BCvin%2BB%2Fx%2B2fMHlDQdJF%2FGx%2FUN%2BACk%3D&o=02c53acd15f5e44e7930a8be46731e76163b1f12770a0e0267ad8d5d1cd6d76588&a=Yz1pc2xhc3dvcmxkJnM9OVVBY2dNdkZLYlRyZzJVVw'
       ) as InvitationDataV2
       backendProcess?.send({ type: 'joinCommunity', payload: inviteData })
     } else {
