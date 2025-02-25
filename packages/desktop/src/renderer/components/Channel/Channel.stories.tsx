@@ -1,48 +1,92 @@
 import React from 'react'
+import { useState } from 'react'
 
 import { ComponentStory, ComponentMeta } from '@storybook/react'
 
 import { withTheme } from '../../storybook/decorators'
-import { mock_messages } from '../../storybook/utils'
+import { mock_messages, users } from '../../storybook/utils'
+import { ModalName } from '../../sagas/modals/modals.types'
 
 import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 
 import ChannelComponent, { ChannelComponentProps } from './ChannelComponent'
 import { UploadFilesPreviewsProps } from './File/UploadingPreview'
-import { DownloadState } from '@quiet/types'
+import { DownloadState, DisplayableMessage } from '@quiet/types'
+
+// Provide a user object that satisfies 'Identity'
+const validUser = {
+  id: 'id',
+  nickname: 'vader',
+  hiddenService: {
+    onionAddress: 'onionAddress',
+    privateKey: 'privateKey',
+  },
+  peerId: {
+    id: 'myPeerId',
+    privKey: 'myPrivKey',
+    noiseKey: 'myNoiseKey',
+  },
+  userCsr: {
+    userCsr: 'fakeCsr',
+    userKey: 'fakeUserKey',
+    pkcs10: {
+      publicKey: 'fakePubKey',
+      privateKey: 'fakePrivKey',
+      pkcs10: 'fakePkcs10',
+    },
+  },
+  userCertificate: 'fakeCertificate',
+  joinTimestamp: null,
+}
+
+// Add placeholders for the required fields
+const dummyFn = () => {}
+
+const dummyRemoveFile = (_fileId: string) => {}
+
+const defaultIsCommunityInitialized = true
 
 const args: Partial<ChannelComponentProps & UploadFilesPreviewsProps> = {
-  user: {
-    id: 'id',
-    nickname: 'vader',
-    hiddenService: {
-      onionAddress: 'onionAddress',
-      privateKey: 'privateKey',
-    },
-    peerId: {
-      id: 'id',
-      privKey: 'privKey',
-      noiseKey: 'noiseKey',
-    },
-    userCsr: {
-      userCsr: 'userCsr',
-      userKey: 'userKey',
-      pkcs10: {
-        publicKey: 'publicKey',
-        privateKey: 'privateKey',
-        pkcs10: 'pkcs10',
-      },
-    },
-    userCertificate: 'userCertificate',
-    joinTimestamp: null,
-  },
+  // Use the valid user object
+  user: validUser,
+
+  // Return a Redux-like object instead of '(...) => void'
   uploadedFileModal: {
     open: false,
-    handleOpen: function (_args?: any): any {},
-    handleClose: function (): any {},
+    handleOpen(_args?: { src: string }) {
+      return {
+        type: 'Modals/openModal',
+        payload: {
+          name: ModalName.uploadedFileModal,
+          args: { src: _args?.src || '' },
+        },
+      }
+    },
+    handleClose() {
+      return {
+        type: 'Modals/closeModal',
+        payload: ModalName.uploadedFileModal,
+      }
+    },
     src: 'images/butterfly.jpeg',
   },
+
+  // If these are causing the same "() => void" error,
+  // return a Redux action shape here, too:
+  duplicatedUsernameModalHandleOpen() {
+    return {
+      type: 'Modals/openModal',
+      payload: { name: ModalName.duplicatedUsernameModal },
+    }
+  },
+  unregisteredUsernameModalHandleOpen() {
+    return {
+      type: 'Modals/openModal',
+      payload: { name: ModalName.unregisteredUsernameModal },
+    }
+  },
+
   messages: mock_messages(),
   newestMessage: {
     id: '31',
@@ -60,19 +104,23 @@ const args: Partial<ChannelComponentProps & UploadFilesPreviewsProps> = {
   onInputChange: function (_value: string): void {},
   onInputEnter: function (_message: string): void {},
   filesData: {},
+  removeFile: dummyRemoveFile,
+  openUrl: dummyFn,
+  openFilesDialog: dummyFn,
+  handleFileDrop: dummyFn,
+  isCommunityInitialized: defaultIsCommunityInitialized,
+  handleClipboardFiles: dummyFn,
+  pendingGeneralChannelRecreation: false,
 }
 
 const Template: ComponentStory<typeof ChannelComponent> = args => {
   return (
-    <>
-      <DndProvider backend={HTML5Backend}>
-        <ChannelComponent {...args} />
-      </DndProvider>
-    </>
+    <DndProvider backend={HTML5Backend}>
+      <ChannelComponent {...args} />
+    </DndProvider>
   )
 }
 
-// States
 export const Normal = Template.bind({})
 export const Pending = Template.bind({})
 
@@ -602,3 +650,43 @@ const component: ComponentMeta<typeof ChannelComponent> = {
 }
 
 export default component
+
+export const SendingMessagesWithScroll: ComponentStory<typeof ChannelComponent> = () => {
+  const [localMessages, setLocalMessages] = useState<{
+    count: number
+    groups: { [day: string]: DisplayableMessage[][] }
+  }>(mock_messages())
+
+  const handleSend = (message: string) => {
+    const newMessage: DisplayableMessage = {
+      id: String(Date.now()),
+      type: 1,
+      message,
+      createdAt: Date.now(),
+      nickname: 'vader',
+      isRegistered: true,
+      isDuplicated: false,
+      date: new Date().toLocaleTimeString(),
+      pubKey: 'pubKey',
+    }
+
+    setLocalMessages(prev => {
+      const dateKeys = Object.keys(prev.groups)
+      const today = dateKeys[dateKeys.length - 1]
+      const updatedGroups = {
+        ...prev.groups,
+        [today]: [...prev.groups[today], [newMessage]],
+      }
+      return {
+        count: prev.count + 1,
+        groups: updatedGroups,
+      }
+    })
+  }
+
+  return (
+    <DndProvider backend={HTML5Backend}>
+      <ChannelComponent {...args} messages={localMessages} onInputEnter={handleSend} />
+    </DndProvider>
+  )
+}

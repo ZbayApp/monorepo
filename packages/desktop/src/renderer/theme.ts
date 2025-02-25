@@ -132,8 +132,8 @@ const lightTheme = createTheme({
     '0px 1px 0px #F0F0F0',
     '0px 1px 3px rgba(0, 0, 0, 0.0)',
     '0px 2px 25px rgba(0, 0, 0, 0.2)',
-    // From here, this is just 20 repeats until we figure out shadows
-    '0px 0px 4px rgba(0, 0, 0, 0.25)',
+    '0px 1px 12px rgba(0, 0, 0, 0.09)',
+    // From here, this is just 19 repeats until we figure out shadows
     '0px 0px 4px rgba(0, 0, 0, 0.25)',
     '0px 0px 4px rgba(0, 0, 0, 0.25)',
     '0px 0px 4px rgba(0, 0, 0, 0.25)',
@@ -291,9 +291,10 @@ const darkTheme = createTheme({
     mode: 'dark',
     background: {
       // Background colors (white-ish for light theme, black-ish for dark)
-      default: '#151515',
+      default: '#222222',
       paper: '#222222',
     },
+    divider: '#2F2F2F',
     // text: {}, // font colors (black-ish for light theme, white-ish for dark)
     primary: {
       // Primary Quiet brand purple
@@ -341,7 +342,7 @@ const darkTheme = createTheme({
       gray50: '#7F7F7F',
       gray70: '#4C4C4C',
       // Border colors
-      border01: '#F0F0F0',
+      border01: '#2F2F2F',
       border02: '#B3B3B3',
       border03: '#D2D2D2',
       // Gradients and other run-of-the-mill things
@@ -350,15 +351,15 @@ const darkTheme = createTheme({
       sidebarHover: '#FFFFFF0C',
     },
   },
-  //@ts-ignore MUI types expect 25 shadows - see: https://github.com/mui/material-ui/issues/28820
+  //@ts-ignore MUI types expect 25 shadows
   shadows: [
     'none',
     '0px 0px 4px rgba(1, 1, 1, 0.25)',
     '0px 1px 0px #0F0F0F',
     '0px 1px 3px rgba(1, 1, 1, 0.0)',
     '0px 2px 25px rgba(1, 1, 1, 0.2)',
+    '0px 1px 12px rgba(255, 255, 255, 0.1)', // White shadow for floating elements in dark mode
     // Repeats until we design our shadows
-    '0px 0px 4px rgba(1, 1, 1, 0.25)',
     '0px 0px 4px rgba(1, 1, 1, 0.25)',
     '0px 0px 4px rgba(1, 1, 1, 0.25)',
     '0px 0px 4px rgba(1, 1, 1, 0.25)',

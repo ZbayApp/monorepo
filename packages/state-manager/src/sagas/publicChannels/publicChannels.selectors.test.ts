@@ -272,7 +272,7 @@ describe('publicChannelsSelectors', () => {
 
     // Get groups names
     const groupDay1 = formatMessageDisplayDay(formatMessageDisplayDate(msgs['7'].createdAt))
-    expect(groupDay1).toBe('Feb 05')
+    expect(groupDay1).toBe('Feb 5')
     const groupDay2 = formatMessageDisplayDay(formatMessageDisplayDate(msgs['1'].createdAt))
     expect(groupDay2).toBe('Oct 20')
     const groupDay3 = formatMessageDisplayDay(formatMessageDisplayDate(msgs['9'].createdAt))

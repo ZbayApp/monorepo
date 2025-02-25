@@ -15,7 +15,7 @@ describe('QuitAppDialog', () => {
           aria-hidden="true"
         />
         <div
-          class="MuiDialog-root MuiModal-root css-vzv1bc-MuiModal-root-MuiDialog-root"
+          class="MuiDialog-root MuiModal-root css-1jwcu1u-MuiModal-root-MuiDialog-root"
           role="presentation"
         >
           <div

@@ -4,6 +4,7 @@
 
 ### New features
 
+* Adds sticky date markers to the chat view [#505](https://github.com/TryQuiet/quiet/issues/505)
 * Generating LFA-ready invite links when a sigchain is configured ([#2627](https://github.com/TryQuiet/quiet/issues/2627))
 * Add local-first/auth powered libp2p authentication service ([#2629](https://github.com/TryQuiet/quiet/issues/2629))
 
