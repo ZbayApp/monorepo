@@ -15,7 +15,7 @@ const BreakingChangesWarning = () => {
 
   const title = 'Update available'
   const message =
-    'Quiet’s next release includes major updates to OrbitDB and IPFS! 🎉 However, these changes are not backwards compatible, so you must re-install Quiet from tryquiet.org and re-create or re-join your community. 😥 This version of Quiet will no longer receive any updates or security fixes, so please re-install soon. We apologize for the inconvenience.'
+    "Quiet's next release includes major changes to authentication and encryption that will let us offer DMs, private channels, roles, multi-device support, and user removal in future versions! 🎉 However, these changes are not backwards compatible, so you must re-install Quiet from tryquiet.org and re-create or re-join your community. 😥 This version of Quiet will no longer receive any updates or security fixes, so please re-install soon. We apologize for the inconvenience."
 
   const updateAction = useCallback(() => {
     shell.openExternal(`${Site.MAIN_PAGE}#Downloads`)
